@@ -5,5 +5,43 @@
      <file>icons/minimise.png</file>
      <file>icons/zeden_ico.png</file>
 	 <file>icons/haptic.png</file>
+	 <file>icons/arrow.png</file>
+	 <file>icons/select_square.png</file>
+	 <file>icons/invert_selection.png</file>
+	 <file>icons/select_H.png</file>
+	 <file>icons/select_C.png</file>
+	 <file>icons/deselect.png</file>	
+	 <file>icons/select_all.png</file> 	 
+	 <file>icons/builder_C.png</file>
+	 <file>icons/builder_S.png</file>
+	 <file>icons/builder_O.png</file>
+	 <file>icons/builder_N.png</file>
+	 <file>icons/builder_1bond.png</file>
+	 <file>icons/builder_2bond.png</file>
+	 <file>icons/builder_3bond.png</file>
+	 <file>icons/builder_Xbond.png</file>
+	 <file>icons/builder_del.png</file>
+	 <file>icons/builder_pencil.png</file>
+	 <file>icons/builder_smile.png</file>
+	 <file>icons/select.png</file>
+	 <file>icons/builder.png</file>
+	 <file>icons/periodic_table.png</file>
+	 <file>icons/X.png</file>
+	 <file>icons/V.png</file>
+	 <file>icons/pencil_C.png</file>
+	 <file>icons/pencil_O.png</file>
+	 <file>icons/pencil_S.png</file>
+	 <file>icons/pencil_N.png</file>
+	 <file>icons/pointer_select_square.png</file>
+	 <file>icons/pointer_rubber.png</file>
+	 <file>icons/ring3.png</file>
+	 <file>icons/ring4.png</file>
+	 <file>icons/ring5.png</file>
+	 <file>icons/ring6.png</file>
+	 <file>icons/ring7.png</file>
+	 <file>icons/ring8.png</file>
+	 <file>icons/benzene.png</file>
+	 <file>icons/furan.png</file>
+	 <file>icons/furanO.png</file>
 	</qresource>
 </RCC>

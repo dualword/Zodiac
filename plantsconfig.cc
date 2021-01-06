@@ -78,7 +78,7 @@ int Confline::getInt (string mystr){
 
 void Confline::Default () {
 	current = defval;
-	if (type=='m' || type=='M' ) {vector.clear();};
+	if (type=='m' || type=='M' ) {vect.clear();};
 }
 
 
@@ -107,17 +107,17 @@ void Confline::Apply () {
 
 	else if (type=='m') {
 		targetlb->clear ();
-		for (unsigned int j=0; j<vector.size(); j++)
+		for (unsigned int j=0; j<vect.size(); j++)
 		{
-			targetlb->insertItem( QString(vector[j].c_str()) );
+			targetlb->insertItem( QString(vect[j].c_str()) );
 
 		}
 	}
 
 	else if (type=='M') {
 		targetlb->clear ();
-		for (unsigned int j=0; j<vector.size(); j++){
-			targetlb->insertItem(new MyListBoxItem (vector[j], targetlb));
+		for (unsigned int j=0; j<vect.size(); j++){
+			targetlb->insertItem(new MyListBoxItem (vect[j], targetlb));
 
 		}
 	}
@@ -166,9 +166,9 @@ void Confline::Get () {
 	else if (type=='m') {
 
 		if (targetlb->count ()) {
-			vector.clear ();
+			vect.clear ();
 			for (unsigned int j=0; j<targetlb->count() ; j++){
-				vector.push_back (targetlb->text(j).toStdString());
+				vect.push_back (targetlb->text(j).toStdString());
 			}
 		}
 
@@ -177,9 +177,9 @@ void Confline::Get () {
 	else if (type=='M') {
 
 		if (targetlb->count ()) {
-			vector.clear ();
+			vect.clear ();
 			for (unsigned int j=0; j<targetlb->count() ; j++){
-				vector.push_back (targetlb->item (j)->text ().toStdString());
+				vect.push_back (targetlb->item (j)->text ().toStdString());
 				cout << "check this" << targetlb->item (j)->text ().toStdString() << endl;
 			}
 		}
@@ -217,26 +217,29 @@ Configuration::Configuration (Plants *plant) {
 	//  setdata (dat);
 
 
-
+	
+	
 	conf.push_back (new Confline ('l',"aco_ants","20", plants->mainwin->aants));
-	conf.push_back (new Confline ('l',"aco_evap", "0.15", plants->mainwin->aevap));
-	conf.push_back (new Confline ('l',"aco_sigma", "1.0", plants->mainwin->asigma)); 
-	conf.push_back (new Confline ('b',"flip_amide_bonds", "0", plants->mainwin->flipab));  
-	conf.push_back (new Confline ('b',"flip_planar_n", "1", plants->mainwin->flipn));
-	conf.push_back (new Confline ('b',"force_flipped_bonds_planarity", "0", plants->mainwin->ffbp));
-	conf.push_back (new Confline ('c',"scoring_function", "chemplp", plants->mainwin->sfchoice));
-	conf.push_back (new Confline ('b',"chemplp_weak_cho", "0", plants->mainwin->cho));
-	conf.push_back (new Confline ('c',"ligand_intra_score", "clash", plants->mainwin->lintra));
-	conf.push_back (new Confline ('l',"chemplp_charged_hb_weight", "1.5", plants->mainwin->chbw));
-	conf.push_back (new Confline ('l',"chemplp_charged_metal_weight", "1.5", plants->mainwin->cmw));
-	conf.push_back (new Confline ('l',"chemplp_hbond_weight", "-4.0", plants->mainwin->hbw));
-	conf.push_back (new Confline ('l',"chemplp_hbond_cho_weight", "-3.0", plants->mainwin->hbchow));
-	conf.push_back (new Confline ('l',"chemplp_metal_weight", "-9.0", plants->mainwin->mw));
-	conf.push_back (new Confline ('l',"chemplp_plp_weight", "0.7", plants->mainwin->plpw));
-	conf.push_back (new Confline ('l',"chemplp_intercept_weight", "-20.0", plants->mainwin->iw));
-	conf.push_back (new Confline ('l',"cluster_rmsd", "2.0", plants->mainwin->crmsd));
-	conf.push_back (new Confline ('l',"cluster_structures", "5", plants->mainwin->cs));
-
+    conf.push_back (new Confline ('l',"aco_evap", "0.15", plants->mainwin->aevap));
+    conf.push_back (new Confline ('l',"aco_sigma", "1.0", plants->mainwin->asigma)); 
+    conf.push_back (new Confline ('b',"flip_amide_bonds", "0", plants->mainwin->flipab));  
+    conf.push_back (new Confline ('b',"flip_planar_n", "1", plants->mainwin->flipn));
+    conf.push_back (new Confline ('b',"force_flipped_bonds_planarity", "0", plants->mainwin->ffbp));
+    conf.push_back (new Confline ('c',"scoring_function", "chemplp", plants->mainwin->sfchoice));
+    conf.push_back (new Confline ('b',"chemplp_weak_cho", "1", plants->mainwin->cho));
+    conf.push_back (new Confline ('c',"ligand_intra_score", "clash2", plants->mainwin->lintra));
+    conf.push_back (new Confline ('l',"chemplp_charged_hb_weight", "1.75", plants->mainwin->chbw));
+    conf.push_back (new Confline ('l',"chemplp_charged_metal_weight", "2.0", plants->mainwin->cmw));
+    conf.push_back (new Confline ('l',"chemplp_hbond_weight", "-4.0", plants->mainwin->hbw));
+    conf.push_back (new Confline ('l',"chemplp_hbond_cho_weight", "-2.0", plants->mainwin->hbchow));
+    conf.push_back (new Confline ('l',"chemplp_metal_weight", "-6.0", plants->mainwin->mw));
+    conf.push_back (new Confline ('l',"chemplp_plp_weight", "1.0", plants->mainwin->plpw));
+    conf.push_back (new Confline ('l',"chemplp_intercept_weight", "-20.0", plants->mainwin->iw));
+    conf.push_back (new Confline ('l',"cluster_rmsd", "2.0", plants->mainwin->crmsd));
+    conf.push_back (new Confline ('l',"cluster_structures", "5", plants->mainwin->cs));
+	
+	
+	
 
 	conf.push_back (new Confline ('M',"ifile", "", plants->mainwin->iflb));
 	conf.push_back (new Confline ('f',"protein_file", "", plants->mainwin->pfile));
@@ -405,19 +408,19 @@ void Configuration::Read (const char * filename){
 
 			for (unsigned i=0; i<conf.size (); i++){
 				if (conf[i]->filestr == "ifile") {
-					conf[i]->vector = ifiles;
+					conf[i]->vect = ifiles;
 
 				}         
 				if (conf[i]->filestr == "constr") {
-					conf[i]->vector = vconstr;
+					conf[i]->vect = vconstr;
 
 				}    
 				if (conf[i]->filestr == "flex") {
-					conf[i]->vector = vflex;
+					conf[i]->vect = vflex;
 
 				}   
 				if (conf[i]->filestr == "water") {
-					conf[i]->vector = vwater;
+					conf[i]->vect = vwater;
 
 				}    
 
@@ -443,8 +446,8 @@ void Configuration::Write (const char * filename){
 		if (i == 29){*file << endl << endl << "#CONSTRAINTS && FLEXIBILITY" << endl;};
 		if (i == 33){*file << endl << endl << "#WATER" << endl;};
 		if (conf[i]->type=='m' || conf[i]->type=='M' ){
-			for (unsigned int j=0;j<conf[i]->vector.size(); j++){ 
-				*file << conf[i]->vector[j] << endl;  
+			for (unsigned int j=0;j<conf[i]->vect.size(); j++){ 
+				*file << conf[i]->vect[j] << endl;  
 			}
 		}
 		else{

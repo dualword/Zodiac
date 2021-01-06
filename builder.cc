@@ -32,12 +32,12 @@ Builder::Builder (DDWin *ddw) {
 }
 
 
-void Builder::save_Hs (Atom *at, vector <Atom *> &prev_ats, vector <Bond *> &prev_bonds) {
+void Builder::save_Hs (Atom *at, vector <Atom *> &prev_ats, vector <ZNBond *> &prev_bonds) {
     prev_ats.clear ();
     prev_bonds.clear ();
     FOR_NBORS_OF_ATOM (n, at) {
         if (n -> IsHydrogen ()) {
-            Bond *bo = at -> GetBond (&*n);
+            ZNBond *bo = at -> GetBond (&*n);
             if (bo) {
                 prev_ats.push_back (&*n);
                 prev_bonds.push_back (bo);
@@ -47,8 +47,8 @@ void Builder::save_Hs (Atom *at, vector <Atom *> &prev_ats, vector <Bond *> &pre
 }
 
 
-void Builder::add_Hs (Atom *at, vector <Atom *> &atoms, vector <Bond *> &bonds) {
-    Molecule *mol = (Molecule *) at -> GetParent ();
+void Builder::add_Hs (Atom *at, vector <Atom *> &atoms, vector <ZNBond *> &bonds) {
+    ZNMolecule *mol = (ZNMolecule *) at -> GetParent ();
 
     if (atoms.size () && bonds.size ()) {
         assert (atoms.size() == bonds.size ());
@@ -59,7 +59,7 @@ void Builder::add_Hs (Atom *at, vector <Atom *> &atoms, vector <Bond *> &bonds) 
 }
 
 
-void Builder::delete_Hs (Molecule *mol) {
+void Builder::delete_Hs (ZNMolecule *mol) {
 //    cerr << "removing_Hs" << endl;
     vector <Atom *>to_del;
     FOR_ATOMS_OF_MOL (n, mol) {
@@ -81,7 +81,7 @@ void Builder::delete_Hs (Molecule *mol) {
 
 void Builder::delete_Hs (Atom *at) {
   //  cerr << "removing_Hs" << endl;
-    Molecule *mol = (Molecule *) at -> GetParent ();
+    ZNMolecule *mol = (ZNMolecule *) at -> GetParent ();
     vector <Atom *>to_del;
     FOR_NBORS_OF_ATOM (n, at) {
         if (n) {
@@ -99,23 +99,198 @@ void Builder::delete_Hs (Atom *at) {
 
 
 void Builder::add_atom (int atomnum) {
+	vector <Atom *> to_select;
     bool continue_mol = find_target ();
     if (!continue_mol) {
         vect coord;
-        new_atom (coord, atomnum);
+        Atom * new_at = new_atom (coord, atomnum);
+		FOR_NBORS_OF_ATOM (n, new_at) {
+			if (n->IsHydrogen ()) {
+				to_select.push_back (&*n);
+				break;
+			}
+		}
     }
-/*    else {
-        for (unsigned int i=0; i<ddwin->target_molecule->atoms.size (); i++) {
-            Atom *at = ddwin->target_molecule->atoms[i];
-            mutate_atom_to (at, atomnum);
-            ddwin->select (at->residue->molecule->atoms[at->residue->molecule->atoms.size()-1]);
-        }
-    }
+    else {
+		FOR_ATOMS_OF_MOL (at, ddwin ->target_molecule) {
+			
+			if (!at->IsHydrogen ()) {
+				mutate_atom_to (&*at, atomnum);
+				FOR_NBORS_OF_ATOM (n, &*at) {
+					if (n->IsHydrogen ()) {
+						to_select.push_back (&*n);
+						break;
+					}
+				}
+			}
+			
+			else { //adding to an H
+				OBBondIterator i;
+				Atom *parent = at -> BeginNbrAtom (i);
+				if (parent) {
+				//				vect v = parent -> GetNewBondVector ()
+				Atom *new_atom =add_atom_bonded_to (get_coordinates (&*at), atomnum, parent);
+				FOR_NBORS_OF_ATOM (n, new_atom) {
+					if (n->IsHydrogen ()) {
+						to_select.push_back (&*n);
+						break;
+					}
+				}
+				}
+			}
+		}
+	}
+	ddwin ->deselect ();
+	ddwin ->select (to_select);
+	ddwin ->set_current_target (-1);
+	ddwin->gl->draw_molecule (ddwin->target_molecule);
 
-    ddwin->gl->draw_molecule (ddwin->target_molecule);
-*/
 }
 
+////////////////////////////////////////////////////////////////////////////////
+void Builder::add_fragment (string str) {
+	OBConversion conv;
+	ZNMolecule *mol = new ZNMolecule ();
+	conv.SetInFormat ("SMI");
+	conv.ReadString (mol, str);
+    bool continue_mol = find_target ();
+    if (!continue_mol) {
+		add_mol (str);
+    }
+    else {
+		if (ddwin ->target_molecule ->NumAtoms () ==1) {
+			Atom *to_add = ddwin ->target_molecule ->GetAtom (1);
+			ddwin ->deselect ();
+			ZNMolecule *old_mol = (ZNMolecule *) to_add ->GetParent ();
+			old_mol ->DeleteHydrogens (to_add);
+			old_mol ->ZNinit ();
+			int oldat_idx = to_add ->GetIdx ();
+
+			OBConversion conv;
+			conv.SetInFormat ("SMI");
+			conv.ReadString (mol, str);
+
+	//		mol -> AddHydrogens ();
+			mend_coordinates (mol);
+
+			int newat_idx = old_mol ->NumAtoms () +1;
+			(*old_mol) += (*mol);
+			OBBuilder obbuild;
+			obbuild.Connect (*old_mol, oldat_idx, newat_idx);
+			mend_coordinates (old_mol);
+			
+			old_mol ->AddHydrogens ();
+			old_mol ->ZNinit ();
+
+
+		}
+	/*
+		FOR_ATOMS_OF_MOL (at, ddwin ->target_molecule) {
+			if (!at->IsHydrogen ()) {
+				mutate_atom_to (&*at, atomnum);
+				FOR_NBORS_OF_ATOM (n, &*at) {
+					if (n->IsHydrogen ()) {
+						to_select.push_back (&*n);
+						break;
+					}
+				}
+			}
+			
+			else { //adding to an H
+				OBBondIterator i;
+				Atom *parent = at -> BeginNbrAtom (i);
+				if (parent) {
+				//				vect v = parent -> GetNewBondVector ()
+				Atom *new_atom =add_atom_bonded_to (get_coordinates (&*at), atomnum, parent);
+				FOR_NBORS_OF_ATOM (n, new_atom) {
+					if (n->IsHydrogen ()) {
+						to_select.push_back (&*n);
+						break;
+					}
+				}
+				}
+			}
+		}
+		*/
+	}
+//	ddwin ->deselect ();
+//	ddwin ->select (to_select);
+//	ddwin ->set_current_target (-1);
+//	ddwin->gl->draw_molecule (ddwin->target_molecule);
+}
+
+
+void Builder::add_mol (string str) {
+	vector <Atom *> to_select;
+	bool continue_mol = find_target ();
+	if (!continue_mol) {
+		OBConversion conv;
+		ZNMolecule *mol = new ZNMolecule ();
+		conv.SetInFormat ("SMI");
+		conv.ReadString (mol, str);
+		mol -> AddHydrogens ();
+		mend_coordinates (mol);
+		CreateZNMoleculeCommand *command = new CreateZNMoleculeCommand (mol, ddwin);
+		ddwin -> execute (command);
+	}
+	else {
+//cerr<< "add_mol: 3"<<endl;
+/*
+		OBConversion conv;
+		ZNMolecule *mol = new ZNMolecule ();
+		conv.SetInFormat ("SMI");
+		conv.ReadString (mol, str);
+
+
+
+		mutate_atom_to (&*at, atomnum);
+		FOR_NBORS_OF_ATOM (n, &*at) {
+			if (n->IsHydrogen ()) {
+				to_select.push_back (&*n);
+				break;
+			}
+		}
+*/
+
+/*
+		FOR_ATOMS_OF_MOL (at, ddwin ->target_molecule) {
+			
+			if (!at->IsHydrogen ()) {
+				mutate_atom_to (&*at, atomnum);
+				FOR_NBORS_OF_ATOM (n, &*at) {
+					if (n->IsHydrogen ()) {
+						to_select.push_back (&*n);
+						break;
+					}
+				}
+			}
+			
+			else { //adding to an H
+				OBBondIterator i;
+				Atom *parent = at -> BeginNbrAtom (i);
+				if (parent) {
+				//				vect v = parent -> GetNewBondVector ()
+				Atom *new_atom =add_atom_bonded_to (get_coordinates (&*at), atomnum, parent);
+				FOR_NBORS_OF_ATOM (n, new_atom) {
+					if (n->IsHydrogen ()) {
+						to_select.push_back (&*n);
+						break;
+					}
+				}
+				}
+			}
+		}
+*/
+
+	}
+	ddwin ->deselect ();
+/*
+	ddwin ->select (to_select);
+	ddwin ->set_current_target (-1);
+	ddwin->gl->draw_molecule (ddwin->target_molecule);
+*/
+}
+///////////////////////////////////////////////////////////////////////////////
 
 void Builder::mutate_atom_to (Atom *at, unsigned int atomnum) {
     if (at -> GetAtomicNum () != atomnum) {
@@ -131,10 +306,10 @@ Atom *Builder::add_atom_bonded_to (vect coord, int atmnum, Atom *at) {
  //   cerr << "add" << endl;
     Atom *new_at = new Atom ();
     new_at -> SetAtomicNum (atmnum);
-	Molecule *mol = (Molecule *) at -> GetParent ();
+	ZNMolecule *mol = (ZNMolecule *) at -> GetParent ();
 	mol->ZNinit_atom (new_at);
     set_coordinates (new_at, coord);  
-    Bond *bo = new Bond ();
+    ZNBond *bo = new ZNBond ();
     AddAtomCommand *command = new AddAtomCommand (new_at, bo, at, ddwin);
     ddwin -> execute (command);
     return command -> atom;
@@ -152,7 +327,7 @@ Atom *Builder::new_atom (vect coord, int atomnum) {
     at->SetAtomicNum (atomnum);
 
 
-    Molecule *mol = new Molecule ();
+    ZNMolecule *mol = new ZNMolecule ();
    // mol -> ZNinit_atom (at);
 
 
@@ -168,10 +343,10 @@ Atom *Builder::new_atom (vect coord, int atomnum) {
     mol -> ZNAddAtom (at);
 	set_coordinates (at, coord);
     mol -> ZNSetConformers (); 
-    mol -> ZNinit ();
+	finalise_molecule(mol);
     mol -> ZNAddHydrogens (at);
 
-    CreateMoleculeCommand *command = new CreateMoleculeCommand (mol, ddwin);
+    CreateZNMoleculeCommand *command = new CreateZNMoleculeCommand (mol, ddwin);
     ddwin -> execute (command);
     return at;
 
@@ -188,43 +363,61 @@ bool Builder::find_target () {
 
 
 
-Bond *Builder::new_bond (Atom *at1, Atom *at2, int order) {
+ZNBond *Builder::new_bond (Atom *at1, Atom *at2, int order) {
     if (at1 -> GetParent () == at2 -> GetParent ()) {
-        Molecule *mol = (Molecule *) at1 -> GetParent ();
-        Bond *bo = mol -> GetBond (at1, at2);
+        ZNMolecule *mol = (ZNMolecule *) at1 -> GetParent ();
+        ZNBond *bo = mol -> GetBond (at1, at2);
         if (!bo) {
-            bo = new Bond;
+            bo = new ZNBond;
             mol -> ZNinit_bond (bo);
-            if (mol -> NumBonds ()) {
-                set_ds (bo, 1);  //should be changed to the ds of the first bond of the molecule
-            }
-            set_ds (bo, 1);
-     //           bo->kekule = order;
             bo -> SetBegin (at1);
             bo -> SetEnd (at2);
             AddBondCommand *command = new AddBondCommand (bo, ddwin);
             ddwin -> execute (command);
         } 
         bo -> SetBondOrder (order);
- //       redefine_mol (mol);
- //       delete_Hs (bo->atomPTR[0]);
- //       add_H (bo->atomPTR[0]);
- //       delete_Hs (bo->atomPTR[1]);
-  //      add_H (bo->atomPTR[1]);
-   //     redefine_mol (mol);
         ddwin->gl->draw_molecule (mol);
-//        cout <<"new_bond"<<endl;
+
         return bo;
     }
+	else {
+			ZNMolecule *mol1 = (ZNMolecule *) at1 -> GetParent ();
+			ZNMolecule *mol2 = (ZNMolecule *) at2 -> GetParent ();
+			ZNMolecule *mol3 = sum (mol1, mol2);
+			Atom *new_at1 = mol3 ->GetAtom (at1 ->GetIdx ());
+		//	cerr << new_at1 -> GetVector () << at1 ->GetVector ()<< endl;
+			Atom *new_at2 = mol3 ->GetAtom (at2 ->GetIdx () + mol1 -> NumAtoms ());
+		//	cerr << new_at2 -> GetVector () << at2 ->GetVector ()<< endl;			
+			ZNBond *bo = new ZNBond;
+			bo -> SetBegin (new_at1);
+            bo -> SetEnd (new_at2);
+            mol3 -> ZNinit_bond (bo);
+			bo -> SetBondOrder (1);
+			
+			AddBondCommand *bond_command = new AddBondCommand (bo, ddwin);
+			bond_command -> redo ();
+			delete bond_command;
+			
+			CreateZNMoleculeCommand *command = new CreateZNMoleculeCommand (mol3, ddwin);
+			DeleteZNMoleculeCommand *command1 = new DeleteZNMoleculeCommand (mol1, ddwin);
+			DeleteZNMoleculeCommand *command2 = new DeleteZNMoleculeCommand (mol2, ddwin);
+			ddwin ->data -> undo_stack -> beginMacro ("Merge ZNMolecules");
+			ddwin ->execute (command2);
+			ddwin ->execute (command1);
+			ddwin ->execute (command);
+
+			ddwin ->data -> undo_stack -> endMacro ();			
+			
+	}
     return NULL;
 }
 
-void Builder::set_bond (Bond *bo, int order) {
+void Builder::set_bond (ZNBond *bo, int order) {
     ModifyBondCommand *command = new ModifyBondCommand (bo, order, ddwin);    
     ddwin -> execute (command);
 }
 
-void Builder::delete_bond (Bond *bo) {
+void Builder::delete_bond (ZNBond *bo) {
     DeleteBondCommand *command = new DeleteBondCommand (bo, ddwin);
     ddwin -> execute (command);
 }
@@ -232,13 +425,13 @@ void Builder::delete_bond (Bond *bo) {
 
 void Builder::set_aromatic (Ring *ring) {
   /*  ddwin -> data -> undo_stack -> beginMacro ("Set Aromatic");
-    RedefineMoleculeCommand *redefine1 = new RedefineMoleculeCommand (ring->atoms[0]->residue->molecule, this, 1);
+    RedefineZNMoleculeCommand *redefine1 = new RedefineZNMoleculeCommand (ring->atoms[0]->residue->molecule, this, 1);
     ddwin -> execute (redefine1);
     for (unsigned int i=0; i<ring->bonds.size (); i++) {
         ModifyBondCommand *command = new ModifyBondCommand (ring -> bonds[i], 5, ddwin, false);    
         ddwin -> execute (command);
     }
-    RedefineMoleculeCommand *redefine = new RedefineMoleculeCommand (ring->atoms[0]->residue->molecule, this, 0);
+    RedefineZNMoleculeCommand *redefine = new RedefineZNMoleculeCommand (ring->atoms[0]->residue->molecule, this, 0);
     ddwin -> execute (redefine);
     ddwin -> data ->undo_stack -> endMacro ();
 */
@@ -249,13 +442,13 @@ void Builder::set_aromatic (Ring *ring) {
 
 void Builder::set_non_aromatic (Ring *ring) {
   /*  ddwin -> data -> undo_stack -> beginMacro ("Set Non Aromatic");
-    RedefineMoleculeCommand *redefine1 = new RedefineMoleculeCommand (ring->atoms[0]->residue->molecule, this, 1);
+    RedefineZNMoleculeCommand *redefine1 = new RedefineZNMoleculeCommand (ring->atoms[0]->residue->molecule, this, 1);
     ddwin -> execute (redefine1);
     for (unsigned int i=0; i<ring->bonds.size (); i++) {
         ModifyBondCommand *command = new ModifyBondCommand (ring -> bonds[i], 1, ddwin, false);    
         ddwin -> execute (command);
     }
-    RedefineMoleculeCommand *redefine = new RedefineMoleculeCommand (ring->atoms[0]->residue->molecule, this, 0);
+    RedefineZNMoleculeCommand *redefine = new RedefineZNMoleculeCommand (ring->atoms[0]->residue->molecule, this, 0);
     ddwin -> execute (redefine);
     ddwin -> data ->undo_stack -> endMacro ();
 */
@@ -275,9 +468,9 @@ void Builder::set_non_aromatic (Ring *ring) {
 
 
 
-void Builder::add_H (Atom *at, vector <Atom *> &atoms, vector <Bond *> &bonds) {
+void Builder::add_H (Atom *at, vector <Atom *> &atoms, vector <ZNBond *> &bonds) {
 
-    Molecule *mol = (Molecule *) at -> GetParent ();
+    ZNMolecule *mol = (ZNMolecule *) at -> GetParent ();
     bool planar = at -> HasDoubleBond ();
     bool linear = at -> HasBondOfOrder (3);
 
@@ -427,29 +620,30 @@ void Builder::add_H (Atom *at, vector <Atom *> &atoms, vector <Bond *> &bonds) {
 
 
 void Builder::delete_atom (Atom *at) {
- /*   Molecule *mol = at->residue->molecule;
+    ZNMolecule *mol = (ZNMolecule *) at->GetParent ();
     int heavy_atoms = 0;
-    for (unsigned int i =0; i < mol -> atoms.size (); i++) {
-        if (mol -> atoms[i] -> GetAtomicNum () != 1) {
-            heavy_atoms ++;
-            if (heavy_atoms > 1) break;
-        }
-    }
+	FOR_ATOMS_OF_MOL (a, mol){
+		if (!a -> IsHydrogen ()) {
+			heavy_atoms++;
+			if (heavy_atoms > 1) break;
+		}
+	}
+
     if (heavy_atoms <= 1) {
-        DeleteMoleculeCommand *command = new DeleteMoleculeCommand (mol, ddwin);
+        DeleteZNMoleculeCommand *command = new DeleteZNMoleculeCommand (mol, ddwin);
         ddwin -> execute (command);
     }
     else {
         DeleteAtomCommand *command = new DeleteAtomCommand (at, ddwin);
         ddwin -> execute (command);
     }
-*/
+
 }
 
 
 
 
-void Builder::redefine_mol (Molecule *mol) {
+void Builder::redefine_mol (ZNMolecule *mol) {
 /* //   cout <<"find_bound"<<endl;
     mol->find_bound ();
     mol->number_atoms ();
@@ -472,25 +666,28 @@ void Builder::redefine_mol (Molecule *mol) {
 }
 
 void Builder::add_bond (int order) {
- /*   if (ddwin->target_molecule->selection && ddwin->target_molecule->atoms.size ()==2) {
-        new_bond (ddwin->target_molecule->atoms[0], ddwin->target_molecule->atoms[0], order);
+	ZNMolecule *mol = ddwin ->target_molecule;
+    if (mol ->selection && mol ->NumAtoms () ==2) {
+		Atom *at1 = mol ->GetAtom (1); //atoms numeration migh change in next releases of openbabel to 0 and 1
+		Atom *at2 = mol ->GetAtom (2);
+		new_bond (at1, at2, order);
     }
-*/
+
 }
 
 
 
 
 
-void Builder::delete_Hs (Atom *at, vector <Atom *> &del_atoms, vector <Bond *> &del_bonds) {
+void Builder::delete_Hs (Atom *at, vector <Atom *> &del_atoms, vector <ZNBond *> &del_bonds) {
     del_atoms.clear ();
     del_bonds.clear ();
-    Molecule* mol = (Molecule *) at -> GetParent (); 
+    ZNMolecule* mol = (ZNMolecule *) at -> GetParent (); 
 
     FOR_NBORS_OF_ATOM (n, at) {
         if (n -> IsHydrogen ()) {
             del_atoms.push_back (&*n);
-            Bond * b;
+            ZNBond * b;
             b = mol -> GetBond (&*n, at); 
             del_bonds.push_back (b);
 
@@ -590,16 +787,19 @@ void Builder::set_magic_pencil_atomic_number (int atomn) {
     magic_pencil_atomic_number = atomn;
     switch (atomn){
         case -2:
-            ddwin->mode_string = "Builder - Magic Pencil  - Rubber";
+			ddwin ->gl ->setCursor(QCursor (QPixmap (":icons/pointer_rubber.png"), 2, 27));
             break;
         case 6:
-            ddwin->mode_string = "Builder - Magic Pencil  - C";
+			ddwin ->gl ->setCursor(QCursor (QPixmap (":icons/pencil_C.png"), 0, 29));
             break;
         case 7:
-            ddwin->mode_string = "Builder - Magic Pencil  - N";
+			ddwin ->gl ->setCursor(QCursor (QPixmap (":icons/pencil_N.png"), 0, 29));
             break;
         case 8:
-            ddwin->mode_string = "Builder - Magic Pencil  - O";
+			ddwin ->gl ->setCursor(QCursor (QPixmap (":icons/pencil_O.png"), 0, 29));
+            break;
+		case 16:
+			ddwin ->gl ->setCursor(QCursor (QPixmap (":icons/pencil_S.png"), 0, 29));
             break;
     }
 

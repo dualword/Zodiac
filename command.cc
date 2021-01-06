@@ -55,7 +55,7 @@ void Command::name (string str) {
 
 ColorAtomCommand::ColorAtomCommand (MyGl *gl_point) : Command ()
 {
-    redraw = false;
+
     gl = gl_point;
     setText ( QString (string("color:").c_str ()));
    
@@ -67,7 +67,6 @@ ColorAtomCommand::ColorAtomCommand (MyGl *gl_point) : Command ()
 
 ColorAtomCommand::ColorAtomCommand (Atom *at, color pres_col, MyGl *gl_point) : Command ()
 {
-    redraw = false;
     gl = gl_point;
     add (at, pres_col);
     setText ( QString (string("color: 1  atom").c_str ()));
@@ -77,25 +76,9 @@ ColorAtomCommand::ColorAtomCommand (Atom *at, color pres_col, MyGl *gl_point) : 
 void ColorAtomCommand::redo () {
     for (unsigned int i=0; i < target_atoms.size (); i++) {
         set_color (target_atoms[i], present_colors [i]);
+		ZNMolecule * mol = (ZNMolecule *) target_atoms[i] -> GetParent ();
+		gl -> draw_molecule (mol);
     }
-    if (redraw) {
-        vector <Molecule *> drawn_mols;
-        for (unsigned int i =0; i < target_atoms.size (); i++) {
-            Molecule * mol = (Molecule *) target_atoms[i] -> GetParent ();
-            bool redr = true;
-            for (unsigned int j =0; j < drawn_mols.size (); j++) {    
-                if (mol == drawn_mols[j]) {
-                    redr = false;
-                    break;
-                }
-            }
-            if (redr)  {
-                gl -> draw_molecule (mol);
-                drawn_mols.push_back (mol);
-            }
-        }
-    }
-    redraw = true;
 }
 
 void ColorAtomCommand::add (Atom *at, color col) {
@@ -110,25 +93,10 @@ void ColorAtomCommand::add (Atom *at, color col) {
 void ColorAtomCommand::undo () {
     for (unsigned int i=0; i < target_atoms.size (); i++) {
         set_color (target_atoms[i], previous_colors [i]);
+		ZNMolecule * mol = (ZNMolecule *) target_atoms[i] -> GetParent ();
+		gl -> draw_molecule (mol);
     }
-    if (redraw) {
-        vector <Molecule *> drawn_mols;
-        for (unsigned int i =0; i < target_atoms.size (); i++) {
-            Molecule * mol = (Molecule *) target_atoms[i] -> GetParent ();
-            bool redr = true;
-            for (unsigned int j =0; j < drawn_mols.size (); j++) {    
-                if (mol == drawn_mols[j]) {
-                    redr = false;
-                    break;
-                }
-            }
 
-            if (redr)  {
-                gl -> draw_molecule (mol);
-                drawn_mols.push_back (mol);
-            }
-        }
-    }
 }
 
 int ColorAtomCommand::id () const { 
@@ -176,7 +144,7 @@ ChangeDisplayStyleCommand::ChangeDisplayStyleCommand (Atom *at, int disp_style, 
 
 }
 
-ChangeDisplayStyleCommand::ChangeDisplayStyleCommand (Bond *bo, int disp_style, MyGl *gl_point) : Command ()
+ChangeDisplayStyleCommand::ChangeDisplayStyleCommand (ZNBond *bo, int disp_style, MyGl *gl_point) : Command ()
 {
     gl = gl_point;
     add (bo, disp_style);
@@ -184,15 +152,17 @@ ChangeDisplayStyleCommand::ChangeDisplayStyleCommand (Bond *bo, int disp_style, 
   
 }
 
-void ChangeDisplayStyleCommand::add (Molecule *mol, int at_di, int bo_di) {
+void ChangeDisplayStyleCommand::add (ZNMolecule *mol, int at_di, int bo_di, int backbone_di) {
 	target_molecules.push_back (mol);
 	present_styles_molecule_atoms.push_back (at_di);
 	present_styles_molecule_bonds.push_back (bo_di);
-	previous_styles_molecule_atoms.push_back (mol -> atoms_default_ds);
-	previous_styles_molecule_bonds.push_back (mol -> bonds_default_ds);
+	previous_styles_molecule_atoms.push_back (get_atoms_display_style (mol));
+	previous_styles_molecule_bonds.push_back (get_bonds_display_style (mol));
+	present_styles_molecule_backbone.push_back (backbone_di);
+	previous_styles_molecule_backbone.push_back (get_backbone_display_style (mol));
 }
 
-void ChangeDisplayStyleCommand::add (Bond *bo, int disp_style) {
+void ChangeDisplayStyleCommand::add (ZNBond *bo, int disp_style) {
     target_bonds.push_back (bo);
     present_styles_bonds.push_back (disp_style);
     previous_styles_bonds.push_back (get_ds (bo));  
@@ -244,13 +214,14 @@ void ChangeDisplayStyleCommand::redo () {
         set_ds (target_bonds[i], present_styles_bonds [i]);
     }
     for (unsigned int i=0; i < target_molecules.size (); i++) {
-        target_molecules [i] -> atoms_default_ds = present_styles_molecule_atoms [i];
-        target_molecules [i] -> bonds_default_ds = present_styles_molecule_bonds [i];
+        set_atoms_display_style (target_molecules [i], present_styles_molecule_atoms [i]);
+        set_bonds_display_style (target_molecules [i], present_styles_molecule_bonds [i]);
+        set_backbone_display_style (target_molecules [i], present_styles_molecule_backbone [i]);
     }
     if (redraw) {
-        vector <Molecule *> drawn_mols;
+        vector <ZNMolecule *> drawn_mols;
         for (unsigned int i =0; i < target_atoms.size (); i++) {
-            Molecule * mol = (Molecule *) target_atoms[i] -> GetParent ();
+            ZNMolecule * mol = (ZNMolecule *) target_atoms[i] -> GetParent ();
             bool redr = true;
             for (unsigned int j =0; j < drawn_mols.size (); j++) {    
                 if (mol == drawn_mols[j]) {
@@ -264,7 +235,7 @@ void ChangeDisplayStyleCommand::redo () {
             }
         }
         for (unsigned int i =0; i < target_bonds.size (); i++) {
-            Molecule * mol = (Molecule *) target_bonds[i] -> GetBeginAtom () -> GetParent ();
+            ZNMolecule * mol = (ZNMolecule *) target_bonds[i] -> GetBeginAtom () -> GetParent ();
             bool redr = true;
             for (unsigned int j =0; j < drawn_mols.size (); j++) {    
                 if (mol == drawn_mols[j]) {
@@ -292,14 +263,15 @@ void ChangeDisplayStyleCommand::undo () {
     }
     
     for (unsigned int i=0; i < target_molecules.size (); i++) {
-        target_molecules [i] -> atoms_default_ds = previous_styles_molecule_atoms [i];
-        target_molecules [i] -> bonds_default_ds = previous_styles_molecule_bonds [i];
+        set_atoms_display_style (target_molecules [i], previous_styles_molecule_atoms [i]);
+        set_bonds_display_style (target_molecules [i], previous_styles_molecule_bonds [i]);
+        set_backbone_display_style (target_molecules [i], previous_styles_molecule_backbone [i]);
     }
     
     
-    vector <Molecule *> drawn_mols;
+    vector <ZNMolecule *> drawn_mols;
     for (unsigned int i =0; i < target_atoms.size (); i++) {
-        Molecule * mol = (Molecule *) target_atoms[i] -> GetParent ();
+        ZNMolecule * mol = (ZNMolecule *) target_atoms[i] -> GetParent ();
         bool redr = true;
         for (unsigned int j =0; j < drawn_mols.size (); j++) {    
             if (mol == drawn_mols[j]) {
@@ -313,7 +285,7 @@ void ChangeDisplayStyleCommand::undo () {
         }
 
         for (unsigned int i =0; i < target_bonds.size (); i++) {
-            Molecule * mol = (Molecule *) target_bonds[i] -> GetBeginAtom () -> GetParent ();
+            ZNMolecule * mol = (ZNMolecule *) target_bonds[i] -> GetBeginAtom () -> GetParent ();
             bool redr = true;
             for (unsigned int j =0; j < drawn_mols.size (); j++) {    
                 if (mol == drawn_mols[j]) {
@@ -361,6 +333,30 @@ bool ChangeDisplayStyleCommand::mergeWith (const QUndoCommand *other) {
     return true;
 }
 */
+
+/////////////////////////////////////////////////////////////////////////////
+
+ChangeFloatCommand::ChangeFloatCommand (float &fl, float val, MyGl *gl_point, string name) : Command ()
+{
+    gl = gl_point;
+    setText ( QString (name.c_str ()));
+    f = &fl;
+    previous_value = fl;
+    present_value = val;
+  
+}
+
+void ChangeFloatCommand::undo () {
+    *f = previous_value;
+
+}
+
+
+void ChangeFloatCommand::redo () {
+    *f = present_value;
+
+}
+
 /////////////////////////////////////////////////////////////////////////////
 
 ChangeVectorCommand::ChangeVectorCommand (vect &vec, vect val, MyGl *gl_point, string name) : Command ()
@@ -378,20 +374,20 @@ ChangeVectorCommand::ChangeVectorCommand (vect &vec, vect val, MyGl *gl_point, s
 
 void ChangeVectorCommand::undo () {
     *v = previous_value;
-    gl -> updateGL ();
+
 }
 
 
 void ChangeVectorCommand::redo () {
     *v = present_value;
-    gl -> updateGL ();
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
 
 /*
 
-ChangeMoleculeCommand::ChangeMoleculeCommand (MyGl *gl_point, string name, bool first_d) : Command ()
+ChangeZNMoleculeCommand::ChangeZNMoleculeCommand (MyGl *gl_point, string name, bool first_d) : Command ()
     
 {
     first_do = first_d;
@@ -404,21 +400,21 @@ ChangeMoleculeCommand::ChangeMoleculeCommand (MyGl *gl_point, string name, bool 
 }
 
 
-void ChangeMoleculeCommand::add (Molecule *m, Molecule *prev_val) {
+void ChangeZNMoleculeCommand::add (ZNMolecule *m, ZNMolecule *prev_val) {
     cerr << "adding"<<endl;
     mol = m;
     if (previous_value) delete previous_value;
     if (present_value) delete present_value;
-    previous_value = new Molecule ();
+    previous_value = new ZNMolecule ();
     previous_value -> copy_from (prev_val);
-    present_value = new Molecule ();
+    present_value = new ZNMolecule ();
     present_value -> copy_from (mol);
     cerr << "added"<<endl;
 }
 
-void ChangeMoleculeCommand::undo () {
+void ChangeZNMoleculeCommand::undo () {
  //   for (unsigned int i=0; i < mols.size (); i++) {
- //       Molecule *mol = mols [i];
+ //       ZNMolecule *mol = mols [i];
  //       *mol = previous_values [i];
    //     gl -> draw_molecule (mol);
 
@@ -428,9 +424,9 @@ void ChangeMoleculeCommand::undo () {
 }
 
 
-void ChangeMoleculeCommand::redo () {
+void ChangeZNMoleculeCommand::redo () {
    // for (unsigned int i=0; i < mols.size (); i++) {
-     //   Molecule *mol = mols [i];
+     //   ZNMolecule *mol = mols [i];
       //  *mol = present_values [i];
 //        gl -> draw_molecule (mol);
 
@@ -455,9 +451,10 @@ void MoveAtomsCommand::redo () {
             set_coordinates (target_atoms [i], present_coordinates [i]);
         }
         if (redraw) {
-            vector <Molecule *> drawn_mols;
+            vector <ZNMolecule *> drawn_mols;
             for (unsigned int i =0; i < target_atoms.size (); i++) {
-                Molecule * mol = (Molecule *) target_atoms[i] -> GetParent ();
+                ZNMolecule * mol = (ZNMolecule *) target_atoms[i] -> GetParent ();
+				molecule_has_changed (mol);
                 bool redr = true;
                 for (unsigned int j =0; j < drawn_mols.size (); j++) {    
                     if (mol == drawn_mols[j]) {
@@ -488,9 +485,11 @@ void MoveAtomsCommand::undo () {
             set_coordinates (target_atoms [i] ,previous_coordinates [i]);
         }
         if (redraw) {
-            vector <Molecule *> drawn_mols;
+            vector <ZNMolecule *> drawn_mols;
             for (unsigned int i =0; i < target_atoms.size (); i++) {
-                Molecule * mol = (Molecule *) target_atoms[i] -> GetParent ();
+                ZNMolecule * mol = (ZNMolecule *) target_atoms[i] -> GetParent ();
+				molecule_has_changed (mol);
+
                 bool redr = true;
                 for (unsigned int j =0; j < drawn_mols.size (); j++) {    
                     if (mol == drawn_mols[j]) {
@@ -523,6 +522,7 @@ CreateGraphicalObjectCommand::CreateGraphicalObjectCommand (GraphicalObject *obj
     ddwin = ddwin_point;
     setText ( QString ("Create Graphical Object"));
     object = obj;
+
 }
 
 
@@ -531,17 +531,19 @@ void CreateGraphicalObjectCommand::redo () {
 
     if (rank == -1) ddwin -> graphical_objects.push_back (object);
     else ddwin -> graphical_objects.insert (ddwin -> graphical_objects.begin () + rank, object);
+	ddwin ->emit_go_updated();
     ddwin -> graphical_objects_menu -> update_slot ();
-    ddwin -> gl -> updateGL ();
+
 }
 
 void CreateGraphicalObjectCommand::undo () {
     for (unsigned int i =0; i< ddwin -> graphical_objects.size (); i++) {
         if (ddwin -> graphical_objects[i] == object) {
             ddwin -> graphical_objects.erase (ddwin -> graphical_objects.begin ()+i);
+			ddwin ->emit_go_updated();
             ddwin -> graphical_objects_menu -> update_slot ();
             rank = i;
-            ddwin -> gl -> updateGL ();
+
             break;
         }
     }
@@ -563,17 +565,19 @@ void DeleteGraphicalObjectCommand::undo () {
 
     if (rank == -1) ddwin -> graphical_objects.push_back (object);
     else ddwin -> graphical_objects.insert (ddwin -> graphical_objects.begin () + rank, object);
+	ddwin -> emit_go_updated ();
     ddwin -> graphical_objects_menu -> update_slot ();
-    ddwin -> gl -> updateGL ();
+
 }
 
 void DeleteGraphicalObjectCommand::redo () {
     for (unsigned int i =0; i< ddwin -> graphical_objects.size (); i++) {
         if (ddwin -> graphical_objects[i] == object) {
             ddwin -> graphical_objects.erase (ddwin -> graphical_objects.begin ()+i);
+			ddwin -> emit_go_updated ();
             ddwin -> graphical_objects_menu -> update_slot ();
             rank = i;
-            ddwin -> gl -> updateGL ();
+
             break;
         }
     }
@@ -589,47 +593,46 @@ void DeleteGraphicalObjectCommand::redo () {
 
 ////////////////////////////////////////////////////////////////////
 
-CreateMoleculeCommand::CreateMoleculeCommand ( Molecule * molecule, DDWin *ddwin_point) : Command ()
+CreateZNMoleculeCommand::CreateZNMoleculeCommand ( ZNMolecule * molecule, DDWin *ddwin_point) : Command ()
 {
     ddwin = ddwin_point;
     builder = ddwin -> builder;
     setText ( QString ("Create ")+QString (molecule -> GetTitle ()));
     mol = molecule;
-    mol -> ZNinit ();
- //   ddwin->gl->draw_molecule (ddwin->target_molecule); 
+	finalise_molecule(mol);
+    ddwin->gl->draw_molecule (ddwin->target_molecule); 
 }
 
-void CreateMoleculeCommand::redo () {
+void CreateZNMoleculeCommand::redo () {
     ddwin -> add_molecule (mol);
-  //  cerr << "conformers "<<mol -> NumConformers () << endl;
     ddwin -> set_current_target (-1);
     ddwin -> gl -> draw_molecule (mol);
-    ddwin -> gl -> updateGL ();
+
 
 
 }
 
 
-void CreateMoleculeCommand::undo () {
+void CreateZNMoleculeCommand::undo () {
     ddwin -> remove_molecule (mol);
     ddwin -> set_current_target (0);
     ddwin -> gl -> draw_molecule (mol);
-    ddwin -> gl -> updateGL ();
+
 }
 ///////////////////////////////////////////////////
 
-DeleteMoleculeCommand::DeleteMoleculeCommand (Molecule *molecule, DDWin *ddwin_point): CreateMoleculeCommand (molecule, ddwin_point) {
+DeleteZNMoleculeCommand::DeleteZNMoleculeCommand (ZNMolecule *molecule, DDWin *ddwin_point): CreateZNMoleculeCommand (molecule, ddwin_point) {
     setText ( QString ("Delete ")+QString (molecule -> GetTitle ()));  
 }
 
 
-void DeleteMoleculeCommand::redo () {
-    CreateMoleculeCommand::undo ();
+void DeleteZNMoleculeCommand::redo () {
+    CreateZNMoleculeCommand::undo ();
 }
 
 
-void DeleteMoleculeCommand::undo () {
-    CreateMoleculeCommand::redo ();
+void DeleteZNMoleculeCommand::undo () {
+    CreateZNMoleculeCommand::redo ();
 }
 
 
@@ -644,7 +647,9 @@ MutateAtomCommand::MutateAtomCommand ( Atom *at, int atn, DDWin *ddwin_point): C
     atom = at;
 
 
-    Molecule *mol = (Molecule *) atom -> GetParent ();
+    ZNMolecule *mol = (ZNMolecule *) atom -> GetParent ();
+
+
  //   first_time = true;
 
     builder -> save_Hs (atom, prev_H_atoms, prev_H_bonds);
@@ -652,12 +657,13 @@ MutateAtomCommand::MutateAtomCommand ( Atom *at, int atn, DDWin *ddwin_point): C
     atom -> SetAtomicNum (currentn);
     mol -> ZNAddHydrogens (atom);    
     builder -> save_Hs (atom, curr_H_atoms, curr_H_bonds);
-    mol -> ZNinit ();
+	finalise_molecule(mol);
+	molecule_has_changed (mol);
 
 }
 
 void MutateAtomCommand::redo () {
-    Molecule *mol = (Molecule *) atom -> GetParent ();
+    ZNMolecule *mol = (ZNMolecule *) atom -> GetParent ();
     if (!first_time) {
         builder -> delete_Hs (atom);
         atom -> SetAtomicNum (currentn);
@@ -666,22 +672,51 @@ void MutateAtomCommand::redo () {
     }
     first_time = false;
     ddwin -> gl -> draw_molecule (mol);
+	molecule_has_changed (mol);
 
 
 }
 
 void MutateAtomCommand::undo () {
-    Molecule *mol = (Molecule *) atom -> GetParent ();
+    ZNMolecule *mol = (ZNMolecule *) atom -> GetParent ();
     builder -> delete_Hs (atom);
     atom -> SetAtomicNum (precn);
     mol -> set_color_mw (atom) ;
     builder -> add_Hs (atom, prev_H_atoms, prev_H_bonds);
     ddwin -> gl -> draw_molecule (mol);
+	molecule_has_changed (mol);
 }
 ///////////////////////////////////////////////////////////
 
 DeleteAtomCommand::DeleteAtomCommand (Atom *at, DDWin *ddwin_point) : Command ()
 {
+
+	ddwin = ddwin_point;
+    setText ( QString ("Remove atom"));
+    atom = at;
+		ZNMolecule *mol = (ZNMolecule *) atom -> GetParent ();
+	builder ->save_Hs (at, prev_H_atoms, prev_H_bonds);
+	FOR_NBORS_OF_ATOM (n, at) {
+		if (!n ->IsHydrogen ()) {
+			neighs.push_back (&*n);
+			bonds.push_back (mol ->GetBond (at, &*n));
+			vector <Atom *> H_atoms;
+			vector <ZNBond *> H_bonds;
+			builder ->save_Hs (&*n, H_atoms, H_bonds);
+			prev_targets_H_atoms.push_back (H_atoms);
+			prev_targets_H_bonds.push_back (H_bonds);	
+			vector <Atom *> p_H_atoms;
+			vector <ZNBond *> p_H_bonds;
+
+			curr_targets_H_atoms.push_back (p_H_atoms);
+			curr_targets_H_bonds.push_back (p_H_bonds);
+			
+		}
+	}
+		 molecule_has_changed (mol);
+
+	
+	
  /*   ddwin = ddwin_point;
     builder = ddwin -> builder;
     setText ( QString ("Remove atom"));
@@ -692,8 +727,8 @@ DeleteAtomCommand::DeleteAtomCommand (Atom *at, DDWin *ddwin_point) : Command ()
             bonds.push_back (atom -> bonds[i]);
             vector <Atom *> prevH;
             vector <Atom *> postH;
-            vector <Bond *> prevb;
-            vector <Bond *> postb;
+            vector <ZNBond *> prevb;
+            vector <ZNBond *> postb;
             prev_targets_H_atoms.push_back (prevH);
             curr_targets_H_atoms.push_back (postH);
             prev_targets_H_bonds.push_back (prevb);
@@ -707,7 +742,29 @@ DeleteAtomCommand::DeleteAtomCommand (Atom *at, DDWin *ddwin_point) : Command ()
 
 
 void DeleteAtomCommand::redo () {
-/*    Molecule *mol = atom -> GetParent ();
+	
+	ZNMolecule *mol = (ZNMolecule *) atom -> GetParent ();
+	builder -> delete_Hs (atom);
+    mol -> RemoveAtom (atom);
+	for (unsigned int i = 0; i < prev_targets_H_atoms.size (); i++) {
+		builder ->delete_Hs (neighs[i]);
+		if (!curr_targets_H_atoms[i].size ()) {
+
+			mol ->ZNAddHydrogens (neighs[i]);
+
+			builder -> save_Hs (neighs[i], curr_targets_H_atoms[i], curr_targets_H_bonds[i]);
+		//	mol ->RemoveBond (bonds[i]);
+			
+		}
+		else builder -> add_Hs (neighs[i], curr_targets_H_atoms[i], curr_targets_H_bonds[i]);
+	}
+	finalise_molecule(mol);
+  //  builder -> delete_Hs (partner);
+  //  builder -> add_Hs (atom, prev_H_atoms, prev_H_bonds);
+    ddwin -> gl -> draw_molecule (mol);
+		 molecule_has_changed (mol);
+	
+/*    ZNMolecule *mol = atom -> GetParent ();
     for (unsigned int i = 0; i < bonds.size (); i++) {
         mol -> remove (bonds[i]);
     }
@@ -726,7 +783,85 @@ void DeleteAtomCommand::redo () {
 
 
 void DeleteAtomCommand::undo () {
-/*    Molecule *mol = atom -> GetParent ();
+	ZNMolecule *mol = (ZNMolecule *) atom -> GetParent ();
+
+    mol -> ZNAddAtom (atom);
+	builder -> add_Hs (atom, prev_H_atoms, prev_H_bonds);
+	for (unsigned int i = 0; i < prev_targets_H_atoms.size (); i++) {
+
+		builder -> delete_Hs (neighs[i]);
+		builder -> add_Hs (neighs[i], prev_targets_H_atoms[i], prev_targets_H_bonds[i]);
+		mol ->ZNAddBond (bonds[i]);
+	}
+	finalise_molecule(mol);
+	    ddwin -> gl -> draw_molecule (mol);
+	 molecule_has_changed (mol);
+	/*
+	 
+	 
+	 
+	 AddAtomCommand::AddAtomCommand ( Atom *at, ZNBond *bo, Atom *part,  DDWin *ddwin_point) : Command ()
+	 {
+	 ZNMolecule *mol = (ZNMolecule *) part -> GetParent ();
+	 //   first_time = true;
+	 ddwin = ddwin_point;
+	 builder = ddwin -> builder;
+	 setText ( QString ("Add atom"));
+	 atom = at;
+	 partner = part;
+	 bond = bo;
+	 builder -> save_Hs (partner, prev_H_atoms, prev_H_bonds);
+	 //  builder -> save_Hs (at, prev_target_H_atoms, prev_target_H_bonds);
+	 builder -> delete_Hs (partner);
+	 mol -> add_atom_bonded_to (atom, bond, partner);
+	 mol -> ZNAddHydrogens (partner);
+	 mol -> ZNAddHydrogens (at);    
+	 builder -> save_Hs (partner, curr_H_atoms, curr_H_bonds);
+	 builder -> save_Hs (at, curr_target_H_atoms, curr_target_H_bonds);
+	 finalise_molecule(mol);
+	 }
+	 
+	 
+	 void AddAtomCommand::redo () {
+	 if (!first_time) {
+	 
+	 ZNMolecule *mol = (ZNMolecule *) partner -> GetParent ();
+	 builder -> delete_Hs (partner);
+	 mol -> add_atom_bonded_to (atom, bond, partner);
+	 
+	 
+	 //    builder -> redefine_mol (mol);
+	 
+	 //      builder -> delete_Hs (atom);
+	 builder -> add_Hs (partner, curr_H_atoms, curr_H_bonds);
+	 builder -> add_Hs (atom, curr_target_H_atoms, curr_target_H_bonds);
+	 
+	 //    builder -> redefine_mol (mol);
+	 
+	 ddwin -> gl -> draw_molecule (mol);
+	 }
+	 first_time = false;
+	 }
+	 
+	 void AddAtomCommand::undo () {
+	 ZNMolecule *mol = (ZNMolecule *) atom -> GetParent ();
+	 builder -> delete_Hs (atom);
+	 mol -> RemoveAtom (atom);
+	 //  mol -> RemoveBond (bond);
+	 builder -> delete_Hs (partner);
+	 builder -> add_Hs (partner, prev_H_atoms, prev_H_bonds);
+	 ddwin -> gl -> draw_molecule (mol);
+	 
+	 
+	 
+	 }
+	 
+	 
+	 
+	 
+	
+	
+    ZNMolecule *mol = atom -> GetParent ();
     mol -> add (atom);
     for (unsigned int i = 0; i < bonds.size (); i++) {
         mol -> add (bonds[i]);
@@ -751,9 +886,9 @@ void DeleteAtomCommand::undo () {
 
 
 
-AddAtomCommand::AddAtomCommand ( Atom *at, Bond *bo, Atom *part,  DDWin *ddwin_point) : Command ()
+AddAtomCommand::AddAtomCommand ( Atom *at, ZNBond *bo, Atom *part,  DDWin *ddwin_point) : Command ()
 {
-    Molecule *mol = (Molecule *) part -> GetParent ();
+    ZNMolecule *mol = (ZNMolecule *) part -> GetParent ();
  //   first_time = true;
     ddwin = ddwin_point;
     builder = ddwin -> builder;
@@ -769,14 +904,16 @@ AddAtomCommand::AddAtomCommand ( Atom *at, Bond *bo, Atom *part,  DDWin *ddwin_p
     mol -> ZNAddHydrogens (at);    
     builder -> save_Hs (partner, curr_H_atoms, curr_H_bonds);
     builder -> save_Hs (at, curr_target_H_atoms, curr_target_H_bonds);
-    mol -> ZNinit ();
+	finalise_molecule(mol);
+		 molecule_has_changed (mol);
 }
 
 
 void AddAtomCommand::redo () {
+	ZNMolecule *mol = (ZNMolecule *) partner -> GetParent ();
+
     if (!first_time) {
 
-        Molecule *mol = (Molecule *) partner -> GetParent ();
         builder -> delete_Hs (partner);
         mol -> add_atom_bonded_to (atom, bond, partner);
 
@@ -792,16 +929,18 @@ void AddAtomCommand::redo () {
         ddwin -> gl -> draw_molecule (mol);
     }
     first_time = false;
+		 molecule_has_changed (mol);
 }
 
 void AddAtomCommand::undo () {
-    Molecule *mol = (Molecule *) atom -> GetParent ();
+    ZNMolecule *mol = (ZNMolecule *) atom -> GetParent ();
     builder -> delete_Hs (atom);
     mol -> RemoveAtom (atom);
   //  mol -> RemoveBond (bond);
     builder -> delete_Hs (partner);
     builder -> add_Hs (partner, prev_H_atoms, prev_H_bonds);
     ddwin -> gl -> draw_molecule (mol);
+		 molecule_has_changed (mol);
 
 
 
@@ -810,7 +949,7 @@ void AddAtomCommand::undo () {
 
 ///////////////////////////////////////////////////////////
 
-AddBondCommand::AddBondCommand (Bond *bo,  DDWin *ddwin_point): Command ()
+AddBondCommand::AddBondCommand (ZNBond *bo,  DDWin *ddwin_point): Command ()
  {
     ddwin = ddwin_point;
     builder = ddwin -> builder;
@@ -818,7 +957,7 @@ AddBondCommand::AddBondCommand (Bond *bo,  DDWin *ddwin_point): Command ()
     bond = bo;
     Atom *at1 = bond -> GetBeginAtom ();
     Atom *at2 = bond -> GetEndAtom ();
-    Molecule *mol = (Molecule *) at1 -> GetParent ();
+    ZNMolecule *mol = (ZNMolecule *) at1 -> GetParent ();
 
     builder -> save_Hs (at1, prev_H_atoms0, prev_H_bonds0);
     builder -> save_Hs (at2, prev_H_atoms1, prev_H_bonds1);
@@ -831,7 +970,8 @@ AddBondCommand::AddBondCommand (Bond *bo,  DDWin *ddwin_point): Command ()
     mol -> ZNAddHydrogens (at2);    
     builder -> save_Hs (at1, curr_H_atoms0, curr_H_bonds0);
     builder -> save_Hs (at2, curr_H_atoms1, curr_H_bonds1);
-    mol -> ZNinit ();
+	finalise_molecule(mol);	 
+	molecule_has_changed (mol);
 
 }
 
@@ -839,7 +979,7 @@ AddBondCommand::AddBondCommand (Bond *bo,  DDWin *ddwin_point): Command ()
 void AddBondCommand::redo () {
     Atom *at1 = bond -> GetBeginAtom ();
     Atom *at2 = bond -> GetEndAtom ();
-    Molecule *mol = (Molecule *) at1 -> GetParent ();
+    ZNMolecule *mol = (ZNMolecule *) at1 -> GetParent ();
     if (!first_time) {
         builder -> delete_Hs (at1);
         builder -> delete_Hs (at2);
@@ -849,23 +989,25 @@ void AddBondCommand::redo () {
     }
     ddwin -> gl -> draw_molecule (mol);
     first_time = false;
+	molecule_has_changed (mol);
 
 }
 
 void AddBondCommand::undo () {
     Atom *at1 = bond -> GetBeginAtom ();
     Atom *at2 = bond -> GetEndAtom ();
-    Molecule *mol = (Molecule *) at1 -> GetParent ();
+    ZNMolecule *mol = (ZNMolecule *) at1 -> GetParent ();
     builder -> delete_Hs (at1);
     builder -> delete_Hs (at2);
     mol -> RemoveBond (bond);
     builder -> add_Hs (at1, prev_H_atoms0, prev_H_bonds0);
     builder -> add_Hs (at2, prev_H_atoms1, prev_H_bonds1);    
     ddwin -> gl -> draw_molecule (mol);
+	molecule_has_changed (mol);
 }
 
 
-DeleteBondCommand::DeleteBondCommand (Bond *bo,  DDWin *ddwin_point) : AddBondCommand (bo, ddwin_point) {
+DeleteBondCommand::DeleteBondCommand (ZNBond *bo,  DDWin *ddwin_point) : AddBondCommand (bo, ddwin_point) {
     setText ( QString ("Delete bond"));
 
 }
@@ -880,7 +1022,7 @@ void DeleteBondCommand::redo () {
 }
 ///////////////////////////////////////////////////////////
 
-ModifyBondCommand::ModifyBondCommand (Bond *bo, int new_o,  DDWin *ddwin_point, bool red) : Command ()
+ModifyBondCommand::ModifyBondCommand (ZNBond *bo, int new_o,  DDWin *ddwin_point, bool red) : Command ()
 {
     first_time = true;
     redefine = red;
@@ -888,12 +1030,12 @@ ModifyBondCommand::ModifyBondCommand (Bond *bo, int new_o,  DDWin *ddwin_point, 
     old_order = bo -> GetBondOrder ();
     ddwin = ddwin_point;
     builder = ddwin -> builder;
-    setText ( QString ("Change Bond Order"));
+    setText ( QString ("Change ZNBond Order"));
     bond = bo;
 
     Atom *at1 = bond -> GetBeginAtom ();
     Atom *at2 = bond -> GetEndAtom ();
-    Molecule *mol = (Molecule *) at1 -> GetParent ();
+    ZNMolecule *mol = (ZNMolecule *) at1 -> GetParent ();
     builder -> save_Hs (at1, prev_H_atoms0, prev_H_bonds0);
     builder -> save_Hs (at2, prev_H_atoms1, prev_H_bonds1);
   //  builder -> save_Hs (at, prev_target_H_atoms, prev_target_H_bonds);
@@ -905,15 +1047,15 @@ ModifyBondCommand::ModifyBondCommand (Bond *bo, int new_o,  DDWin *ddwin_point, 
     mol -> ZNAddHydrogens (at2);    
     builder -> save_Hs (at1, curr_H_atoms0, curr_H_bonds0);
     builder -> save_Hs (at2, curr_H_atoms1, curr_H_bonds1);
-    mol -> ZNinit ();
-
+	finalise_molecule(mol);
+	 molecule_has_changed (mol);
 }
 
 
 void ModifyBondCommand::redo () {
         Atom *at1 = bond -> GetBeginAtom ();
         Atom *at2 = bond -> GetEndAtom ();
-        Molecule *mol = (Molecule *) at1 -> GetParent ();
+        ZNMolecule *mol = (ZNMolecule *) at1 -> GetParent ();
     if (!first_time) {
 
         builder -> delete_Hs (at1);
@@ -925,26 +1067,28 @@ void ModifyBondCommand::redo () {
     }
         ddwin -> gl -> draw_molecule (mol);
     first_time = false;
+	 molecule_has_changed (mol);	
 }
 
 
 void ModifyBondCommand::undo () {
     Atom *at1 = bond -> GetBeginAtom ();
     Atom *at2 = bond -> GetEndAtom ();
-    Molecule *mol = (Molecule *) at1 -> GetParent ();
+    ZNMolecule *mol = (ZNMolecule *) at1 -> GetParent ();
     builder -> delete_Hs (at1);
     builder -> delete_Hs (at2);
     bond -> SetBondOrder (old_order);
     builder -> add_Hs (at1, prev_H_atoms0, prev_H_bonds0);
     builder -> add_Hs (at2, prev_H_atoms1, prev_H_bonds1);      
     ddwin -> gl -> draw_molecule (mol);
+	molecule_has_changed (mol);
 
 }
 
 
 ///////////////////////////////////////////////////////////
 
-RedefineMoleculeCommand::RedefineMoleculeCommand (Molecule *mo, Builder *bu, int mod) : Command ()
+RedefineZNMoleculeCommand::RedefineZNMoleculeCommand (ZNMolecule *mo, Builder *bu, int mod) : Command ()
 {
 /*    mode = mod;
     builder = bu;
@@ -954,7 +1098,7 @@ RedefineMoleculeCommand::RedefineMoleculeCommand (Molecule *mo, Builder *bu, int
 }
 
 
-void RedefineMoleculeCommand::redo () {
+void RedefineZNMoleculeCommand::redo () {
 /*    if (mode !=1 ) {
         builder -> redefine_mol (mol);
         builder -> ddwin -> gl -> draw_molecule (mol);
@@ -962,7 +1106,7 @@ void RedefineMoleculeCommand::redo () {
 */
 }
 
-void RedefineMoleculeCommand::undo () {
+void RedefineZNMoleculeCommand::undo () {
 /*    if (mode != 0) {
         builder -> redefine_mol (mol);
         builder -> ddwin -> gl -> draw_molecule (mol);
@@ -974,7 +1118,7 @@ void RedefineMoleculeCommand::undo () {
 ///////////////////////////////////////////////////////////////////////
 
 
-ReprotonateCommand::ReprotonateCommand (Molecule *molecule, DDWin *ddw) {
+ReprotonateCommand::ReprotonateCommand (ZNMolecule *molecule, DDWin *ddw, double ph) {
     setText ( QString ("Reprotonate"));
 	ddwin = ddw;
 	mol = molecule;
@@ -991,7 +1135,7 @@ ReprotonateCommand::ReprotonateCommand (Molecule *molecule, DDWin *ddw) {
 	}
 	
         ddwin ->builder -> delete_Hs (mol);
-        mol -> ZNAddHydrogens ();
+        mol -> ZNAddHydrogens (ph);
         ddwin ->gl -> draw_molecule (mol);
 	
 	FOR_ATOMS_OF_MOL (a, mol) {
@@ -1004,7 +1148,7 @@ ReprotonateCommand::ReprotonateCommand (Molecule *molecule, DDWin *ddw) {
 	//		prec_bonds.push_back ()
 		}
 	}
-	
+		 molecule_has_changed (mol);
 }
 
 
@@ -1018,6 +1162,7 @@ void ReprotonateCommand::redo () {
 	}
     ddwin -> gl -> draw_molecule (mol);
     first_time = false;
+		 molecule_has_changed (mol);
 }
 
 
@@ -1027,4 +1172,5 @@ void ReprotonateCommand::undo () {
 		mol -> add_atom_bonded_to (prev_H_atoms[i], prev_H_bonds[i], prev_partners[i]);
 	}
 	ddwin -> gl -> draw_molecule (mol);
+	molecule_has_changed (mol);
 }

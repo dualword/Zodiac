@@ -17,11 +17,7 @@
 */
 
 #include "ZNdata.h"
-#include "constants.h"
-#include <sstream>
-#include <iostream>
-#include <string>
-#include <fstream>
+
 
 
 
@@ -29,10 +25,18 @@
 
 //class MyListBoxItem;
 
-Data::Data (QApplication *master){
-
+Data::Data (QApplication *master) : QObject (){
+	haptic_position_lock = new QReadWriteLock ();
     qapp = master;
+	ncounter =0.f;
 
+    twodwin = new MainWindow ();
+	current_force_x = current_force_y = current_force_z = 0.;	
+	current_position_x = current_position_y = current_position_z = 0.;	
+	current_yaw = current_pitch = current_roll = 0.;
+	last_yaw = last_pitch = last_roll = 0.;
+	
+	total_energy_haptic = 0.;
     mmff = new MMFF ();
 	actions = new Actions (this); 
 
@@ -40,12 +44,12 @@ Data::Data (QApplication *master){
     minimize = new Minimize (this);
 
 
-    charge_begin = -0.8f;
-    charge_end   = +0.8f;
+    charge_begin = -80.f;
+    charge_end   = +80.f;
 
-    score_begin = -0.8f;
+    score_begin = -80.f;
     score_mid   = +0.f ;
-    score_end   = +0.8f;
+    score_end   = +80.f;
 
 
     constant_color = color (0, 0, 0);
@@ -56,16 +60,271 @@ Data::Data (QApplication *master){
     score_end_color = color (255, 0, 0);
 
 
-    undo_stack = new QUndoStack ();
+	undo_stack = new QUndoStack ();
+	load_defaults ();
+	load_preferences ();
 
+
+}
+
+void Data::load_haptic_device () {
+#ifdef HAPI
+
+   // Create a new haptics device, using any device connected.
+
+	haptic_device = new (AnyHapticsDevice);
+
+   // initialize the device
+	if (haptic_device ->initDevice () != HAPIHapticsDevice::SUCCESS) {
+
+
+       // initilization failed, print error message and quit
+		cerr << haptic_device ->getLastErrorMsg () << endl;
+   	}
+	haptic_device ->enableDevice ();
+//	H3DUtil::SimpleThread a_simple_thread(haptic_callback, (void *) this);
+
+	HapticForceThread *hapt_thread = new HapticForceThread (this, ddwin);
+
+	hapt_thread ->start ();
+
+#endif //HAPI
 }
 
 void Data::set_ddwin (DDWin *ddw){
     ddwin =ddw;
     ddwin->data = this;
-    minimize -> haptic_thread = new HapticThread (0, ddwin);
+   // minimize -> haptic_thread = new HapticThread (0, ddwin);
+	
+	  connect(twodwin->to3DAct,SIGNAL(triggered()), this, SLOT(from_2D_to_3D()));
 
 }
+
+void Data::from_2D_to_3D () {
+	vector <OpenBabel::OBMol *>mols = twodwin ->get_OB_mols ();
+	for (unsigned int i = 0; i < mols.size (); i++) {
+		ZNMolecule *add_mol = (ZNMolecule *) (mols[i]);
+		add_mol ->multi = false;
+		add_mol ->selection = false;
+		finalise_molecule (add_mol);
+		actions -> reprotonate (add_mol);
+				finalise_molecule (add_mol);
+		ddwin ->add_molecule (add_mol);
+		ddwin ->set_current_target (add_mol);
+	}
+}
+
+void Data::load_defaults () {
+	for (unsigned int i = 0; i < vars.size (); i++) {
+		delete vars[i];
+	}
+	vars.clear ();
+	vars.push_back (new StringDataVar ("plants_exe", ""));
+	ColorDataVar *bgvar = new ColorDataVar ("background_color", color (255, 255, 255, 255));
+	background_color = bgvar ->value_ptr ();
+	vars.push_back (bgvar);
+	DoubleDataVar *qsvar = new DoubleDataVar ("quality_scale", 5.0);
+	quality_scale = qsvar ->value_ptr ();
+	vars.push_back (qsvar);
+
+	DoubleDataVar *vdwsvar = new DoubleDataVar ("vdw_scale", 0.2);
+	vdw_scale = vdwsvar ->value_ptr ();
+	vars.push_back (vdwsvar);
+	DoubleDataVar *srvar = new DoubleDataVar ("stick_radius", 0.12);
+	stick_radius = srvar ->value_ptr ();
+	vars.push_back (srvar);		
+	DoubleDataVar *sprvar = new DoubleDataVar ("sphere_radius", 0.12);
+	sphere_radius = sprvar ->value_ptr ();
+	vars.push_back (sprvar);	
+	
+	DoubleDataVar *dbssvar = new DoubleDataVar ("double_bond_stick_scale", 0.7);
+	double_bond_stick_scale = dbssvar ->value_ptr ();
+	vars.push_back (dbssvar);
+	
+	DoubleDataVar *dbsvar = new DoubleDataVar ("double_bond_separation", 0.15);
+	double_bond_separation = dbsvar ->value_ptr ();
+	vars.push_back (dbsvar);
+	
+	DoubleDataVar *lwvar = new DoubleDataVar ("line_width", 1.2);
+	line_width = lwvar ->value_ptr ();
+	vars.push_back (lwvar);		
+	
+	DoubleDataVar *backbone_tube_helix_a_var = new DoubleDataVar ("backbone_tube_helix_a", 1.0);
+	backbone_tube_helix_a = backbone_tube_helix_a_var ->value_ptr ();
+	vars.push_back (backbone_tube_helix_a_var);	
+	
+	DoubleDataVar *backbone_tube_helix_b_var = new DoubleDataVar ("backbone_tube_helix_b", .3);
+	backbone_tube_helix_b = backbone_tube_helix_b_var ->value_ptr ();
+	vars.push_back (backbone_tube_helix_b_var);	
+	
+	DoubleDataVar *backbone_tube_helix_c_var = new DoubleDataVar ("backbone_tube_helix_c", 1.0);
+	backbone_tube_helix_c = backbone_tube_helix_c_var ->value_ptr ();
+	vars.push_back (backbone_tube_helix_c_var);	
+	
+	DoubleDataVar *backbone_tube_sheet_a_var = new DoubleDataVar ("backbone_tube_sheet_a", 1.0);
+	backbone_tube_sheet_a = backbone_tube_sheet_a_var ->value_ptr ();
+	vars.push_back (backbone_tube_sheet_a_var);	
+	
+	DoubleDataVar *backbone_tube_sheet_b_var = new DoubleDataVar ("backbone_tube_sheet_b", .3);
+	backbone_tube_sheet_b = backbone_tube_sheet_b_var ->value_ptr ();
+	vars.push_back (backbone_tube_sheet_b_var);	
+	
+	DoubleDataVar *backbone_tube_sheet_c_var = new DoubleDataVar ("backbone_tube_sheet_c", 1.0);
+	backbone_tube_sheet_c = backbone_tube_sheet_c_var ->value_ptr ();
+	vars.push_back (backbone_tube_sheet_c_var);	
+	
+	DoubleDataVar *backbone_tube_random_a_var = new DoubleDataVar ("backbone_tube_random_a", .2);
+	backbone_tube_random_a = backbone_tube_random_a_var ->value_ptr ();
+	vars.push_back (backbone_tube_random_a_var);	
+	
+	DoubleDataVar *backbone_tube_random_b_var = new DoubleDataVar ("backbone_tube_random_b", .2);
+	backbone_tube_random_b = backbone_tube_random_b_var ->value_ptr ();
+	vars.push_back (backbone_tube_random_b_var);	
+	
+	DoubleDataVar *backbone_tube_random_c_var = new DoubleDataVar ("backbone_tube_random_c", 0.0);
+	backbone_tube_random_c = backbone_tube_random_c_var ->value_ptr ();
+	vars.push_back (backbone_tube_random_c_var);	
+	
+}
+
+void Data::write_preferences () {
+	string pref_name = "Zodiac.ini";
+
+	ofstream ofs(pref_name.c_str ());
+	for (unsigned int i=0; i<vars.size (); i++) {
+		ofs << vars[i] ->write_string ()<<endl;
+	}
+
+	ofs.close ();
+
+}
+
+void Data::load_preferences () {
+	string pref_name = "Zodiac.ini";
+
+	ifstream ifs (pref_name.c_str ());
+	if (ifs.good ()) {
+		string buffer;
+		while (getline(ifs, buffer)) {
+			for (unsigned int i=0; i<vars.size (); i++) {
+					vars[i] ->load (buffer);
+			}
+		}	
+	}
+
+}
+
+void *haptic_callback (void * data) {
+
+#ifdef HAPI
+     Data *dat = (Data *) data; 
+
+
+
+Vec3 position = dat ->haptic_device->getRawPosition();
+Vec3 angles (0.f, 0.f, 0.f);
+//Rotation haptic_device ->getOrientation();
+
+	dat ->haptic_position_lock ->lockForWrite ();
+	dat ->current_position_x = position.x*2000;
+	dat ->current_position_y = position.y*2000;
+	dat ->current_position_z = position.z*2000;
+	dat ->haptic_position_lock ->unlock ();
+
+
+//	dat ->current_position_y = 0.;
+//	dat ->current_position_z = 0.;
+
+//	dat ->current_position_x = 0;
+//	dat ->current_position_y = 0;
+//	dat ->current_position_z = 0;
+
+	//cerr << position << endl;
+	//cerr << position.x << " position"<<endl;
+
+	dat ->current_pitch = angles[2];
+	dat ->current_roll = angles[0];
+	dat ->current_yaw = angles[1];
+
+	dat ->current_pitch = 0.;
+	dat ->current_roll = 0.;
+	dat ->current_yaw = 0.;
+
+	//Vec3 force_to_render (dat ->current_force_x, dat ->current_force_y, dat ->current_force_z);
+	//dat ->haptic_device ->sendForce (force_to_render);
+
+#endif //HAPI
+	return 0;
+
+}
+
+
+void ColorDataVar::load (string buffer) {
+	istringstream line(buffer);
+	string token;
+	line >> token;
+	
+	if (token == name) {
+		int count = 0;
+		vector <int> vals;
+		string q;
+		while (!line.eof ()) {
+			count++;
+			line >> q;
+			vals.push_back (string_to_int (q));
+		}
+		if (count < 3) cerr <<name<<" not enough values";
+		else if (count > 4 ) cerr <<name<< "too many values";
+		else if (count == 4) {_value = color (vals [0], vals[1], vals [2], vals[3]); cerr <<vals [0]<<" "<<vals[1]<<" "<<vals[2]<<" "<<vals[3]<<endl; }
+		else {_value = color (vals [1], vals[2], vals [3]);}
+	}
+
+}
+	
+
+void StringDataVar::load (string buffer) {
+	istringstream line(buffer);
+	string token;
+	line >> token;
+
+	if (token == name) {
+		int count = 0;
+		string q;
+		while (!line.eof ()) {
+			count++;
+
+			line >> q;
+		}
+		if (!count) cerr <<name<<" no value";
+		else if (count > 1 ) cerr <<name<< "multiple values";
+		else _value = q;
+	}
+
+}
+
+
+	
+void DoubleDataVar::load (string buffer) {
+	istringstream line(buffer);
+	string token;
+	line >> token;
+
+	if (token == name) {
+		int count = 0;
+		string q;
+		while (!line.eof ()) {
+			count++;
+
+			line >> q;
+		}
+		if (!count) cerr <<name<<" no value";
+		else if (count > 1 ) cerr <<name<< "multiple values";
+		else _value = string_to_double (q);
+	}
+
+}
+
+
 /*
 void Data::set_FF (MMFF *mmf, TriposFF *triposf, PLP *pl){
     mmff =mmf;
@@ -76,11 +335,11 @@ void Data::set_FF (MMFF *mmf, TriposFF *triposf, PLP *pl){
 }
 */
 
-Molecule* Data::check_mol2 (string filename){
+ZNMolecule* Data::check_mol2 (string filename){
     return 0;
 
  /*   cout << "reading file "<<filename<<endl; 
-    Molecule *mol = new Molecule ();
+    ZNMolecule *mol = new ZNMolecule ();
     ifstream ifs (filename.c_str() );
     bool b = false;
     bool multi = (mol->readMultiMOL2 (filename, ifs, b)==2);
@@ -112,7 +371,7 @@ Molecule* Data::check_mol2 (string filename){
            //     cerr << database->molecules.size ()<<endl;
             }
         }
-        mol = (Molecule *) database->molecules[0];
+        mol = (ZNMolecule *) database->molecules[0];
     }    
     return mol;
 */
@@ -562,6 +821,7 @@ void Configuration::Write (const char * filename){
 
 
 
+
     
 
 
@@ -574,7 +834,7 @@ void Configuration::Write (const char * filename){
 
 */
 
-bool is_db_extended (Molecule *mol) {
+bool is_db_extended (ZNMolecule *mol) {
 			bool ext = false;
 			if (mol -> multi) {
 				Database_molecule *dm = (Database_molecule *) mol;

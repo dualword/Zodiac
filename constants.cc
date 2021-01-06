@@ -25,9 +25,65 @@
 #define isnan _isnan
 #endif // WIN32
 
-double square_distance (float  *coord1, float  *coord2) {
-    return (coord1[0]-coord2[0])*(coord1[0]-coord2[0]) + (coord1[1]-coord2[1])*(coord1[1]-coord2[1]) + (coord1[2]-coord2[2])*(coord1[2]-coord2[2]);
+
+color average_3_colors (float score, color c1, color c2, color c3, float begin, float mid, float end) {
+float mid_width = 0.1 * (mid - begin);
+float mid_width2 = 0.1 * (end - mid);
+if (mid_width2 < mid_width) mid_width = mid_width2;
+
+
+
+float q = score;
+if (q <= begin) {
+	return c1;
 }
+else if (q >= end) {
+	return c3;
+}
+else if (q>= mid - mid_width && q<=  mid + mid_width) {
+	return c2;
+	
+}
+else if (q<= mid) {
+	float perc = (mid - q - mid_width) / (mid - begin - mid_width);
+	float b_red = c1.redF ();
+	float b_green = c1.greenF ();
+	float b_blue = c1.blueF ();
+	float b_alpha = c1.alphaF ();
+	float m_red = c2.redF ();
+	float m_green = c2.greenF ();
+	float m_blue = c2.blueF ();
+	float m_alpha = c2.alphaF ();
+	
+	float r = (b_red  * perc + m_red   * (1-perc)) ;
+	float g = (b_green* perc + m_green * (1-perc)) ;
+	float b = (b_blue * perc + m_blue  * (1-perc)) ;
+	float a = (b_alpha * perc + m_alpha  * (1-perc)) ;
+	return color (r, g, b, a);
+	
+}
+else {
+	float perc = (q - mid -mid_width) / (end -mid_width- mid);
+	float e_red = c3.redF ();
+	float e_green = c3.greenF ();
+	float e_blue = c3.blueF ();
+	float e_alpha = c3.alphaF ();
+	float m_red = c2.redF ();
+	float m_green = c2.greenF ();
+	float m_blue = c2.blueF ();
+	float m_alpha = c2.alphaF ();
+	
+	float r = (m_red  * perc + e_red   * (1-perc)) ;
+	float g = (m_green* perc + e_green * (1-perc)) ;
+	float b = (m_blue * perc + e_blue  * (1-perc)) ;
+	float a = (m_alpha * perc + e_alpha  * (1-perc)) ;
+	return color (r, g, b, a);
+	
+}
+
+}
+
+
 
 
 
@@ -38,9 +94,20 @@ float angle (vect coord1, vect coord2, vect coord3) {
     if (cosine < -1) cosine = -1;
     else if (cosine > 1) cosine = 1;
     return (acos (cosine)) * 180 / PI;
+	
     
 }
 
+
+float signed_angle (vect coord1, vect coord2, vect coord3) {
+    vect v1 = subtract (coord1, coord2);
+    vect v2 = subtract (coord3, coord2);
+	vect c = cross_product (v1, v2);
+    float angle = atan2(c.module (), dot_product(v1, v2))* 180 / PI;
+	vect reference (0., 0., 1.);
+    return dot_product (c, reference) < 0.f ? -angle : angle;
+}
+	
 
 double dihedral (vect coord1, vect coord2, vect coord3, vect coord4) {
     vect v1 = subtract (coord1, coord2);
@@ -49,10 +116,12 @@ double dihedral (vect coord1, vect coord2, vect coord3, vect coord4) {
     vect v3 = v2;
     v3.multiply (-1.0f);
     vect v4 = subtract (coord4, coord3);
-    vect n2 = cross_product (v4, v3);
+    vect n2 = cross_product (v3, v4);
     vect orig;
     orig.null ();
-    return angle (n1, orig, n2);
+	float mult = 1.f;
+	if (dot_product (v2, cross_product(n1, n2)) < 0.) mult = -1.f;
+    return mult * angle (n1, orig, n2);
 }
 
 
@@ -223,9 +292,9 @@ void rotate_to_plane (vect up_point, vect right_point, vect cent_point) {
 void components (vect vec, vect ref, vect &parallel, vect &normal){
     assert (!isnan (vec.module ()));
     assert (!isnan (ref.module ()));
+	ref.normalise ();
     double mod = dot_product (vec, ref);
 //    cerr << vec.x() << " "<< vec.y() << " "<< vec.z() << " "<< ref.x() << " "<< ref.y() << " "<< ref.z() << " "<< endl;
-    ref.normalise ();
     ref.multiply (mod);
     parallel = ref;
     normal = subtract (vec, parallel);
@@ -254,7 +323,12 @@ void axis_angle_to_quaternion (vect axis, float angle, float *quaternion) {
     quaternion[3] = axis.z() * s;
 }
 
-
+quaternion axis_angle_to_quaternion (vect axis, float angle) { //angle in rads
+    axis.normalise ();
+    float s = sin(angle/2);
+	quaternion q (cos(angle/2), axis.x() * s,  axis.y() * s, axis.z() * s);
+	return q;
+}
 
 void axis_angle_to_quaternion (float *axis, float angle, float *quaternion) { //angle in rads
 
@@ -286,6 +360,20 @@ void axis_angle_to_quaternion (float *axis, float angle, float *quaternion) { //
 }
 
 
+quaternion yaw_pitch_roll_to_quaternion (float yaw, float pitch, float roll) {
+	quaternion x = axis_angle_to_quaternion (vect(1.,0.,0.), roll);
+	quaternion y = axis_angle_to_quaternion (vect(0.,1.,0.), pitch);
+	quaternion z = axis_angle_to_quaternion (vect(0.,0.,1.), yaw);
+
+
+
+ x = multiply_quaternions ( x, y );
+ y = multiply_quaternions (x, z);
+
+ return x;
+}
+
+
 void multiply_quaternions (float *q1, float *q2, float *prod) {
 
     prod[0] = q1[0]*q2[0] - q1[1]*q2[1] - q1[2]*q2[2] - q1[3]*q2[3];
@@ -297,8 +385,20 @@ void multiply_quaternions (float *q1, float *q2, float *prod) {
 
 }
 
-void invert_matrix_9 (float *m, float *i) {
-    float m11, m12, m13, m21, m22, m23, m31, m32, m33;
+
+quaternion multiply_quaternions (quaternion q1, quaternion q2) {
+	double w = q1.w ()*q2.w () - q1.x ()*q2.x () - q1.y ()*q2.y () - q1.z ()*q2.z ();
+	double x = q1.w ()*q2.x () + q1.x ()*q2.w () + q1.y ()*q2.z () - q1.z ()*q2.y ();
+	double y = q1.w ()*q2.y () - q1.x ()*q2.z () + q1.y ()*q2.w () + q1.z ()*q2.x ()	;
+	double z = q1.w ()*q2.z () + q1.x ()*q2.y () - q1.y ()*q2.x () + q1.z ()*q2.w ()	;
+	return quaternion (w, x, y, z);
+	
+}
+
+
+
+void invert_matrix_9 (double *m, double *i) {
+    double m11, m12, m13, m21, m22, m23, m31, m32, m33;
     m11  = m[0];
     m12  = m[1];
     m13  = m[2];
@@ -308,7 +408,7 @@ void invert_matrix_9 (float *m, float *i) {
     m31  = m[6];
     m32  = m[7];
     m33  = m[8];
-	float det = m11*m22*m33 + m12*m23*m31 + m13*m31*m32 - m11*m23*m32 - m12*m21*m33 - m13*m22*m31;
+	double det = m11*m22*m33 + m12*m23*m31 + m13*m31*m32 - m11*m23*m32 - m12*m21*m33 - m13*m22*m31;
 	if (det == 0) det = 0.0000001f;
 	i[0] = (m22*m33 - m23*m32) / det;
 	i[1] = (m13*m32 - m12*m33) / det;
@@ -323,10 +423,34 @@ void invert_matrix_9 (float *m, float *i) {
 }
 
 
+void map_vector_on_vector_quaternion (vect v1, vect v2, float *quaternion) {
+	v1.normalise();
+	v2.normalise();
+	vect axis = cross_product(v1, v2);
+	float angle = acos (dot_product(v1, v2));
+	axis_angle_to_quaternion (axis, angle, quaternion);
+	
+}
 
 
-vect rotate_vector_using_matrix_9 (vect v, float *m) {
-    float m11, m12, m13, m21, m22, m23, m31, m32, m33;
+quaternion map_vector_on_vector_quaternion (vect v1, vect v2) {
+	quaternion q (0., 1., 0., 0.);
+	v1.normalise();
+	v2.normalise();
+	vect axis = cross_product(v1, v2);
+	double dotproduct = dot_product(v1, v2);
+	if (dotproduct >1.) dotproduct = 1.;
+	if (dotproduct <-1.) dotproduct = -1.;
+	float angle = acos (dotproduct);
+	q = axis_angle_to_quaternion (axis, angle);
+	return q;
+	
+}
+
+
+
+vect rotate_vector_using_matrix_9 (vect v, double *m) {
+    double m11, m12, m13, m21, m22, m23, m31, m32, m33;
     m11  = m[0];
     m12  = m[1];
     m13  = m[2];
@@ -344,8 +468,8 @@ vect rotate_vector_using_matrix_9 (vect v, float *m) {
 }
 
 
-vect rotate_vector_using_matrix_16 (vect v, float *m) {
-    float m11, m12, m13, m21, m22, m23, m31, m32, m33, w, x, y, z;
+vect rotate_vector_using_matrix_16 (vect v, double *m) {
+    double m11, m12, m13, m21, m22, m23, m31, m32, m33; // w, x, y, z;
     m11  = m[0];
     m12  = m[1];
     m13  = m[2];
@@ -362,11 +486,32 @@ vect rotate_vector_using_matrix_16 (vect v, float *m) {
     return out;
 }
 
+vect rotate_vector_using_quaternion (vect v, quaternion q) {
+	double m11, m12, m13, m21, m22, m23, m31, m32, m33, w, x, y, z;
+    w = q.w ();
+    x = q.x ();
+    y = q.y ();
+    z = q.z ();
+    m11  = 1 - 2 * ( y*y + z*z );
+    m12  =     2 * ( x*y - z*w );
+    m13  =     2 * ( x*z + y*w );
+    m21  =     2 * ( x*y + z*w );
+    m22  = 1 - 2 * ( x*x + z*z );
+    m23  =     2 * ( y*z - x*w );
+    m31  =     2 * ( x*z - y*w );
+    m32  =     2 * ( y*z + x*w );
+    m33  = 1 - 2 * ( x*x + y*y );
+    vect out;
+    out.x() = m11*v.x() + m12*v.y() + m13*v.z();
+    out.y() = m21*v.x() + m22*v.y() + m23*v.z();
+    out.z() = m31*v.x() + m32*v.y() + m33*v.z();
+    return out;
+}
 
 
 
 vect rotate_vector_using_quaternion (vect v, float *q) {
-    float m11, m12, m13, m21, m22, m23, m31, m32, m33, w, x, y, z;
+    double m11, m12, m13, m21, m22, m23, m31, m32, m33, w, x, y, z;
     w = q[0];
     x = q[1];
     y = q[2];
@@ -440,11 +585,43 @@ void normalize_quaternion (float *q) {
 
 
 
+double string_to_double (string s) {
+	istringstream ss (s);
+	double d;
+	ss >> d;
+	return d;
+};
 
 
+int string_to_int (string s) {
+	istringstream ss (s);
+	int i;
+	ss >> i;
+	return i;
+}
+string int_to_string (int i) {
+	stringstream ss;
+	ss << i;
+	return ss.str ();
+}
 
+string double_to_string (double d) {
+	stringstream ss;
+	ss << d;
+	return ss.str ();
+}
+
+
+color mean (color c1, color c2) {
+	return color ((float)(c1.redF()+c2.redF())*0.5f,(float) (c1.greenF()+c2.greenF())*0.5f,(float) (c1.blueF()+c2.blueF())*0.5f,(float) (c1.alphaF()+c2.alphaF())*0.5f);
+}
 color::color () : QColor ()
-{}
+{
+    setRedF (1.f);
+    setGreenF (1.f);
+    setBlueF (1.f);
+    setAlphaF (1.f);
+}
 
 color::color (float r, float g, float b, float a) :  QColor ()
 {

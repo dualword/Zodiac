@@ -19,58 +19,177 @@
 #include "database.h"
 
 
-DatabaseField::DatabaseField (string nam, vector <string> dat) {
-	name = nam;
-	data = dat;
+Database_molecule::Database_molecule () : ZNMolecule (), database (NULL) {
+	multi = true;
+
 }
 
 
-Database_molecule::Database_molecule () : Molecule () {
+
+
+Database_molecule::Database_molecule (const ZNMolecule &mol)
+//: ZNMolecule( *(ZNMolecule::ZNMolecule *)&mol ) 
+: ZNMolecule( mol ) 
+{
+
+	// OBMol::OBMol (*this);
+	// (*(OBMol::OBMol *)this)(mol);
     multi = true;
-    database = NULL;
-
 }
 
-Database::Database (Data *dat) {
-	data = dat;
-	grid = NULL;
+Database_molecule &Database_molecule::operator =(const Database_molecule &mol) 
+{
+//	*(ZNMolecule::ZNMolecule *)this = *(ZNMolecule::ZNMolecule *)&mol;
+    ZNMolecule::operator =(mol);
+    multi = true;
+	return *this;
 }
 
 
+
+
+Database::Database () : _needs_redraw (false), _hidden (true), _extend_enabled (false), dummy_mol (new Database_molecule ()){
+	dummy_mol = new Database_molecule ();
+	dummy_mol -> database = this;
+	dummy_mol -> number = -1;
+	finalise_molecule (dummy_mol);
+	mutex = new QReadWriteLock ();
+	field_names.push_back ("Molecule");
+	sorting_column = new int (0);
+}
+
+void Database::safe_add_field (string name, vector <double> data) {
+	mutex ->lockForWrite ();
+	add_field (name, data);
+	mutex ->unlock ();
+}
 void Database::add_field (string name, vector <double> data) {
-	if (data.size () == molecules.size ()) {
-		vector <string> data_s;
+	if (data.size () == count_entries ()) {
+		field_names.push_back (name);
 		for (unsigned int i = 0; i < data.size (); i++) {
-			stringstream ss;
-			ss << data [i];
-			data_s.push_back (ss.str ());
+		DoubleDatabaseCell *cell = new DoubleDatabaseCell (data[i]);
+		entries[i] ->cells.push_back (cell);
+
 		}
-		DatabaseField df (name, data_s);
-		fields.push_back (df);
-		grid -> add_field (&df);
-		
+
 	}
+	set_needs_redraw (true);
 }
 
+void Database::safe_add_field (string name, vector <string> data, char type) {
+	mutex ->lockForWrite ();
+	add_field (name, data, type);
+	mutex ->unlock ();
+}
+
+void Database::add_field (string name, vector <string> data, char type) {
+
+	if (data.size () == count_entries ()) {
+		field_names.push_back (name);
+		for (unsigned int i = 0; i < data.size (); i++) {
+			if (type == 'd') {
+				double doub = string_to_double (data[i]);
+				DoubleDatabaseCell *cell = new DoubleDatabaseCell (doub);
+				entries[i]->cells.push_back (cell);
+			}
+		}
+
+	}
+	set_needs_redraw (true);
+
+}
+
+ZNMolecule *Database::get_molecule (int n) {
+	if (count_entries () > n) {
+		return ((ZNMoleculeDatabaseCell *) entries[n]->cells[0])->get_molecule ();
+	}
+	else return NULL;
+}
+
+void Database::safe_add_mol (Database_molecule *mol) {
+	mutex ->lockForWrite ();
+	add_mol (mol);
+	mutex ->unlock ();
+}
 
 void Database::add_mol (Database_molecule *mol) {
-//	ref_molecules.push_back (mol);
-    molecules.push_back (mol);
-    mol -> database = this;
-    mol -> number = molecules.size ()-1;
-}
 
+	DatabaseEntry *entry = new DatabaseEntry (mol);
+	ZNMoleculeDatabaseCell *cell = new ZNMoleculeDatabaseCell (mol);
+	entry ->cells.clear ();
 
-void Database::set_graphics () {
-	if (!grid) {
-		grid = new DatabaseGrid (0, this, data);
+    entry ->cells.push_back (cell);
+	for (unsigned int i = 1; i < field_names.size (); i++) {
+		DoubleDatabaseCell *cell2 = new DoubleDatabaseCell (0);
+		entry ->cells.push_back (cell2);
 	}
-	grid -> show ();
-	grid -> raise ();
+	entry ->sorting_column = sorting_column;
+	//cerr << "assign "<<entry ->sorting_column <<" "<< &sorting_column;
+	entries.push_back (entry);
+    mol -> database = this;
+    mol -> number = count_entries ()-1;
+	set_needs_redraw (true);
+
 }
+
+void Database::delete_entry (int i) {
+	if (0<=i<count_entries()) {
+		delete entries [i];
+		entries.erase (entries.begin ()+i);
+	}
+}
+
+void Database::safe_sort_up (int column) {
+		mutex ->lockForWrite ();
+		sort_up (column);
+		mutex ->unlock ();
+}
+
+void Database::safe_sort_down (int column) {
+		mutex ->lockForWrite ();
+		sort_down (column);
+		mutex ->unlock ();
+}
+
+void Database::sort_up (int column) {
+//	cerr <<"sorting up" << column <<endl;
+	if (0 <= column < count_fields ()) {
+		*sorting_column = column;
+		sort (entries.begin (), entries.end (), compare_cell ());
+		set_needs_redraw (true);	
+	}
+	//	cerr <<"sorting up end" << endl;
+
+}
+
+
+void Database::sort_down (int column) {
+	//	cerr <<"sorting down" << column <<endl;
+	if (0 <= column < count_fields ()) {	
+		sort (entries.begin (), entries.end (), compare_cell ());
+		reverse (entries.begin (), entries.end ());		
+		set_needs_redraw (true);	
+	}
+	//	cerr <<"sorting down end" << endl;
+}
+
+void Database::safe_merge_with (Database *dat) {
+		mutex ->lockForWrite ();
+		merge_with (dat);
+		mutex ->unlock ();
+}
+
+
+void Database::merge_with (Database *dat) {
+	for (unsigned int i = 0; i < dat ->count_entries (); i++) {
+		Database_molecule *new_mol = new Database_molecule (*dat ->get_molecule (i));
+		add_mol (new_mol);
+	}
+}
+
 
 bool Database::has_extend_enabled () {
-	return grid -> has_extend_enabled ();
+	return _extend_enabled;
 }
 
 /*
@@ -111,11 +230,10 @@ void Database::import_csv (string filename) {
 	}
 	ifs.close();
 	if (dats.size ()) {
-		if (dats[0].size () == molecules.size ()) {
-			for (unsigned int i = 0; i < dats.size (); i++) {
-				DatabaseField df (names[i], dats[i]);
-				fields.push_back (df);
-				grid -> add_field (&df);
+		cerr <<dats[0].size ()<<" "<<count_entries ()<<endl;
+		if (dats[0].size () == count_entries ()) {
+			for (unsigned int i = 1; i < dats.size (); i++) {
+				add_field (names[i], dats[i]);
 			}
 		}		
 	}

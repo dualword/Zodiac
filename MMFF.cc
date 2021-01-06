@@ -16,16 +16,14 @@
 
 */
 #include <iostream>
-#include "molecule.h"
 #include "MMFF.h"
 
 
-#include <string>
-#include <vector>
-#include <fstream>
-#include <math.h>
-
 #include <limits>   // To enable NaN usage
+#ifdef _OPENMP
+
+#include <omp.h>
+#endif
 
 #define ACCEPTOR 1
 #define DONOR 2
@@ -151,10 +149,25 @@ float MMFFvwInteraction::value () {
     assert (at1);
     assert (at2);
     assert (at1 != at2);
-    
-    double r = dist (get_coordinates (at1), get_coordinates (at2));
-     //  cout <<"VDW "<< at1->ID<<" "<< at2->ID<<" "<< r<<" "<<r0<<" "<<e<<" "<<e*pow((1.07*r0/(r+0.07*r0)),7)*((1.12*pow(r0,7)/(pow(r,7)+0.12*pow(r0,7)))-2)<<endl;
+#if 1
+    double r = dist(get_coordinates (at1), get_coordinates (at2));
     double out = e*pow((1.07*r0/(r+0.07*r0)),7)*((1.12*pow(r0,7)/(pow(r,7)+0.12*pow(r0,7)))-2.);
+#else
+    double r2 = square_distance(get_coordinates (at1), get_coordinates (at2));
+    double r = sqrt (r2);
+	
+	double rpow7 = r2 * r2 * r2 * r;
+     //  cout <<"VDW "<< at1->ID<<" "<< at2->ID<<" "<< r<<" "<<r0<<" "<<e<<" "<<e*pow((1.07*r0/(r+0.07*r0)),7)*((1.12*pow(r0,7)/(pow(r,7)+0.12*pow(r0,7)))-2)<<endl;ble 
+	
+	double r0pow7 = (r0 * r0); // pow(r0, 7);
+	r0pow7 = r0pow7 * r0pow7 * r0pow7 * r0;
+	
+	double rX = (1.07*r0/(r+0.07*r0));
+	double rXpow7 = rX * rX;
+	rXpow7 = rXpow7 * rXpow7 * rXpow7 * rX;
+	
+    double out = e*rXpow7*((1.12*r0pow7/(rpow7+0.12*r0pow7))-2.0);
+#endif
     assert (!isnan (out));
     return (float) out;
 }
@@ -175,13 +188,34 @@ float MMFFelInteraction::value () {
     return (float) out;
 }
 
+bool MMFFelInteraction::isHbond () {
+	int at1n = at1 ->GetAtomicNum ();
+	int at2n = at2 ->GetAtomicNum ();
+	if (at1n == 1) {
+		Atom *r = root_at (at1);
+		if (r) {
+			if (is_polar (r)) {
+				if (is_polar (at2)) return true;
+			};
+		}
+	}
+	else if (at2n == 1) {
+		Atom *r = root_at (at2);
+		if (r) {
+			if (is_polar (r)) {
+				if (is_polar (at1)) return true;
+			};
+		}
+	}
+	
+	return false;
+}
 
 
 
 
 
-
-void MMFFabInteraction::set_forces (bool score) {
+void MMFFabInteraction::set_forces (bool score, double multbm) {
     assert (at1);
     assert (at2);
     assert (at3);
@@ -223,7 +257,7 @@ void MMFFabInteraction::set_forces (bool score) {
 
 
 
-void MMFFsbInteraction::set_forces (bool score) {
+void MMFFsbInteraction::set_forces (bool score, double mult) {
     assert (at1);
     assert (at2);
     assert (at3);
@@ -266,7 +300,7 @@ void MMFFsbInteraction::set_forces (bool score) {
 
 
 
-void MMFFopInteraction::set_forces (bool score) {
+void MMFFopInteraction::set_forces (bool score, double mult) {
 
     assert (at1);
     assert (at2);
@@ -309,7 +343,7 @@ void MMFFopInteraction::set_forces (bool score) {
 }
 
 
-void MMFFtoInteraction::set_forces (bool score) {
+void MMFFtoInteraction::set_forces (bool score, double mult) {
 
     assert (at1);
     assert (at2);
@@ -382,8 +416,8 @@ int MMFF::load_parameters () {
 
 double MMFF::compute_total_energy () {
 
-    double Emmff, Eb, Ea, Eba, Eoop, Et, Evdw, Eq;
-    Emmff = 0.;
+    double Einternal, Eb, Ea, Eba, Eoop, Et, Evdw, Eq;
+
     
     Eb = compute_bond_stretchings ();
     Ea = compute_angle_bendings ();
@@ -392,11 +426,18 @@ double MMFF::compute_total_energy () {
     Et = compute_torsion_interactions ();
     Evdw = compute_van_der_waals_interactions ();
     Eq = compute_electrostatic_interactions ();
-    Emmff = Eb + Ea + Eba + Eoop + Et + Evdw + Eq; //+ compute_total_electrostatic_energy ()+compute_total_van_der_waals_energy ();
-    return Emmff;
+    Einternal = Eb + Ea + Eba + Eoop + Et + Evdw + Eq;
+	
+	double Einteraction = compute_interaction_energy ();
+    return Einternal + Einteraction;
 
 }
 
+double MMFF::compute_interaction_energy () {
+	double Eq = compute_nonbonded_electrostatic_interactions ();
+	double Evdw = compute_nonbonded_van_der_waals_interactions ();
+	return Eq + Evdw;
+}
     
 
 void MMFF::compute_forces () {
@@ -417,7 +458,11 @@ void MMFF::compute_forces () {
 
 void MMFF::compute_bond_stretching_forces () {
 	//cerr << "bs " << bsInteractions.size () << endl;
-    for (unsigned int i=0; i<bsInteractions.size (); i++) {
+/*#ifdef _OPENMP
+#pragma omp parallel for
+#endif // _OPENMP
+*/
+    for (int i=0; i<bsInteractions.size (); i++) {
         bsInteractions[i] -> set_forces ();
     }
 	
@@ -425,31 +470,51 @@ void MMFF::compute_bond_stretching_forces () {
 
 void MMFF::compute_angle_bending_forces () {
 //	cerr << "ab " << abInteractions.size () << endl;
-    for (unsigned int i=0; i<abInteractions.size (); i++) {
+/*#ifdef _OPENMP
+#pragma omp parallel for
+#endif // _OPENMP
+*/
+    for (int i=0; i<abInteractions.size (); i++) {
         abInteractions[i] -> set_forces ();
     }
 }
 
 void MMFF::compute_stretch_bend_interaction_forces () {
-    for (unsigned int i=0; i<sbInteractions.size (); i++) {
+/*#ifdef _OPENMP
+#pragma omp parallel for
+#endif // _OPENMP
+*/
+    for (int i=0; i<sbInteractions.size (); i++) {
         sbInteractions[i] -> set_forces ();
     }
 }
 
 void MMFF::compute_out_of_plane_bending_forces () {
-    for (unsigned int i=0; i<opInteractions.size (); i++) {
+/*#ifdef _OPENMP
+#pragma omp parallel for
+#endif // _OPENMP
+*/
+    for (int i=0; i<opInteractions.size (); i++) {
         opInteractions[i] -> set_forces ();
     }
 }
 
 void MMFF::compute_torsion_forces () {
-    for (unsigned int i=0; i<toInteractions.size (); i++) {
+/*#ifdef _OPENMP
+#pragma omp parallel for
+#endif // _OPENMP
+*/
+    for (int i=0; i<toInteractions.size (); i++) {
         toInteractions[i] -> set_forces ();
     }
 }
 
 void MMFF::compute_electrostatic_forces () {
-    for (unsigned int i=0; i<elInteractions.size (); i++) {
+/*#ifdef _OPENMP
+#pragma omp parallel for
+#endif // _OPENMP
+*/
+    for (int i=0; i<elInteractions.size (); i++) {
         if (elInteractions[i]->at1->GetPartialCharge () && elInteractions[i]->at2->GetPartialCharge ()) {
             elInteractions[i] -> set_forces ();
         }
@@ -457,7 +522,11 @@ void MMFF::compute_electrostatic_forces () {
 }
 
 void MMFF::compute_nonbonded_electrostatic_forces () {
-    for (unsigned int i=0; i<elNBInteractions.size (); i++) {
+/*#ifdef _OPENMP
+#pragma omp parallel for
+#endif // _OPENMP
+*/
+    for (int i=0; i<elNBInteractions.size (); i++) {
         if (elNBInteractions[i]->at1->GetPartialCharge () && elNBInteractions[i]->at2->GetPartialCharge ()) {
             elNBInteractions[i] -> set_forces (true); //bool enables scores to be written to atoms
         }
@@ -465,58 +534,46 @@ void MMFF::compute_nonbonded_electrostatic_forces () {
 }
 
 void MMFF::compute_van_der_waals_forces () {
-    for (unsigned int i=0; i<vwInteractions.size (); i++) {
+/*#ifdef _OPENMP
+#pragma omp parallel for
+#endif // _OPENMP
+*/
+    for (int i=0; i<vwInteractions.size (); i++) {
         vwInteractions[i] -> set_forces (); 
     }
 }
 
 void MMFF::compute_nonbonded_van_der_waals_forces () {
-    for (unsigned int i=0; i<vwNBInteractions.size (); i++) {
+/*#ifdef _OPENMP
+#pragma omp parallel for
+#endif // _OPENMP
+*/
+    for (int i=0; i<vwNBInteractions.size (); i++) {
         vwNBInteractions[i] -> set_forces (true); //bool enables scores to be written to atoms
     }
 }
 
 
-/*
-void MMFF::compute_total_electrostatic_force (vector<float>& force, vector<float>& torq) {
-    force[0]=0; force[1]=0; force[2]=0;
-    torq[0]=0; torq[1]=0; torq[2]=0;
+
+
+double MMFF::compute_nonbonded_electrostatic_interactions () {
+    double Eq = 0.f;
     for (unsigned int i=0; i<elNBInteractions.size (); i++) {
-        vector<float> en = compute_electrostatic_force_vector (elNBInteractions[i]);
-        force[0]+=en[0];
-        force[1]+=en[1];
-        force[2]+=en[2];
-        vector<float> to = torque (en, elNBInteractions[i]->at1-> GetVector (), elNBInteractions[i]->at1->residue->molecule->center);
-        torq[0]+=to[0];    
-        torq[1]+=to[1];
-        torq[2]+=to[2];
+        Eq += elNBInteractions[i] -> value ();
+
     }
+    return Eq;
 }
 
-void MMFF::compute_total_van_der_waals_force (vector<float>& force, vector<float>& torq) {
-    force[0]=0; force[1]=0; force[2]=0;
-    torq[0]=0; torq[1]=0; torq[2]=0;
+
+double MMFF::compute_nonbonded_van_der_waals_interactions () {
+    double Evdw = 0.f;
     for (unsigned int i=0; i<vwNBInteractions.size (); i++) {
-        vector<float> en = compute_van_der_waals_force_vector (vwNBInteractions[i]);
-        force[0]+=en[0];
-        force[1]+=en[1];
-        force[2]+=en[2];
-        vector<float> to  = torque (en,vwNBInteractions[i]->at1-> GetVector (),vwNBInteractions[i]->at1->residue->molecule->center);
-        torq[0]+=to[0];    
-        torq[1]+=to[1];
-        torq[2]+=to[2];
+        Evdw += vwNBInteractions[i] -> value ();
+
     }
+    return Evdw;
 }
-
-
-
-
-
-*/
-
-
-
-
 
 
 double MMFF::compute_bond_stretchings () {
@@ -1357,7 +1414,7 @@ void MMFF::empiric_to_parameters (Atom *at1, Atom *at2, Atom *at3, Atom *at4, fl
     an2 = atomParameters[get_atype_line (at2->MMFFtype)];
     an3 = atomParameters[get_atype_line (at3->MMFFtype)];
     an4 = atomParameters[get_atype_line (at4->MMFFtype)];
-    Bond *cb = at2 -> GetBond (at3);
+    ZNBond *cb = at2 -> GetBond (at3);
     bool arom;
     if (!cb) arom = false;
     else (arom = cb->IsAromatic ());
@@ -1549,7 +1606,7 @@ int MMFF::get_pt_row (int an) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void MMFF::load_internal_interactions (vector <ForceFieldInteraction *> *vect = 0) {
     clear_internal_interactions ();
-    Molecule *mol = target_mol;
+    ZNMolecule *mol = target_mol;
 
 //bond stretchings
     FOR_BONDS_OF_MOL (bond, mol) {
@@ -1587,7 +1644,7 @@ void MMFF::load_internal_interactions (vector <ForceFieldInteraction *> *vect = 
 					if (n1 -> GetIdx () < n2 -> GetIdx ()) {
 						MMFFabInteraction *abint = new MMFFabInteraction;
 						abint->at2 = &*a;
-						Bond *bondij, *bondjk;
+						ZNBond *bondij, *bondjk;
 						if (get_MMFFtype (&*n1)  < get_MMFFtype (&*n2)) {
 							abint->at1 = &*n1;
 							abint->at3 = &*n2;
@@ -2319,7 +2376,7 @@ void MMFF::load_nonbonded_interactions () {
 
     clear_nonbonded_interactions ();
     assert (target_mol);
-    Molecule *mol = target_mol;
+    ZNMolecule *mol = target_mol;
     FOR_ATOMS_OF_MOL (a, target_mol) {
 		load_nonbonded_interactions_for_atom (&*a);
     }
@@ -2342,7 +2399,7 @@ double MMFF::compute_charge (Atom *at) {
 */
 }
 
-void MMFF::get_strings_mol (Molecule*mol) {
+void MMFF::get_strings_mol (ZNMolecule*mol) {
 /*
     FOR_ATOMS_OF_MOL (mol, a)   {
         a->MMFFstring = getMMFFcarbonstring (a);
@@ -2364,7 +2421,7 @@ void MMFF::get_strings_mol (Molecule*mol) {
 */
 }
 
-void MMFF::compute_partial_charges (Molecule *mol){
+void MMFF::compute_partial_charges (ZNMolecule *mol){
 /*
     FOR_ATOMS_OF_MOL (a, mol)   {
         a -> MMFFstartcharge = getMMFFstartcharge (&*a);
@@ -2377,7 +2434,7 @@ void MMFF::compute_partial_charges (Molecule *mol){
 
 
 
-void MMFF::initialize_mol (Molecule *mol) {
+void MMFF::initialize_mol (ZNMolecule *mol) {
 /*
     get_strings_mol (mol);
 
@@ -3095,8 +3152,8 @@ string MMFF::getMMFFeteroatomstring (Atom *at) {
  
   int MMFF::getBondType(Atom* a, Atom* b)
   {
-	Molecule *mol = (Molecule *) a ->GetParent ();
-	Bond *bond = mol ->GetBond (a, b);
+	ZNMolecule *mol = (ZNMolecule *) a ->GetParent ();
+	ZNBond *bond = mol ->GetBond (a, b);
 	int I = get_MMFFtype (a);
 	int J = get_MMFFtype (b);
     if (!bond ->IsSingle())

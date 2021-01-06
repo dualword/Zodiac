@@ -17,7 +17,7 @@
 */
 
 #include "database.h"
-#include <openbabel/forcefield.h>
+#include "obabel_includes.h"
 #include "FF.h"
 #include "constants.h"
 #include "cutoffGrid.h"
@@ -94,7 +94,7 @@ double ForceFieldInteraction::derive_z (Atom *at, double *function_value) {
 
 
 
-void ForceFieldInteraction::set_forces (bool score) {
+void ForceFieldInteraction::set_forces (bool score, double mult) {
     assert (at1);
     assert (at2);
 	vect v1 = get_coordinates (at1);
@@ -109,12 +109,15 @@ void ForceFieldInteraction::set_forces (bool score) {
     double force_x;
     force_x = derive (at1, &score_val);
     dir.multiply (force_x / dir.x());
+	dir.multiply(mult);
     vect force1 = get_back_force (at1);
     vect force2 = get_back_force (at2);
     force2 += dir;
     force1 -= dir;
+
     set_back_force (at1, force1);
 	set_back_force (at2, force2);
+
 
     if (score) {
 		double score1 = get_back_score (at1);
@@ -123,10 +126,19 @@ void ForceFieldInteraction::set_forces (bool score) {
 		score1 += score_val;
 		score2 += score_val;
 	//	cerr << score1 << score_val<< endl;
+
 		set_back_score (at1, score1);
 		set_back_score (at2, score2);
+
     }
 
+}
+
+ElasticRestrain::ElasticRestrain () : ForceFieldInteraction () { k = 1.f; dist0 = 1.5;}
+
+float ElasticRestrain::value () {
+	float d = dist (get_coordinates(at1), get_coordinates(at2)) - dist0;
+	return  k * d * d;
 }
 
 
@@ -155,17 +167,17 @@ void ForceField::clear () {
 }
 
 
-void ForceField::load_mol (Molecule *mol) {
+void ForceField::load_mol (ZNMolecule *mol) {
     assert (mol);
     target_mol = mol;
 }
 
 
-void ForceField::load_environment (vector<Molecule *> envir, Molecule *mol) {
+void ForceField::load_environment (vector<ZNMolecule *> envir, ZNMolecule *mol, vect cent, double rad) {
     environment.clear ();
     for (unsigned int i=0; i<envir.size (); i++) {
         FOR_ATOMS_OF_MOL (a, envir[i]) {
-			Molecule *other_mol = (Molecule *) a->GetParent ();
+			ZNMolecule *other_mol = (ZNMolecule *) a->GetParent ();
 			if (other_mol == mol) continue;
 			if (other_mol ->multi && mol ->multi) {
 				
@@ -176,7 +188,6 @@ void ForceField::load_environment (vector<Molecule *> envir, Molecule *mol) {
 			environment.push_back (&*a); 
 		}
 	}
-//cout <<"envsize"<<environment.size ()<<endl;
     delete near_grid;
     delete far_grid;
     near_grid  = new cutoffGrid<Atom*> (environment, FF_NEAR_NONBONDED_CUTOFF);
@@ -188,22 +199,24 @@ void ForceField::update () {
    load_nonbonded_interactions (); 
 }
 
-void ForceField::initialize_internal (Molecule* mol, vector<Molecule *> envir) {
+void ForceField::initialize_internal (ZNMolecule* mol, vector<ZNMolecule *> envir) {
     clear ();
     load_environment (envir, mol);
     load_mol (mol);
     load_internal_interactions (0);
 }
 
-void ForceField::initialize_interaction (Molecule* mol, vector<Molecule *> envir) {
+void ForceField::initialize_interaction (ZNMolecule* mol, vector<ZNMolecule *> envir, vect cent, float rad) {
     clear ();
     load_environment (envir, mol);
     load_mol (mol);
-    load_nonbonded_interactions ();
+  //  load_nonbonded_interactions ();
+	load_grids (cent, rad);
+
 
 }
 
-void ForceField::initialize (Molecule* mol, vector<Molecule *> envir) {
+void ForceField::initialize (ZNMolecule* mol, vector<ZNMolecule *> envir) {
     clear ();
     load_environment (envir, mol);
     load_mol (mol);

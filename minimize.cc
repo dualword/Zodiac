@@ -17,20 +17,27 @@
 */
 #include "minimize.h"
 
-#ifdef HAPTICS
-#include "haptics.h"
-#endif //HAPTICS
+
 
 #ifdef WIN32
 #include <float.h>
 #define isnan _isnan
 #endif // WIN32
 
-Minimize::Minimize (Data *dat) {
-	data = dat;
-	internal_ff = new MMFF ();
-	interaction_ff = new MMFF ();
-	haptic_dof_mode = 2;
+Minimize::Minimize (Data *dat, ForceField *int_ff, ForceField *inter_ff) :data (dat), target_molecule (NULL) {
+	if (int_ff) {
+		internal_ff    = int_ff;
+	}
+	else internal_ff = new MMFF ();
+	if (inter_ff) {
+		interaction_ffs.push_back (inter_ff);
+	}
+	else interaction_ffs.push_back  (new Chemscore ());
+	optimiser      = new ILS ();
+
+
+//	haptic_thread = 0;
+	haptic_dof_mode = 1;
 	haptic_number_of_threads = 1;
 	total_E = 0.f;
 	total_internal_E = 0.f;
@@ -38,12 +45,17 @@ Minimize::Minimize (Data *dat) {
 	clear ();
     minimising_molecule = NULL;
     haptic_molecule = NULL;
- //   minimise_reference_molecule = NULL;
-
 
 }
 
-
+float Minimize::score () {
+	float out = 0;
+	for (unsigned int i = 0; i < interaction_ffs.size (); i++) {
+	interaction_ffs[i] ->update ();
+	out += interaction_ffs[i] ->compute_total_energy ();
+		return out;
+	}
+}
 
 int Minimize::forcefields_sanity_check () {
 	string error_string = "";
@@ -52,17 +64,19 @@ int Minimize::forcefields_sanity_check () {
 		error_string += "Internal Forcefield not correctly initialised.\n";
 		out = 0;
 	}
-	if (!interaction_ff -> is_initialised) {
+	for (unsigned int i = 0; i < interaction_ffs.size (); i++) {
+	if (!interaction_ffs[i] -> is_initialised) {
 		error_string += "Interaction Forcefield not correctly initialised.\n";
 		out = 0;
 	}
 	if (!out)     QMessageBox::critical(data->ddwin, "Forcefields sanity check failed" , QString (error_string.c_str ()) );
 	return out;
+	}
 }
 
 
 /*
-void Minimize::initialise_minimisation (Molecule *mol, Forcefield *ff) {
+void Minimize::initialise_minimisation (ZNMolecule *mol, Forcefield *ff) {
     clear ();
 
     ff -> clear_internal_interactions ();
@@ -101,13 +115,15 @@ void Minimize::start_haptic_mode () {
 		initialize (data->ddwin->target_molecule);
 		data->ddwin->haptic_mode = true;
 		data -> ddwin -> lock_editing ();
-		total_E = 0.;
-		total_internal_E = 0.;
-		total_interaction_E = 0.;
+//		total_E = 0.;
+//		total_internal_E = 0.;
+//		total_interaction_E = 0.;
 		if (haptic_dof_mode!=0) {
 			internal_ff->initialize_internal (data->ddwin->target_molecule, data->ddwin->molecules);
 		}
-		interaction_ff->initialize_interaction (data->ddwin->target_molecule, data->ddwin->molecules);
+	for (unsigned int i = 0; i < interaction_ffs.size (); i ++) {
+		interaction_ffs [i]->initialize_interaction (data->ddwin->target_molecule, data->ddwin->molecules);
+	}
         data -> undo_stack -> beginMacro ("Haptic Simulation");
         MoveAtomsCommand *command = new MoveAtomsCommand (data -> ddwin -> gl, 1);
         FOR_ATOMS_OF_MOL(a, haptic_molecule) {
@@ -116,29 +132,13 @@ void Minimize::start_haptic_mode () {
 //        command -> name ("haptic simulation");
         data -> ddwin -> execute (command);
 //	}
-        haptic_thread -> initialise (this);
-        haptic_thread -> start ();
+        data ->ddwin ->haptic_menu ->haptic_thread -> initialise (this);
+		data ->ddwin ->run_thread (data ->ddwin ->haptic_menu ->haptic_thread);
+ //       haptic_thread -> start ();
 
 }
 
-void Minimize::stop_haptic_mode () {
-	if (haptic_thread-> isRunning ()) {
-		haptic_thread -> stop ();
-		haptic_thread -> wait ();
-		MoveAtomsCommand *command = new MoveAtomsCommand (data -> ddwin -> gl, 0);
-		FOR_ATOMS_OF_MOL(a, haptic_molecule) {
-			command -> add (&*a, get_coordinates (&*a));
-		}
-  //  command -> name ("haptic simulation");
-		data -> ddwin -> execute (command);	
-		data -> undo_stack -> endMacro ();
-		data->ddwin->haptic_mode = false;
-		haptic_molecule = NULL;
-		data -> ddwin -> unlock_editing ();
-	}
-}
-
-void Minimize::initialize (Molecule *mol) {
+void Minimize::initialize (ZNMolecule *mol) {
     FOR_ATOMS_OF_MOL(a, mol) {
   //      vect *force = (vect *) a -> GetData ("force");
  //       force -> null ();
@@ -151,8 +151,8 @@ void Minimize::initialize (Molecule *mol) {
 }
 
 
-void Minimize::initialize_6 (Molecule *mol) { 
-	pFragment frag;
+void Minimize::initialize_6 (ZNMolecule *mol) { 
+/*	pFragment frag;
     frag.translation = mol -> center;
 	frag.rotation_quat [0] = 1.f;
 	frag.rotation_quat [1] = 0.f;
@@ -166,7 +166,7 @@ void Minimize::initialize_6 (Molecule *mol) {
 		frag.atoms.push_back (fa);
 	}
 	fragments.push_back (frag);
-
+*/
 }
 
 
@@ -186,12 +186,10 @@ void Minimize::haptic_step () {
 
 	counter ++;
 
-	Molecule * min_mol = haptic_molecule;
+	ZNMolecule * min_mol = haptic_molecule;
     assert (min_mol);
 
-#ifdef HAPTICS
-	update_molecule_position_with_haptic_pointer (min_mol);
-#endif //HAPTICS
+
 
     vect haptic_force (0.f, 0.f, 0.f);
 
@@ -283,18 +281,7 @@ void Minimize::haptic_step () {
 
 //	    data->ddwin->haptic_menu->update ();
 
-        #ifdef HAPTICS
 
-
-	    // HAPTIC FUNCTION needs some force cut off and scaling 
-	    vect actual_force;
-	    data->ddwin->gl->world_to_haptic_coordinates (haptic_force, actual_force, -5, 5, -5, 5, -5, 5);
-	    gHaptics.setForce(
-		haptic_force.x() / maxforce, /////////////why not actual force???
-		haptic_force.y() / maxforce,
-		haptic_force.z() / maxforce
-		);
-        #endif //HAPTICS
 
     }
     if (color_by_score) {
@@ -310,16 +297,29 @@ void Minimize::haptic_step () {
     }
 }
 */
-#ifdef HAPTICS
-void Minimize::update_molecule_position_with_haptic_pointer (Molecule *min_mol) {
-
+//#ifdef HAPTICS
+void Minimize::update_molecule_position_with_haptic_pointer (ZNMolecule *min_mol) {
+	lock_geometry_for_write (min_mol);
 
 	vect haptic_coords, new_coords;
 	float x, y, z;
-	double pos[3];
-	gHaptics.getPosition(pos);
-	x = pos[0]; y = pos[1]; z = pos[2];
-
+	data -> haptic_position_lock ->lockForRead ();
+	x = data -> current_position_x;
+	y = data -> current_position_y;
+	z = data -> current_position_z;
+	data -> haptic_position_lock ->unlock ();
+	float MAX_OUT = 100;
+	float MOVE = 0.02;
+	vect move_screen (0., 0., 0.);
+	if (x < -MAX_OUT) move_screen = sum (move_screen, vect (MOVE, 0., 0.));
+	else if (x > MAX_OUT) move_screen = sum (move_screen, vect (-MOVE, 0., 0.));
+	if (y < -MAX_OUT) move_screen = sum (move_screen, vect (0, MOVE, 0.));
+	else if (y > MAX_OUT) move_screen = sum (move_screen, vect (0,-MOVE, 0.));
+	if (z < -MAX_OUT*0.5) move_screen = sum (move_screen, vect ( 0., 0., MOVE));	
+	else if (z > MAX_OUT*0.5) move_screen = sum (move_screen, vect (0., 0., -MOVE));	
+	
+	data ->ddwin ->gl ->translate_view (move_screen);
+	//cerr << x << endl;
 	/*
 	x = 0; 
 	y = 0;
@@ -331,31 +331,63 @@ void Minimize::update_molecule_position_with_haptic_pointer (Molecule *min_mol) 
 
 	float minx, maxx, miny, maxy, minz, maxz;
 
-	minx = -5; maxx = 5; 
-	miny = -5; maxy = 5;
-	minz = -5; maxz = 5;
+	minx = -250; maxx = 250; 
+	miny = -250; maxy = 250;
+	minz = -250; maxz = 250;
 
 	data->ddwin->gl->haptic_to_world_coordinates (haptic_coords, new_coords, minx, maxx, miny, maxy, minz, maxz);
+	vect x_ax = vect (1, 0, 0);
+	vect y_ax = vect (0, 1, 0);
+	vect z_ax = vect (0, 0, -1);
+	x_ax = data ->ddwin ->gl -> apply_world_rotation (x_ax);
+	y_ax = data ->ddwin ->gl -> apply_world_rotation (y_ax);
+	z_ax = data ->ddwin ->gl -> apply_world_rotation (z_ax);
+
+	//quaternion q = yaw_pitch_roll_to_quaternion (data ->current_pitch-data ->last_pitch, data ->current_roll - data ->last_roll, data ->current_yaw - data ->last_yaw);
+//	quaternion q = axis_angle_to_quaternion  (z_ax, (data ->current_pitch-data ->last_pitch));
+//	quaternion q1 = axis_angle_to_quaternion (x_ax, (data ->current_yaw-data ->last_yaw));	
+//	quaternion q2 = axis_angle_to_quaternion (y_ax, (data ->current_roll-data ->last_roll));	
+//cerr << data ->current_pitch << " " << data ->current_yaw << " " << data ->current_roll<<endl;
+
+
+		quaternion q = axis_angle_to_quaternion  (z_ax, (data ->current_pitch + 3)* (data ->current_pitch + 3)* (data ->current_pitch + 3)*0.0005);
+		quaternion q1 = axis_angle_to_quaternion (x_ax, (data ->current_yaw +3)*(data ->current_yaw +3)*(data ->current_yaw +3)* 0.004);	
+		quaternion q2 = axis_angle_to_quaternion (y_ax, (data ->current_roll+3) *(data ->current_roll+3) *(data ->current_roll+3)* 0.004);	
+
 
     FOR_ATOMS_OF_MOL(a, min_mol) {
 		vect v = get_coordinates(&*a);
-        v += new_coords;
-        v -= min_mol ->center;
+        v = subtract (v, get_center (min_mol));
+
+
+
+	v = rotate_vector_using_quaternion (v, q2);	
+		v = rotate_vector_using_quaternion (v, q1);	
+	v = rotate_vector_using_quaternion (v, q);	
+        v = sum (v, new_coords);
 		set_coordinates (&*a, v);
 	}
 
-    min_mol -> center = new_coords;
+    set_center (min_mol, new_coords);
+	
+	
+	
+//	data -> last_pitch = data -> current_pitch;
+//	data -> last_roll =  data -> current_roll;
+//	data -> last_yaw =   data -> current_yaw;
+	unlock_geometry (min_mol);
 }
 
-#endif //HAPTICS
+
+//#endif //HAPTICS
 
 
 void Minimize::update_fragment_position (pFragment& frag) {
-	for (unsigned int i=0; i<frag.atoms.size (); i++) {
-		vect rotated_coords;
-		rotated_coords = rotate_vector_using_quaternion (frag.atoms[i].coordinates, frag.rotation_quat);
+//	for (unsigned int i=0; i<frag.atoms.size (); i++) {
+//		vect rotated_coords;
+//		rotated_coords = rotate_vector_using_quaternion (frag.atoms[i].coordinates, frag.rotation_quat);
 //		frag.atoms[i].atom-> GetVector () = sum (rotated_coords, frag.translation);
-	}
+//	}
 }
 
 
@@ -375,7 +407,7 @@ void Minimize::apply_force_to_atom (Atom *a, float trunc) {
 }
 
 
-void Minimize::apply_forces (Molecule *mol, float trunc) {
+void Minimize::apply_forces (ZNMolecule *mol, float trunc) {
   //  assert (mol -> atoms.size ());
 	FOR_ATOMS_OF_MOL(a, mol) {
 		apply_force_to_atom (&*a, trunc);

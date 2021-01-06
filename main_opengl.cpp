@@ -1,4 +1,0 @@
-#ifdef HAPTICS
-
-
-#endif //HAPTICS

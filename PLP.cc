@@ -159,10 +159,10 @@ void PLP::load_internal_interactions () {}
 void PLP::load_nonbonded_interactions () {
 
     clear_nonbonded_interactions ();
-    Molecule *mol = target_mol;
+    ZNMolecule *mol = target_mol;
     FOR_ATOMS_OF_MOL (a, mol) {
         if (a -> IsHydrogen ()) continue;
-        objectList<Atom*>* nbAtoms = far_grid->getNeighborObjects(a -> GetVector ());
+        objectList<Atom*>* nbAtoms = far_grid->getNeighborObjects(get_coordinates (&*a));
         if (nbAtoms) {
             vector <Atom *> neighbours = nbAtoms->objects;      
             for (unsigned int j=0; j<neighbours.size (); j++) {
@@ -171,9 +171,9 @@ void PLP::load_nonbonded_interactions () {
                 if (neighbours[j]-> GetAtomicNum () == 7 || neighbours[j]-> GetAtomicNum () == 8) {
                     FOR_NBORS_OF_ATOM (n, neighbours[j]) {
                         if (n -> IsHydrogen ()) {
-                            x += n -> GetVector ().x();
-                            y += n -> GetVector ().y();
-                            z += n -> GetVector ().z();
+                            x += get_coordinates (&*n).x();
+                            y += get_coordinates (&*n).y();
+                            z += get_coordinates (&*n).z();
                         }
                     }
                     x/= CountBonds (neighbours[j]);
@@ -197,7 +197,7 @@ void PLP::load_nonbonded_interactions () {
 
 
 int PLP::getPLPtype (Atom *at) {
-    Molecule *mol = (Molecule *) at -> GetParent ();
+    ZNMolecule *mol = (ZNMolecule *) at -> GetParent ();
     if (at->IsOxygen ()) {
         if (mol->bonded_to (at, -2, 1)) return BOTH;
         else return ACCEPTOR;

@@ -16,6 +16,11 @@
 
 */
 
+
+#ifdef HAPTICS
+#include <HD/hd.h>
+#endif //HAPTICS
+
 #include "qwidget.h"
 #include <qapplication.h>
 #include "ZNdata.h"
@@ -24,31 +29,74 @@
 #include "ddwin.h"
 #include "MMFF.h"
 
-
+#include <QTranslator>
+#include <QLocale>
 #ifdef HAPTICS
-#include "haptics.h"
-#endif //HAPTICS
+//#include "haptics.h"
 
+
+
+static HHD ghHD = HD_INVALID_HANDLE;
+static HDSchedulerHandle gSchedulerCallback = HD_INVALID_HANDLE;
+HDSchedulerHandle gCallbackHandle = 0;
+HDCallbackCode HDCALLBACK Haptics(void *);
+#endif //HAPTICS
 
 int main( int argc, char **argv )
 {
 
 // wiimote_kickstart() ;
 
+
     QApplication a( argc, argv );
+
+  //QString locale = QLocale::system().name();
+ // QTranslator translator;
+ // translator.load(QString("zodiac_") + locale);
+ // a.installTranslator(&translator);
+
+
+
+
+    Data dat (&a);
+
+    DDWin ddwin (0, &dat);
+	dat.load_haptic_device ();
 
 #ifdef HAPTICS
 	// - haptics - //
 	// Call the haptics initialization function
-	HapticsClass::StaticInit();
+//	HapticsClass::StaticInit();
 	// - haptics - //
+
+
+    std::cout << "haptics callback" << "\n";
+    gSchedulerCallback = hdScheduleAsynchronous(
+        Haptics, &dat, HD_MAX_SCHEDULER_PRIORITY);
+
+    HDErrorInfo error;
+    ghHD = hdInitDevice(HD_DEFAULT_DEVICE);
+    if (HD_DEVICE_ERROR(error = hdGetError()))
+    {
+
+        fprintf(stderr, "\nPress any key to quit.\n");
+        getchar();
+        //exit(-1);
+    }
+    printf("Found device %s\n",hdGetString(HD_DEVICE_MODEL_TYPE));
+    hdEnable(HD_FORCE_OUTPUT);
+    hdEnable(HD_MAX_FORCE_CLAMPING);
+    hdStartScheduler ();
+  //  current_force_x = new double (0.);
+   // current_force_y = new double (0.);
+   // current_force_z = new double (0.);
+    if (HD_DEVICE_ERROR(error = hdGetError()))
+    {
+
+        fprintf(stderr, "\nPress any key to quit.\n");
+        return -1;
+    }
 #endif //HAPTICS
-
-    Data dat (&a);
-    DDWin ddwin (0, &dat);
-
-
-
 
     ddwin.show ();
 
@@ -61,10 +109,64 @@ int main( int argc, char **argv )
 
 #ifdef HAPTICS
 	// - haptics - //
-	gHaptics.uninit();
+//	gHaptics.uninit();
+    hdStopScheduler();
+    hdUnschedule(gSchedulerCallback);
+
+    if (ghHD != HD_INVALID_HANDLE)
+    {
+        hdDisableDevice(ghHD);
+        ghHD = HD_INVALID_HANDLE;
+    }
 	// - haptics - //
 #endif //HAPTICS
 
 	return exitCode;
 
 }
+
+
+
+#ifdef HAPTICS
+HDCallbackCode HDCALLBACK Haptics(void *data)
+{
+
+    hdBeginFrame(ghHD);
+     Data *dat = (Data *) data; 
+
+    static HDboolean bRenderForce = 0;
+    HDErrorInfo error;
+
+    HDint nCurrentButtons, nLastButtons;
+	double position [3];
+	double angles [3];
+
+
+    hdGetDoublev(HD_CURRENT_GIMBAL_ANGLES,angles);
+    hdGetDoublev(HD_CURRENT_POSITION, position);
+	dat -> current_position_x = position[0];
+	dat -> current_position_y = position[1];
+	dat -> current_position_z = position[2];
+
+
+
+
+	dat -> current_pitch = angles[2];
+	dat -> current_roll = angles[0];
+	dat -> current_yaw = angles[1];
+
+
+//	cerr << dat ->current_pitch << endl;
+double force [3];
+force [0] = dat -> current_force_x;
+force [1] = dat -> current_force_y;
+force [2] = dat -> current_force_z;
+
+	hdSetDoublev(HD_CURRENT_FORCE, force);
+    hdEndFrame(ghHD);
+	return HD_CALLBACK_CONTINUE;
+
+}
+#endif // HAPTICS
+
+

@@ -1,1 +1,0 @@
-shlibs:Depends=libqt4-qt3support (>= 4.3.4), libgl1-mesa | libgl1, libglu1-mesa | libglu1, libqt4-gui (>= 4.3.4), libopenbabel2, libc6 (>= 2.4), libgcc1 (>= 1:4.1.1-21), libqt4-core (>= 4.3.4), libgl1-mesa-glx | libgl1, libstdc++6 (>= 4.1.1-21)

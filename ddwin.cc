@@ -16,27 +16,7 @@
 
 */
 
-#include "constants.h"
-#include <qmenubar.h>
-#include <qfiledialog.h>
-#include <qmessagebox.h>
 #include "ddwin.h"
-#include <QtOpenGL/qgl.h>
-#include <qlabel.h>
-#include <Qt3Support/q3grid.h>
-#include <qpushbutton.h>
-#include <qlineedit.h>
-#include <qevent.h>
-#include <qdrag.h>
-#include <qdir.h>
-#include <iostream>
-#include <qcolordialog.h>
-#include "database.h"
-
-#ifdef WIN32
-#include <float.h>
-#define isnan _isnan
-#endif // WIN32
 
 
 #define WIREFRAME 0
@@ -62,12 +42,13 @@
 #define KEKULE 1
 #define AROMATIC_BONDS 2
 
+
 //modes
 #define NONE 0
 #define SELECT 1
 #define BUILDER 2
 #define MAGIC_PENCIL 3
-
+#define SELECT_EXTEND 4
 
 
 //color masks
@@ -158,10 +139,12 @@ g_stereoMode(StereoMode_None)
     setup_accel ();
     setWindowTitle( QString(TITLE.c_str()) + QString(VERSION.c_str()) );
     setWindowIcon ((QPixmap (":icons/zeden_ico.png")));
+	connect (this, SIGNAL (non_selection_molecules_updated ()), SLOT (emit_targets_updated()));
 
 
-    QGLFormat f;
-    f.setStereo (true);
+ //   QGLFormat f;
+ //   f.setStereo (true);
+//	f.setSampleBuffers (true);
 
 //    QGLFormat::setDefaultFormat (f);
     gl = new MyGl (this);
@@ -175,8 +158,9 @@ g_stereoMode(StereoMode_None)
     undo_view -> setStack (data -> undo_stack);
 
 
-        Molecule *all = new Molecule;
+        ZNMolecule *all = new ZNMolecule;
         assert (all);
+	all ->ZNinit();
         all -> SetTitle ("all");
         molecules.push_back (all);
         target_molecule = all;
@@ -185,6 +169,7 @@ g_stereoMode(StereoMode_None)
         haptic_mode = false;
         minimizing = false;
 
+		adding_restrains = false;
         rec_movie = false;
         rec_pov_movie = false;
         show_labels = true;
@@ -207,6 +192,7 @@ void DDWin::closeEvent(QCloseEvent *event)
     cout << "quitting " <<endl;
     assert (data);
     assert (data -> qapp);
+	data ->write_preferences ();
     data -> qapp -> quit ();
  }
 
@@ -233,7 +219,7 @@ void DDWin::raytraced_screenshot_slot () {
 
 void DDWin::emit_targets_updated () {targets_updated ();}
 
-string DDWin::write_mol2_string (Molecule *mol) {
+string DDWin::write_mol2_string (ZNMolecule *mol) {
     return "not implemented";
 
 /*
@@ -250,7 +236,7 @@ string DDWin::write_mol2_string (Molecule *mol) {
     out<<"@<TRIPOS>BOND"<<endl;
     for (unsigned int i=0; i<mol->bonds.size (); i++) {
         string type;
-        Bond *bo = mol->bonds[i];
+        ZNBond *bo = mol->bonds[i];
         if (bo->mol2Type ==1) type = "1";
         else if (bo->mol2Type ==2) type = "2";
         else if (bo->mol2Type ==3) type = "3";
@@ -266,19 +252,26 @@ string DDWin::write_mol2_string (Molecule *mol) {
 
 
 void DDWin::open_file_slot () {
+	QString mol_name = QFileDialog::getOpenFileName(this, tr ("Open file"), last_visited_dir, tr("All Files (*)"));
 
-
-
-
-    QString mol_name = QFileDialog::getOpenFileName(this, 
-                    tr ("Open file"), last_visited_dir, tr("All Files (*)"));
 	if (!mol_name.isEmpty ()) {
 		last_visited_dir = QDir (mol_name).path ();
 		load_file (mol_name.toStdString());
 	}
 }
 
-void DDWin::set_lists (Molecule *mol) {
+void DDWin::open_session_file_slot () {
+	QString mol_name = QFileDialog::getOpenFileName(this, tr ("Open file"), last_visited_dir, tr("Zodiac Session Files (*.zod)"));
+		if (!mol_name.isEmpty ())  data ->actions ->load_session (mol_name.toStdString ());
+/*
+	if (!mol_name.isEmpty ()) {
+		last_visited_dir = QDir (mol_name).path ();
+		load_file (mol_name.toStdString());
+	}
+*/
+}
+
+void DDWin::set_lists (ZNMolecule *mol) {
     int bl1, bl2, ll, sl;
 	int zero = gl ->new_list (); 
 
@@ -287,67 +280,74 @@ void DDWin::set_lists (Molecule *mol) {
     ll = gl->new_list ();
     sl = gl->new_list ();
 
-    if (mol->multi) {
-        Database_molecule *dm;
-        dm = (Database_molecule *) mol;
-        for (unsigned int i=0; i<dm->database->molecules.size (); i++) {
-            dm->database->molecules[i]->backbone_list1 = bl1;
-            dm->database->molecules[i]->backbone_list2 = bl2;
-            dm->database->molecules[i]->line_list = ll;
-            dm->database->molecules[i]->stick_list = sl;
-        }
-    }
-    else {
-        mol->backbone_list1 = bl1;
-        mol->backbone_list2 = bl2;
-        mol->line_list= ll;
-        mol->stick_list= sl;
-    }
+   // if (mol->multi) {
+    //    Database_molecule *dm;
+   //     dm = (Database_molecule *) mol;
+    //    for (unsigned int i=0; i<dm->database->molecules.size (); i++) {
+	//		set_display_lists (dm->database->molecules[i], ll, bl1, bl2, sl);        }
+   // }
+   // else {
+		set_display_lists (mol, ll, bl1, bl2, sl);
+    //        }
 
+}
+
+
+void DDWin::show_grid (Database *dat) {
+	for (unsigned int i = 0; i < database_grids.size (); i++) {
+		if (database_grids [i] ->database == dat) {
+			database_grids[i] -> show ();
+			database_grids[i] -> raise ();
+		}
+	}
+}
+
+void DDWin::select (vector <Atom *> atoms) {
+	deselect ();
+	Selection *sel = new Selection ();
+	for (unsigned int i = 0; i < atoms.size (); i++) {
+		sel ->select_atom (atoms[i]);
+	}
+	add_molecule (sel);
 }
 
 void DDWin::select (Atom *at) {
- //   deselect ();
+    deselect ();
     Selection *sel = new Selection ();
-    set_selected (at, true);
-    sel -> ZNAddAtom (at);
-    sel -> molecules.push_back ((Molecule *) at-> GetParent ());
-    molecules.push_back (sel);
-    target->insertItem (1000, QString(sel -> GetTitle ()));    
-    set_current_target (-1);
-    gl->draw_molecule (target_molecule);
+	sel -> select_atom (at);
+	add_molecule (sel);
 }
 
 void DDWin::load_file (string mol_name) {
-    ifstream ifs(mol_name.c_str ());
-    OBConversion conv(&ifs);
-    OBFormat* inFormat = conv.FormatFromExt(mol_name.c_str ());
-    Molecule *mol = new Molecule ();
-    if(conv.SetInFormat(inFormat) && conv.Read(mol))
-    { 
-        Molecule *mol2 = new Molecule ();
-        if (conv.Read(mol2)) {
-            load_multi_file (mol_name);
-        }
-        else {
-            mol -> ZNinit ();  
-            CreateMoleculeCommand *command = new CreateMoleculeCommand (mol, this);
-            execute (command); 
-            gl -> set_center_of_view (mol -> center);
-            gl -> set_center_of_rotation (mol -> center);
-        }
+	ifstream ifs(mol_name.c_str ());
+	OBConversion conv(&ifs);
+	OBFormat* inFormat = conv.FormatFromExt(mol_name.c_str ());
+	ZNMolecule *mol = new ZNMolecule ();
+	if(conv.SetInFormat(inFormat) && conv.Read(mol)) { 
+		ZNMolecule *mol2 = new ZNMolecule ();
+		if (conv.Read(mol2)) {
+			add_database (load_multi_file (mol_name));
+		}
+		else {
+			finalise_molecule (mol);
+			CreateZNMoleculeCommand *command = new CreateZNMoleculeCommand (mol, this);
+			execute (command); 
+			gl -> set_center_of_rotation (get_center (mol));
+			gl -> set_center_of_view (get_center (mol));
 
 
-    }
-   else {
-    cerr << "could not read file "<<mol_name<<endl;
-    delete mol;
-    }
+
+		}
+	}
+	else {
+cerr << "could not read file "<<mol_name<<endl;
+	delete mol;
+	}
 }
 
 
-void DDWin::load_multi_file (string mol_name) {
-    Database *database = new Database (data);
+Database *DDWin::load_multi_file (string mol_name) {
+    Database *database = new Database ();
     ifstream ifs(mol_name.c_str ());
     OBConversion conv(&ifs);
     OBFormat* inFormat = conv.FormatFromExt(mol_name.c_str ());
@@ -358,38 +358,52 @@ void DDWin::load_multi_file (string mol_name) {
         Database_molecule *mol = new Database_molecule ();
 		go_on = conv.Read (mol);
 		if (mol -> NumAtoms ()) {
-		nn++;
-        database -> add_mol (mol);
-		stringstream ss;
-		ss << nn;
-		string name = string ("Molecule ")+ss.str ();
-		mol -> SetTitle (name);
-        mol -> ZNinit ();  
+			nn++;
+			database -> add_mol (mol);
+
+			stringstream ss;
+			ss  <<nn;
+			string name = string ("ZNMolecule ")+ss.str ();
+			mol -> SetTitle (name);
+			finalise_molecule (mol);
+			set_lists (mol);
+			if (mol ->NumAtoms () < 100) {
+				set_bonds_display_style (mol, 2);
+			}
+			if (!mol ->NumBonds ()) {
+				set_atoms_display_style (mol, 1);
+			}
+			
+			
 		}
 		else delete mol;
-    }
-    CreateMoleculeCommand *command = new CreateMoleculeCommand (database -> molecules[0], this);
-    execute (command);
-    gl -> set_center_of_view (database -> molecules[0] -> center);
-    gl -> set_center_of_rotation (database -> molecules[0] -> center);
-	database -> set_graphics ();
+	}
 	database -> import_csv (mol_name+".csv");
+	return database;
 
 }
 
 
 void DDWin::deselect () {
-    cerr << "startdeselect"<<endl;
-    if (target_molecule->selection) set_current_target (0);
+	ZNMolecule *selected_mol = 0;
+    if (target_molecule->selection) {
+
+		Selection *target_sel = (Selection *) target_molecule;
+		set_current_target (0);
+
+		if ( target_sel ->get_molecules ().size () ){
+
+			selected_mol = target_sel ->get_molecules ()[0];
+		}
+	}
+
     for (unsigned int i=0; i < molecules.size (); i++) {
         int s = molecules.size ();
-        cerr << "deselect1" << endl;
         assert ((s-1-(int) i) < molecules.size ());
         assert ((s-1-(int) i) >= 0);
         if (molecules[s-1-i] -> selection) {
             Selection *sel = (Selection *) molecules[s-1-i];
             sel -> deselect ();
-        cerr << "deselect2" << endl;
             target->removeItem (s-1-i);
             molecules.erase (molecules.begin ()+s-1-i);
      //       delete sel; cannot use this because OBMol distructor would delete all atoms in sel
@@ -397,7 +411,12 @@ void DDWin::deselect () {
 
         }
     }
-    cerr << "enddeselect"<<endl;
+	if (selected_mol) {
+		set_current_target (selected_mol);
+	}
+	for (unsigned int i=0; i < molecules.size (); i++) {
+		gl ->draw_molecule (molecules[i]);
+	}
 }
 
 
@@ -417,46 +436,89 @@ Sphere* DDWin::new_sphere (string name) {
 
 
 
-void DDWin::add_molecule (Molecule *mol) {
+void DDWin::add_molecule (ZNMolecule *mol) {
+	if (string (mol ->GetTitle ()) == "") {
+	    stringstream ssname;
+		if (mol ->multi) 		ssname << "Database " << builder ->mcounter++;
+		else ssname << "New Molecule " << builder ->mcounter++;
+		string s = ssname.str ();
+		mol -> SetTitle (s);
+	}
     set_lists (mol);
+	if (mol ->NumAtoms () < 100) {
+		set_bonds_display_style (mol, 2);
+	}
+	if (!mol ->NumBonds ()) {
+		set_atoms_display_style (mol, 1);
+	}
     molecules.push_back (mol);
     target->insertItem (1000, QString( mol->GetTitle ()));
-	targets_updated ();
+	if (!mol ->selection) non_selection_molecules_updated ();
+	else targets_updated ();
 }
 
 
+void DDWin::add_database (Database *database) {
+	DatabaseGrid *grid = new DatabaseGrid (0, database, data);
+	database_grids.push_back (grid);
+	ZNMolecule *target = database ->dummy_mol;
+	if (database ->get_molecule (0)) {
+		target = database ->get_molecule (0);
+	}
+		CreateZNMoleculeCommand *command = new CreateZNMoleculeCommand (target, this);
+		execute (command);
+//		gl -> set_center_of_rotation (get_center (target));
+//		gl -> set_center_of_view (get_center (target));
+	grid ->set_mol();
+	
+
+//	grid -> show ();
+//	grid -> raise ();
+
+}
+
 void DDWin::new_molecule (string name) {
-    Molecule *mol = new Molecule ();
+    ZNMolecule *mol = new ZNMolecule ();
     mol-> SetTitle (name);
     add_molecule (mol);
+
 }
 
 
 
 void DDWin::resizeEvent (QResizeEvent *){
-    target->move (width()-400,0);
+//    target->move (width()-400,0);
 
 }
 
 void DDWin::create_menu_actions () {
 
-    openAct = new QAction (tr("&Open File"), this);
-    openAct->setShortcut (tr ("Ctrl+O"));
-    connect (openAct, SIGNAL (triggered ()), this, SLOT (open_file_slot ()));
+	openAct = new QAction (tr("&Open File"), this);
+	openAct->setShortcut (tr ("Ctrl+O"));
+	connect (openAct, SIGNAL (triggered ()), this, SLOT (open_file_slot ()));
 
-    saveasAct = new QAction (tr("Save as..."), this);
-    connect (saveasAct, SIGNAL (triggered ()), this, SLOT (save_as_slot ()));
+	openSessionAct = new QAction (tr("&Open Session File"), this);
+	openSessionAct->setShortcut (tr ("Ctrl+E"));
+	connect (openSessionAct, SIGNAL (triggered ()), this, SLOT (open_session_file_slot ()));
 
-    screenshotAct = new QAction (tr("&Screenshot"), this);
-    screenshotAct->setShortcut (tr ("Ctrl+S"));
-    connect (screenshotAct, SIGNAL (triggered ()), this, SLOT (screenshot_slot ()));
+	saveasAct = new QAction (tr("Save as..."), this);
+	saveasAct->setShortcut (tr ("Ctrl+S"));
+	connect (saveasAct, SIGNAL (triggered ()), this, SLOT (save_as_slot ()));
+
+	saveSessionAsAct = new QAction (tr("Save Session as..."), this);
+	saveSessionAsAct->setShortcut (tr ("Ctrl+A"));
+	connect (saveSessionAsAct, SIGNAL (triggered ()), this, SLOT (save_session_as_slot ()));
+
+	screenshotAct = new QAction (tr("&Screenshot"), this);
+	screenshotAct->setShortcut (tr ("Ctrl+N"));
+	connect (screenshotAct, SIGNAL (triggered ()), this, SLOT (screenshot_slot ()));
 
     raytracedscreenshotAct = new QAction (tr("&Raytraced Screenshot POVRAY"), this);
-    screenshotAct->setShortcut (tr ("Ctrl+R"));
+    raytracedscreenshotAct->setShortcut (tr ("Ctrl+R"));
     connect (raytracedscreenshotAct, SIGNAL (triggered ()), this, SLOT (raytraced_screenshot_slot ()));
 
     movieAct = new QAction (tr("Start / save &Movie"), this);
-    screenshotAct->setShortcut (tr ("Ctrl+M"));
+    movieAct->setShortcut (tr ("Ctrl+M"));
     connect (movieAct, SIGNAL (triggered ()), this, SLOT (movie_slot ()));
 
     raytracedmovieAct = new QAction (tr("Start / save  Raytraced Movie"), this);
@@ -464,22 +526,35 @@ void DDWin::create_menu_actions () {
     connect (raytracedmovieAct, SIGNAL (triggered ()), this, SLOT (raytraced_movie_slot ()));
 
     quitAct = new QAction (tr("&Quit"), this);
-    screenshotAct->setShortcut (tr ("Ctrl+Q"));
+    quitAct ->setShortcut (tr ("Ctrl+Q"));
     connect (quitAct, SIGNAL (triggered ()), this, SLOT (close ()));
+	
+	newdatabaseAct = new QAction (tr ("Create new Database"), this);
+	connect (newdatabaseAct, SIGNAL (triggered ()), this, SLOT (new_database_slot ()));	
 
-    builderAct = new QAction (tr("&Builder"), this);
-    builderAct->setShortcut (tr ("Ctrl+B"));
-    connect (builderAct, SIGNAL (triggered ()), this, SLOT (builder_slot ()));
+	builderAct = new QAction (tr("&Builder"), this);
+	builderAct->setShortcut (tr ("Ctrl+B"));
+	connect (builderAct, SIGNAL (triggered ()), this, SLOT (builder_slot ()));
+	
+	twodwinAct = new QAction (tr("&2D Editor - molsKetch"), this);
+	twodwinAct->setShortcut (tr ("Ctrl+K"));
+	connect (twodwinAct, SIGNAL (triggered ()), this, SLOT (twodwin_slot ()));
 
-    historyAct = new QAction (tr("History"), this);
-    connect (historyAct, SIGNAL (triggered ()), this, SLOT (history_slot ()));
+	historyAct = new QAction (tr("History"), this);
+	historyAct->setShortcut (tr ("Ctrl+H"));
+	connect (historyAct, SIGNAL (triggered ()), this, SLOT (history_slot ()));
 
+	settingsAct = new QAction (tr("&Preferences"), this);
+	settingsAct ->setShortcut (tr ("Ctrl+P"));
+	connect (settingsAct, SIGNAL (triggered ()), this, SLOT (pref_slot ()));
 
    wiimoteAct = new QAction (tr("Connect Wiimote for head tracking"), this);
    connect (wiimoteAct, SIGNAL (triggered ()), this, SLOT (wiimote_slot ()));
 
    wiimote2Act = new QAction (tr("Connect Wiimote for 3D input"), this);
    connect (wiimote2Act, SIGNAL (triggered ()), this, SLOT (wiimote2_slot ()));
+
+
 
     hideHAct = new QAction (tr("Hide Hydrogens"), this);
     connect (hideHAct, SIGNAL (triggered ()), this, SLOT (hide_hydrogens_slot ()));
@@ -497,18 +572,46 @@ void DDWin::create_menu_actions () {
     displaysettingsAct->setShortcut (tr ("Ctrl+D"));
     connect (displaysettingsAct, SIGNAL (triggered ()), this, SLOT (display_settings_slot ()));
 
+    sequenceAct = new QAction (tr("&Sequence"), this);
+    connect (sequenceAct, SIGNAL (triggered ()), this, SLOT (sequence_slot ()));
+
     DDsettingsAct = new QAction (tr("3D Settings"), this);
+    connect (DDsettingsAct, SIGNAL (triggered ()), this, SLOT (DD_settings_slot ()));
+	
+	
+	enableclippingAct = new QAction (tr("enable clipping"), this);
+    connect (enableclippingAct, SIGNAL (triggered ()), this, SLOT (enable_clipping_slot ()));
+
+	disableclippingAct = new QAction (tr("disable clipping"), this);
+    connect (disableclippingAct, SIGNAL (triggered ()), this, SLOT (disable_clipping_slot ()));	
+	
+	DDsettingsAct = new QAction (tr("3D Settings"), this);
     connect (DDsettingsAct, SIGNAL (triggered ()), this, SLOT (DD_settings_slot ()));
 
     colorAct = new QAction (tr("Color"), this);
     connect (colorAct, SIGNAL (triggered ()), this, SLOT (color_slot ()));
-
+	
+	backboneColorAct = new QAction (tr("Backbone Color"), this);
+    connect (backboneColorAct, SIGNAL (triggered ()), this, SLOT (backbone_color_slot ()));
+	
+	
+	
+	backgroundcolorAct = new QAction (tr("Background Color"), this);
+	connect (backgroundcolorAct, SIGNAL (triggered ()), this, SLOT (background_color_slot ()));
+	
+	
     hapticAct = new QAction (tr("Haptic mode"), this);
 	hapticAct -> setIcon (QPixmap (":icons/haptic.png"));
     connect (hapticAct, SIGNAL (triggered ()), this, SLOT (haptic_slot ()));
 
     dockingAct = new QAction (tr("Docking"), this);
-    connect (dockingAct, SIGNAL (triggered ()), this, SLOT (plants_slot ()));
+    connect (dockingAct, SIGNAL (triggered ()), this, SLOT (docking_slot ()));
+	
+    plantsAct = new QAction (tr("Plants"), this);
+    connect (plantsAct, SIGNAL (triggered ()), this, SLOT (plants_slot ()));
+
+    gamessAct = new QAction (tr("Create Gamess input"), this);
+    connect (gamessAct, SIGNAL (triggered ()), this, SLOT (gamess_slot ()));
 
     energyAct = new QAction (tr("Compute Energies"), this);
     connect (energyAct, SIGNAL (triggered ()), this, SLOT (compute_energy_slot ()));
@@ -526,24 +629,127 @@ void DDWin::create_menu_actions () {
 
     scoresCharge = new QAction (tr("Scores from Charges"), this);
     connect (scoresCharge, SIGNAL (triggered ()), this, SLOT (scores_from_charges_slot ()));
+	
+	conformationalSearchAct = new QAction (tr("Conformational Search"), this);
+    connect (conformationalSearchAct, SIGNAL (triggered ()), this, SLOT (conformers_slot ()));
+	
 
     addHsAct = new QAction (tr("Add Hydrogens"), this);
     connect (addHsAct, SIGNAL (triggered ()), this, SLOT (add_Hs_slot ()));
+	
+	duplicateAct = new QAction (tr("Duplicate mol"), this);
+    connect (duplicateAct, SIGNAL (triggered ()), this, SLOT (duplicate_slot ()));
 
     surfaceAct = new QAction (tr("Molecular Surface"), this);
     connect (surfaceAct, SIGNAL (triggered ()), this, SLOT (surface_slot ()));
+	
+	mapAct = new QAction (tr("Map"), this);
+    connect (mapAct, SIGNAL (triggered ()), this, SLOT (map_slot ()));
 
     sphereAct = new QAction (tr("Sphere"), this);
     connect (sphereAct, SIGNAL (triggered ()), this, SLOT (sphere_slot ()));
+	
+	backbonetosurfAct = new QAction (tr("Backbone to surface"), this);
+    connect (backbonetosurfAct, SIGNAL (triggered ()), this, SLOT (backbone_to_surface_slot ()));
 
     graphicalobjectsAct = new QAction (tr("Graphical Objects"), this);
     connect (graphicalobjectsAct, SIGNAL (triggered ()), this, SLOT (graphical_objects_slot ()));
+	
+	
+	iodeviceAct = new QAction (tr("I/O device list"), this);
+    connect (iodeviceAct, SIGNAL (triggered ()), this, SLOT (iodevice_slot ()));
 
     aboutAct = new QAction (tr("About"), this);
     connect (aboutAct, SIGNAL (triggered ()), this, SLOT (about_slot ()));
 
 
-//toolbars
+
+	selectAllAct = new QAction (tr("Select All Atoms"), this);
+	selectAllAct -> setIcon (QPixmap (":icons/select_all.png"));
+    connect (selectAllAct, SIGNAL (triggered ()), this, SLOT (select_all_slot ()));
+
+	deselectAct = new QAction (tr("Deselect"), this);
+	deselectAct -> setIcon (QPixmap (":icons/deselect.png"));
+    connect (deselectAct, SIGNAL (triggered ()), this, SLOT (deselect_slot ()));
+
+	
+	invertSelectAct = new QAction (tr("Invert Selection"), this);
+	invertSelectAct -> setIcon (QPixmap (":icons/invert_selection.png"));
+    connect (invertSelectAct, SIGNAL (triggered ()), this, SLOT (invert_selection_slot ()));
+
+
+	selectCAct = new QAction (tr("Select Carbons"), this);
+	selectCAct -> setIcon (QPixmap (":icons/select_C.png"));
+    connect (selectCAct, SIGNAL (triggered ()), this, SLOT (select_C_slot ()));
+	
+	selectHAct = new QAction (tr("Select Hydrogens"), this);
+	selectHAct -> setIcon (QPixmap (":icons/select_H.png"));
+    connect (selectHAct, SIGNAL (triggered ()), this, SLOT (select_H_slot ()));
+
+
+	selectsquareAct = new QAction (tr("Select Square"), this);
+	selectsquareAct -> setIcon (QPixmap (":icons/select_square.png"));
+    connect (selectsquareAct, SIGNAL (triggered ()), this, SLOT (select_square_slot ()));
+
+
+
+	buildCAct = new QAction (tr("Carbon"), this);
+	buildCAct -> setIcon (QPixmap (":icons/builder_C.png"));
+    connect (buildCAct, SIGNAL (triggered ()), this, SLOT (build_C_slot ()));
+
+	buildOAct = new QAction (tr("Oxygen"), this);
+	buildOAct -> setIcon (QPixmap (":icons/builder_O.png"));
+    connect (buildOAct, SIGNAL (triggered ()), this, SLOT (build_O_slot ()));
+
+	buildNAct = new QAction (tr("Nitrogen"), this);
+	buildNAct -> setIcon (QPixmap (":icons/builder_N.png"));
+    connect (buildNAct, SIGNAL (triggered ()), this, SLOT (build_N_slot ()));
+
+	buildSAct = new QAction (tr("Sulphur"), this);
+	buildSAct -> setIcon (QPixmap (":icons/builder_S.png"));
+    connect (buildSAct, SIGNAL (triggered ()), this, SLOT (build_S_slot ()));
+
+
+	buildsinglebondAct = new QAction (tr("Single bond"), this);
+	buildsinglebondAct -> setIcon (QPixmap (":icons/builder_1bond.png"));
+    connect (buildsinglebondAct, SIGNAL (triggered ()), this, SLOT (build_single_bond_slot ()));
+	
+	
+	
+	builddoublebondAct = new QAction (tr("Double bond"), this);
+	builddoublebondAct -> setIcon (QPixmap (":icons/builder_2bond.png"));
+    connect (builddoublebondAct, SIGNAL (triggered ()), this, SLOT (build_double_bond_slot ()));
+	
+	buildtriplebondAct = new QAction (tr("Triple bond"), this);
+	buildtriplebondAct -> setIcon (QPixmap (":icons/builder_3bond.png"));
+    connect (buildtriplebondAct, SIGNAL (triggered ()), this, SLOT (build_triple_bond_slot ()));
+	
+	deletebondAct = new QAction (tr("Delete bond"), this);
+	deletebondAct -> setIcon (QPixmap (":icons/builder_Xbond.png"));
+    connect (deletebondAct, SIGNAL (triggered ()), this, SLOT (delete_bond_slot ()));
+	
+
+	deleteatomAct = new QAction (tr("Delete atom"), this);
+	deleteatomAct -> setIcon (QPixmap (":icons/builder_del.png"));
+//	connect (deleteatomAct, SIGNAL (triggered ()), this, SLOT ( ));
+
+	magicpencilButt = new QPushButton (QIcon (":icons/builder_pencil.png"), "");
+
+	magicpencilButt ->setIconSize (QSize (32, 32));
+	magicpencilButt ->resize (32, 32);	
+	magicpencilButt ->setCheckable (true);
+//	magicpencilAct = new QAction (tr("Magic pencil"), this);
+//	magicpencilAct -> setIcon (QPixmap (":icons/builder_pencil.png"));
+	connect (magicpencilButt, SIGNAL (toggled (bool)), this, SLOT (magic_pencil_toggle_slot (bool) ));
+
+	buildsmileAct = new QAction (tr("SMILE"), this);
+	buildsmileAct -> setIcon (QPixmap (":icons/builder_smile.png"));
+//	connect (buildsmileAct, SIGNAL (triggered ()), this, SLOT ( ));
+
+
+	periodictableAct = new QAction (tr("Periodic Table"), this);
+	periodictableAct -> setIcon (QPixmap (":icons/periodic_table.png"));
+	connect (periodictableAct, SIGNAL (triggered ()), this, SLOT (periodic_table_slot () ));
 
 
 
@@ -558,6 +764,27 @@ void DDWin::create_menu_actions () {
 
 
 
+    colorsAct = new QAction (tr("Color molecule"), this);;
+	QPixmap pix(24, 24);
+    pix.fill(molecule_color);
+    colorsAct->setIcon(pix);
+	connect (colorsAct, SIGNAL (triggered ()), this, SLOT (quick_color_slot ()));
+	
+	colors_chooserAct = new QAction (tr("change color"), this);;
+	colors_chooserAct -> setIcon (QPixmap (":icons/arrow.png"));
+    connect (colors_chooserAct, SIGNAL (triggered ()), this, SLOT (change_color_slot ()));
+
+	centerAct = new QAction (tr("View"), this);;
+	connect (centerAct, SIGNAL (triggered ()), this, SLOT (center_slot ()));
+
+
+}
+
+
+void DDWin::periodic_table_slot () {
+
+cerr << "periodic table" <<endl;
+
 
 }
 
@@ -571,7 +798,9 @@ void DDWin::draw_menu (){
     QMenu *file = new QMenu(tr("&File"), this );
     Q_CHECK_PTR( file );
     file -> addAction (openAct);
+    file -> addAction (openSessionAct);
     file -> addAction (saveasAct);
+    file -> addAction (saveSessionAsAct);
     file -> addAction (screenshotAct);
     file -> addAction (raytracedscreenshotAct);
   //  file -> addAction (movieAct);
@@ -582,11 +811,14 @@ void DDWin::draw_menu (){
     QMenu *edit = new QMenu(tr("&Edit"), this );
     Q_CHECK_PTR( edit );
     edit -> addAction (builderAct);
-
+	edit -> addAction (twodwinAct);
+	edit -> addAction (newdatabaseAct);
     edit -> addAction (historyAct);
 
   //  edit -> addAction (wiimoteAct);
-  //  edit -> addAction (wiimote2Act);
+ //   edit -> addAction (wiimote2Act);
+//	edit -> addAction (iodeviceAct);
+	edit -> addAction (settingsAct);
 
     QMenu *show = new QMenu(tr("&Show"), this );
     Q_CHECK_PTR( show );
@@ -599,31 +831,41 @@ void DDWin::draw_menu (){
     QMenu *display = new QMenu(tr("&Display"), this );
     Q_CHECK_PTR( display );
     display -> addAction (displaysettingsAct);
+    display -> addAction (sequenceAct);
     display -> addAction (DDsettingsAct);
+    display -> addAction (enableclippingAct);
+	display -> addAction (disableclippingAct);	
     display -> addAction (colorAct);
+	display -> addAction (backboneColorAct);
+	display -> addAction (backgroundcolorAct);
 
 
 
     QMenu *compute = new QMenu(tr("&Compute"), this );
     Q_CHECK_PTR( compute );
     compute -> addAction (hapticAct);
-    compute -> addAction (dockingAct);
+	compute -> addAction (dockingAct);
+    compute -> addAction (plantsAct);
+    compute -> addAction (gamessAct);
     compute -> addAction (energyAct);
     compute -> addAction (logPAct);
     compute -> addAction (minimiseAct);
     compute -> addAction (partialQAct);
     compute -> addAction (scoresCharge);
-
+	compute -> addAction (conformationalSearchAct);
 
     QMenu *utilities = new QMenu(tr("&Utilities"), this );
     Q_CHECK_PTR( utilities );
     utilities -> addAction ( addHsAct );
+	utilities -> addAction (duplicateAct);
 
 
     QMenu *graph_objects = new QMenu(tr("&Graphical Objects"), this );
     Q_CHECK_PTR( graph_objects );
     graph_objects -> addAction (surfaceAct);
+	graph_objects -> addAction (mapAct);
     graph_objects -> addAction (sphereAct);
+	graph_objects -> addAction (backbonetosurfAct);
     graph_objects -> addAction (graphicalobjectsAct);
 
 
@@ -643,50 +885,151 @@ void DDWin::draw_menu (){
     menu->addMenu ( about );
 
     target = new QComboBox( menu );
-    target->move (400,0);
     target->setMinimumWidth (400);
     target->insertItem(0, "All" );
 	targets_updated ();
 
-    QToolBar *toolbar = new QToolBar ();
+	current_mode = new QLabel ("");
+
+    toolbar = new QToolBar ("Main");
+	target_toolbar = new QToolBar ("Control");
+	select_tb = new QToolBar ("Select");
+	builder_tb = new QToolBar ("Builder");
+	connect (target_toolbar, SIGNAL (orientationChanged (Qt::Orientation)), this, SLOT (resize_target_toolbar (Qt::Orientation)));
     addToolBar (toolbar);
+	addToolBar (target_toolbar);
+	addToolBar (Qt::RightToolBarArea, select_tb);
+	addToolBar (Qt::RightToolBarArea, builder_tb);
+
+	//MyColorButton *colors = new MyColorButton (toolbar ->layout (), molecule_color);
+	
+	hide_toolbars ();
     toolbar -> addAction (undoAct);
     toolbar -> addAction (redoAct);
     toolbar -> addAction (minimiseAct);
 	toolbar -> addAction (hapticAct);
-   	toolbar -> addWidget (target);
 	
+	toolbar ->addSeparator ();
+
+	toolbar -> addAction (colorsAct);
+	toolbar -> addAction (centerAct);
+//	toolbar -> addAction (colors_chooserAct);
+
+
+   	target_toolbar -> addWidget (target);
+	target_toolbar -> addWidget (current_mode);
+	
+	select_tb -> addAction (selectAllAct);
+	select_tb -> addAction (deselectAct);
+	select_tb -> addAction (invertSelectAct);
+	select_tb -> addAction (selectCAct);
+	select_tb -> addAction (selectHAct);
+	select_tb -> addAction (selectsquareAct);
  
+ 
+ 
+	builder_tb -> addAction (buildCAct);
+	builder_tb -> addAction (buildOAct);
+	builder_tb -> addAction (buildNAct);
+	builder_tb -> addAction (buildSAct);
+	builder_tb -> addAction (buildsinglebondAct);
+	builder_tb -> addAction (builddoublebondAct);
+	builder_tb -> addAction (buildtriplebondAct);
+	builder_tb -> addAction (deletebondAct);	
+	builder_tb -> addAction (deleteatomAct);
+	//builder_tb -> addAction (magicpencilAct);
+	builder_tb -> addWidget (magicpencilButt);
+	builder_tb -> addAction (buildsmileAct);
+//	builder_tb -> addAction (periodictableAct);
+	
     connect (target, SIGNAL (activated (int)), this, SLOT (set_current_target_slot (int)));
 
 }
 
+void DDWin::quick_color_slot () {
+	change_color_slot ();
+	if (current_target) {
+		ColorAtomCommand *color_atom = new ColorAtomCommand (gl);
+		FOR_ATOMS_OF_MOL (at, target_molecule) {
+			if (target_molecule ->selection || at ->GetAtomicNum ()==6) {
+				color_atom -> add (&*at, molecule_color);
+			}
+		}
+		color_atom->set_name ();
+		execute (color_atom);
+    }
+
+
+}
+
+
+void DDWin::center_slot () {
+        if (current_target) {
+			gl -> set_center_of_rotation (get_center (target_molecule));
+			gl -> set_center_of_view (get_center (target_molecule));
+		}
+}
+
+void DDWin::change_color_slot () {
+	QColor new_color = QColorDialog::getColor(molecule_color, this );
+	if ( new_color.isValid () ) {
+		molecule_color.setRed (new_color.red ());
+		molecule_color.setGreen (new_color.green ());
+		molecule_color.setBlue (new_color.blue ());
+		molecule_color.setAlpha (new_color.alpha ());
+		
+	}
+	QPixmap pix(24, 24);
+    pix.fill(molecule_color);
+    colorsAct->setIcon(pix);
+}
+
+
+
+void DDWin::resize_target_toolbar (Qt::Orientation orient) {
+	if (orient == Qt::Horizontal) {
+			target -> setMinimumWidth (400);
+	}
+	else {
+	target -> setMinimumWidth (40);
+		target -> setMaximumWidth (40);
+	} 
+}
+
+void DDWin::hide_toolbars () {
+//	toolbar -> hide ();
+	select_tb -> hide ();
+	builder_tb -> hide ();
+}
+
+
 void DDWin::delete_current_molecule () {
-    delete_molecule (molecules [current_target]);
+	delete_molecule (molecules [current_target]);
+	sequence_menu ->del_from_tab (molecules [current_target]);
 }
 
-void DDWin::delete_molecule (Molecule *mol) {
+void DDWin::delete_molecule (ZNMolecule *mol) {
     for (unsigned int i=0; i<molecules.size (); i++) {
         if (molecules[i] == mol) {
             target->removeItem (i);
             molecules.erase (molecules.begin ()+i);
             set_current_target (0);
-			targets_updated ();
+			if (!mol ->selection) non_selection_molecules_updated ();
+			else targets_updated ();
             delete mol;
-            gl->updateGL ();
             break;
         }
     }
 }
 
 
-void DDWin::remove_molecule (Molecule *mol) {
+void DDWin::remove_molecule (ZNMolecule *mol) {
     for (unsigned int i=0; i<molecules.size (); i++) {
         if (molecules[i] == mol) {
             target->removeItem (i);
             molecules.erase (molecules.begin ()+i);
             set_current_target (0);
-            gl->updateGL ();
+
             break;
         }
     }
@@ -694,14 +1037,19 @@ void DDWin::remove_molecule (Molecule *mol) {
 }
 
 
-void DDWin::redraw (Molecule *mol) {
+
+/*
+
+void DDWin::redraw (ZNMolecule *mol) {
     if (mol -> needs_redraw) {
         gl -> draw_molecule (mol);
         mol -> needs_redraw = false;
     }
 }
 
-void DDWin::recolor_by_score (Molecule *mol) {
+ 
+ */
+void DDWin::recolor_by_score (ZNMolecule *mol) {
     if (mol -> needs_recolor) {
         vector <color_mask> masks;
         color_mask mask;
@@ -712,14 +1060,12 @@ void DDWin::recolor_by_score (Molecule *mol) {
         masks.push_back (mask);
         gl -> apply_color_masks (masks, mol, false);
         mol -> needs_recolor = false;
-        gl -> draw_molecule (mol);
-        mol -> needs_redraw = false;
     }
 }
 
 
 void DDWin::end_minimisation () {
-	cerr << "end" << endl;
+
     MoveAtomsCommand *command = new MoveAtomsCommand (gl, 0);
   //  FOR_ATOMS_OF_MOL (a, data -> minimize -> minimising_molecule) {
   //      command -> add (&*a, (vect &) a -> GetVector ());
@@ -732,6 +1078,7 @@ void DDWin::end_minimisation () {
 
 void DDWin::delete_graphical_object (int i) {
     assert (i>-1 && i<graphical_objects.size ());
+	go_updated ();
     DeleteGraphicalObjectCommand *command = new DeleteGraphicalObjectCommand (graphical_objects[i], this);
     execute (command);  
 }
@@ -850,8 +1197,12 @@ void DDWin::execute (Command * comm) {
     data -> undo_stack -> push (comm);
 }
 
+void DDWin::run_thread (Thread *thread) {
+	running_threads.push_back (thread);
+	thread ->start ();
+}
 
-
+/*
 int DDWin::style_str_to_i (string style){
 
 
@@ -871,10 +1222,39 @@ int DDWin::style_str_to_i (string style){
 
 
 }
+*/
+
 
 void DDWin::save_as_slot () {
-    QString s = QFileDialog::getSaveFileName(this, 
-											 tr ("Save As"), "",tr("TRIPOS mol2 (*.mol2)"));
+	/*
+	QFileDialog save_file(this);
+
+	QStringList filters;
+	filters << "Tripos mol2 (*.mol2)"
+		<< "InChI (*.inchi)"
+		<< "MDL Molfile (*.mol)"
+		<< "Protein Data Bank (*.pdb)"
+		<< "sdf (*.sdf)"
+		<< "smile (*.smi)";
+	
+		
+	save_file.setNameFilters (filters);
+	save_file.setAcceptMode (QFileDialog::AcceptSave);
+	save_file.exec();
+
+	QString ext = save_file.selectedNameFilter();
+
+	QString filter = save_file.selectedNameFilter();
+	filter.truncate (filter.lastIndexOf (')'));
+	filter.remove (0, filter.indexOf ('*')+1);
+	QString s = save_file.selectedFile();
+	if (!s.contains ('.') ) s+= filter;
+	 */
+	
+	QString s = QFileDialog::getSaveFileName(this, 
+								 tr ("Save file"), last_visited_dir, tr("All Files (*)"));
+
+
 	
     if (!s.isNull()) {
         if (current_target) {
@@ -892,6 +1272,36 @@ void DDWin::save_as_slot () {
 }
 
 
+void DDWin::save_session_as_slot () {
+/*
+	QFileDialog save_file(this);
+
+	QStringList filters;
+	filters << "Zodiac session (*.zod)";
+	
+	save_file.setNameFilters (filters);
+	save_file.setAcceptMode (QFileDialog::AcceptSave);
+	save_file.exec();
+
+	QString ext = save_file.selectedNameFilter();
+
+	QString filter = save_file.selectedNameFilter();
+	filter.truncate (filter.lastIndexOf (')'));
+	filter.remove (0, filter.indexOf ('*')+1);
+	QString s = save_file.selectedFile();
+		if (!s.contains ('.') ) s+= filter;
+	*/
+	QString s = QFileDialog::getSaveFileName(this, 
+								 tr ("Save file"), last_visited_dir, tr("Zodiac Session files (*.zod)"));
+
+	    if (!s.isNull()) {
+ 
+				data ->actions ->save_session_as (s.toStdString ());
+			}
+
+
+}
+
 
 void DDWin::set_current_target_slot (int index) {
     current_target = index;
@@ -899,10 +1309,7 @@ void DDWin::set_current_target_slot (int index) {
     if (target_molecule->multi) {
         Database_molecule *dm;
         dm = (Database_molecule *) target_molecule;
-		dm -> database -> set_graphics ();
-    //    browser_menu->target = dm->database;
-   //     browser_menu->current_number = dm->number-1;
-
+		show_grid (dm ->database);
     }
 
 
@@ -915,15 +1322,15 @@ void DDWin::set_current_target (int index) {
 
 }
 
-void DDWin::set_current_target (Molecule *mol) {
+void DDWin::set_current_target (ZNMolecule *mol) {
     int index = -1;
     for (unsigned int i=0; i<molecules.size (); i++) {
-        if (molecules[i] == mol) index = i;
+
+        if (molecules[i] == mol) {index = i; break;}
     }
-    
+
     if (index>0) {
-        target->setCurrentIndex (index);
-        set_current_target_slot (index);
+        set_current_target (index);
     }
 
 }
@@ -945,6 +1352,15 @@ void DDWin::scores_from_charges_slot () {
     }
 
 }
+
+
+void DDWin::new_database_slot () {
+	Database *dat = new Database ();
+	add_database (dat); 
+}
+
+
+
 
 void DDWin::partial_charges_slot () {
     if (current_target) {
@@ -988,10 +1404,23 @@ void DDWin::color_slot () {
     color_menu->raise ();
 }
 
+void DDWin::backbone_color_slot () {
+    b_color_menu->display ();
+}
+
+void DDWin::background_color_slot () {
+    color_settings_menu->show ();
+    color_settings_menu->raise ();
+}
+
 
 void DDWin::surface_slot () {
     surface_menu -> show ();
     surface_menu -> raise ();
+}
+
+void DDWin::map_slot () {
+	map_menu  ->display ();
 }
 
 void DDWin::sphere_slot () {
@@ -999,6 +1428,14 @@ void DDWin::sphere_slot () {
     sphere_menu -> raise ();
 }
 
+void DDWin::backbone_to_surface_slot () {
+	if (current_target) {
+		Surface *surf = new Surface;
+		gl ->backbone_to_surface (target_molecule, surf);
+		CreateGraphicalObjectCommand *command = new CreateGraphicalObjectCommand (surf, this);
+		execute (command);
+	}
+}
 
 void DDWin::graphical_objects_slot () {
     graphical_objects_menu -> show ();
@@ -1014,6 +1451,18 @@ void DDWin::haptic_slot () {
 }
 
 void DDWin::compute_energy_slot () {
+/*		ZNMolecule *molecule = target_molecule;
+		Chemscore *chemscore = new Chemscore;
+		MMFF* mmff = new MMFF;
+		build_kinematic_chain(molecule);
+		Minimize *min = new Minimize (data, mmff, chemscore);
+		min ->set_molecule (molecule);
+	//	min ->internal_ff ->initialize_internal (molecule, ddwin ->molecules);
+		min ->interaction_ff ->initialize_interaction (molecule, molecules, get_center (molecule), 12);
+
+
+*/
+
 	bool ext = false;
     if (current_target) {
 		if (target_molecule -> multi) {
@@ -1087,10 +1536,30 @@ void DDWin::minimise_energy_slot () {
 		}
 	}
 }	
-				
+	
+
+void DDWin::iodevice_slot () {
+	iodevice_menu -> display ();
+	
+
+}
+
 				
 void DDWin::plants_slot () {
-	Plants *plants=new Plants ( 0, "plants conf", data );
+	//Plants *plants= new Plants ( 0, "plants conf", data );
+	plants_menu -> display ();
+}
+
+void DDWin::conformers_slot () {
+	conformers_menu -> display ();
+}
+
+void DDWin::docking_slot () {
+		docking_menu -> display ();
+}
+
+void DDWin::gamess_slot () {
+	gamess_menu -> display ();
 }
 				
 void DDWin::hide_hydrogens_slot () {
@@ -1159,18 +1628,31 @@ void DDWin::show_all_atoms_slot () {
 
 void DDWin::add_Hs_slot () {
 	if (current_target) {
+		bool ok;
+		double ph = QInputDialog::getDouble(this, tr("Protonate Molecule"),
+                                        tr("pH:"), 7.4, 0, 14, 1, &ok);
+		if (ok)
+		{
 		if (!is_db_extended (target_molecule)) {
-			data ->actions ->reprotonate (target_molecule);
+			data ->actions ->reprotonate (target_molecule, ph);
 		}
 		else {
 			Database_molecule *dm = (Database_molecule *) target_molecule;
 			Database *dat = dm -> database;
-			data ->actions ->reprotonate (dat);
+			data ->actions ->reprotonate (dat, ph);
 			
+		}
 		}
 	}
 }
 
+
+void DDWin::duplicate_slot () {
+	if (current_target) {
+		ZNMolecule *new_mol = new ZNMolecule (*target_molecule);
+		add_molecule (new_mol);
+	}
+}
 
 /*
 void DDWin::color_by_atom_slot () {
@@ -1264,7 +1746,10 @@ void DDWin::builder_slot () {
     builder_menu->raise ();
 }
 
-
+void DDWin::twodwin_slot () {
+	data ->twodwin ->show ();
+	data ->twodwin ->raise ();
+}
 
 void DDWin::history_slot () {
     undo_view -> show ();
@@ -1274,12 +1759,19 @@ void DDWin::history_slot () {
 
 void DDWin::wiimote_slot () {
     HeadTrackingThread *thread = new HeadTrackingThread (0, this);
-    thread -> start ();	
+	run_thread (thread);
+//    thread -> start ();	
 }
 
 void DDWin::wiimote2_slot () {
     WiimoteTrackingThread *thread = new WiimoteTrackingThread (0, this);
-    thread -> start ();	
+	run_thread (thread);
+//    thread -> start ();	
+}
+
+
+void DDWin::pref_slot () {
+	pref_menu ->display ();
 }
 
 
@@ -1288,12 +1780,27 @@ void DDWin::DD_settings_slot () {
     DDsettings_menu->raise ();
 }
 
-
-void DDWin::display_settings_slot () {
-    dsetpopup->show ();
-    dsetpopup->raise ();
+void DDWin::enable_clipping_slot () {
+	if (current_target) {
+		set_clippable (target_molecule, true);
+	}
 }
 
+void DDWin::disable_clipping_slot () {
+	if (current_target) {
+		set_clippable (target_molecule, false);
+	}
+}
+
+
+
+void DDWin::display_settings_slot () {
+	display_menu -> display ();
+}
+
+void DDWin::sequence_slot () {
+	sequence_menu -> display ();
+}
 
 void DDWin::about_slot ()
 {
@@ -1313,21 +1820,151 @@ void DDWin::setup_accel () {
 	accel->connectItem( accel->insertItem(Qt::Key_A), this, SLOT(a_pressed()) );
     accel->connectItem( accel->insertItem(Qt::Key_B), this, SLOT(b_pressed()) );
     accel->connectItem( accel->insertItem(Qt::Key_C), this, SLOT(c_pressed()) );
+    accel->connectItem( accel->insertItem(Qt::Key_D), this, SLOT(d_pressed()) );	
+    accel->connectItem( accel->insertItem(Qt::Key_E), this, SLOT(e_pressed()) );
+	accel->connectItem( accel->insertItem(Qt::Key_F), this, SLOT(f_pressed()) );
+	accel->connectItem( accel->insertItem(Qt::Key_H), this, SLOT(h_pressed()) );		
+	accel->connectItem( accel->insertItem(Qt::Key_I), this, SLOT(i_pressed()) );	
     accel->connectItem( accel->insertItem(Qt::Key_M), this, SLOT(m_pressed()) );
     accel->connectItem( accel->insertItem(Qt::Key_N), this, SLOT(n_pressed()) );
     accel->connectItem( accel->insertItem(Qt::Key_O), this, SLOT(o_pressed()) );
+	accel->connectItem( accel->insertItem(Qt::Key_R), this, SLOT(r_pressed()) );
     accel->connectItem( accel->insertItem(Qt::Key_S), this, SLOT(s_pressed()) );
 
 }
 
+void DDWin::deselect_slot () {
+	deselect();
+}
+void DDWin::select_all_slot () {
+	if (current_target) {
+		ZNMolecule *target = 0;
+		if (!target_molecule -> selection)  target = target_molecule;
+		else target = ((Selection *) target_molecule) ->get_molecules ()[0];
+		deselect ();
+		Selection *sel = new Selection;
+		FOR_ATOMS_OF_MOL (a, target){
+			sel ->select_atom (&*a);
+		}
+		find_center (sel);
+		find_limits (sel);
+		add_molecule (sel);
+		set_current_target (-1);
+	}
 
+}
+
+void DDWin::invert_selection_slot () {
+	if (current_target) {
+		ZNMolecule *target = 0;
+		if (!target_molecule -> selection)  target = target_molecule;
+		else target = ((Selection *) target_molecule) ->get_molecules ()[0];
+
+
+		vector <Atom *> atoms;
+		FOR_ATOMS_OF_MOL (a, target){
+			if (!get_selected (&*a)) atoms.push_back (&*a);
+		}
+
+		deselect ();
+		Selection *sel = new Selection;
+		sel ->select_atoms (atoms);
+		find_center (sel);
+		find_limits (sel);
+		add_molecule (sel);
+		set_current_target (-1);
+	}
+}
+
+void DDWin::select_C_slot () {
+	gl -> select_MW (6);
+}
+
+
+void DDWin::select_H_slot () {
+	gl -> select_MW (1);
+}
+
+
+void DDWin::select_square_slot () {
+	gl ->select_square_mode = true;
+	gl ->setCursor(QCursor (QPixmap (":icons/pointer_select_square.png"), 0, 0));
+}
+
+
+
+void DDWin::build_C_slot () {
+	if (mode == MAGIC_PENCIL) {
+	        builder->set_magic_pencil_atomic_number (6);
+	}
+    else builder->add_atom (6);
+}
+
+void DDWin::build_S_slot () {
+	if (mode == MAGIC_PENCIL) {
+	        builder->set_magic_pencil_atomic_number (16);
+	}
+    else builder->add_atom (16);
+}
+
+void DDWin::build_O_slot () {
+	if (mode == MAGIC_PENCIL) {
+	        builder->set_magic_pencil_atomic_number (8);
+	}
+    else builder->add_atom (8);
+}
+
+void DDWin::build_N_slot () {
+	if (mode == MAGIC_PENCIL) {
+	        builder->set_magic_pencil_atomic_number (7);
+	}
+    else builder->add_atom (7);
+}
+
+
+void DDWin::build_single_bond_slot () {
+    builder->add_bond (1);
+}
+
+void DDWin::build_double_bond_slot () {
+    builder->add_bond (2);
+}
+
+void DDWin::build_triple_bond_slot () {
+    builder->add_bond (3);
+}
+
+void DDWin::delete_bond_slot () {
+ //   builder->remove_bond ();
+}
 
 //key slots
+
+void DDWin::magic_pencil_toggle_slot (bool checked) {
+	if (checked) {
+		magic_pencil_start ();
+	}
+	else {
+		magic_pencil_end ();
+	}
+}
+void DDWin::magic_pencil_start () {
+		magicpencilButt -> setChecked (true);
+        switch_mode (MAGIC_PENCIL);
+        builder->set_magic_pencil_atomic_number (6);
+}
+void DDWin::magic_pencil_end () {
+	magicpencilButt -> setChecked (false);
+	gl ->unsetCursor();
+	gl -> magic_pencil = false;
+	builder->last_magic_pencil_atom = NULL;
+	switch_mode (BUILDER);
+}
 
 void DDWin::del_pressed () {
     if (mode == MAGIC_PENCIL) {
         builder->set_magic_pencil_atomic_number (-2);    
-        gl->updateGL ();
+
     }
     if (mode == NONE) {
         if (current_target)        delete_current_molecule ();
@@ -1335,68 +1972,155 @@ void DDWin::del_pressed () {
 }
 
 void DDWin::esc_pressed () {
-    mode = NONE; 
-    mode_string = "";
-    gl -> magic_pencil = false;
-    builder->last_magic_pencil_atom = NULL;
-    gl->updateGL ();
-
+	if (mode == MAGIC_PENCIL) {
+		magic_pencil_end ();
+	}
+	else {
+		switch_mode (NONE);
+		gl ->unsetCursor();
+	}
 }
 
 
 
 void DDWin::a_pressed () {
-    cout <<"a pressed"<<endl;
+	if (mode == SELECT) {
+		selectAllAct ->trigger ();
+	}
 }
 
 
 void DDWin::b_pressed () {
-    mode = BUILDER;
-    mode_string = "Builder";
-    gl->updateGL ();
+	if (mode == NONE) switch_mode (BUILDER);
+
 }
 
 void DDWin::c_pressed () {
     if (mode == MAGIC_PENCIL) {
-        builder->set_magic_pencil_atomic_number (6);    
-        gl->updateGL ();
+        builder->set_magic_pencil_atomic_number (6);
+
+    }
+	if (mode == SELECT) {
+		selectCAct ->trigger ();
+	}
+}
+
+void DDWin::d_pressed () {
+	if (mode == SELECT) {
+		deselectAct ->trigger ();
+	}
+}
+
+void DDWin::e_pressed () {
+    if (mode == SELECT) {
+	switch_mode (SELECT_EXTEND);      
     }
 }
 
+void DDWin::f_pressed () {
+	if (mode == SELECT_EXTEND) {
+		if (target_molecule ->selection) {
+			Selection *sel = (Selection *) target_molecule;
+			sel ->extend_to_fragment ();
+		}
+
+	}
+    
+}
+
+
+void DDWin::h_pressed () {
+	if (mode == SELECT) {
+		selectHAct ->trigger ();
+	}
+}
 
 void DDWin::m_pressed () {
     if (mode == BUILDER) {
-        mode = MAGIC_PENCIL;
-        builder->set_magic_pencil_atomic_number (6); 
-        gl->updateGL ();
+		magic_pencil_start ();
+        
     }
 }
 
 
 void DDWin::n_pressed () {
+	if (mode == SELECT_EXTEND) {
+		if (target_molecule ->selection) {
+			Selection *sel = (Selection *) target_molecule;
+			sel ->extend_to_neighbours ();
+		}
+
+	}
     if (mode == MAGIC_PENCIL) {
         builder->set_magic_pencil_atomic_number (7);    
-        gl->updateGL ();
     }
 }
 
-
+void DDWin::i_pressed () {
+	if (mode == SELECT) {
+		invertSelectAct ->trigger ();
+	}
+}
 
 void DDWin::o_pressed () {
     if (mode == MAGIC_PENCIL) {
         builder->set_magic_pencil_atomic_number (8);    
-        gl->updateGL ();
     }
 }
 
 
-void DDWin::s_pressed () {
-    mode = SELECT;
-    mode_string = "Select";
-    gl->updateGL ();
+void DDWin::r_pressed () {
+	if (mode == SELECT_EXTEND) {
+		if (target_molecule ->selection) {
+			Selection *sel = (Selection *) target_molecule;
+			sel ->extend_to_residue ();
+		}
+
+	}
+    
 }
 
 
+void DDWin::s_pressed () {
+	if (mode == NONE) switch_mode (SELECT);
+	else  if (mode == MAGIC_PENCIL) {
+        builder->set_magic_pencil_atomic_number (16);
+	}
+	else if (mode == SELECT) {
+		selectsquareAct ->trigger ();
+	}
+    
+}
+
+void DDWin::switch_mode (int m) {
+	hide_toolbars ();
+	if (m == SELECT) {
+		mode = SELECT;
+		select_tb -> show ();
+		mode_string = "Select";
+	}
+	else if (m == SELECT_EXTEND) {
+		mode = SELECT_EXTEND;
+		mode_string = "Select - Extend";
+	}
+	else if (m == BUILDER) {
+		mode = BUILDER;
+		builder_tb -> show ();
+		mode_string = "Builder";
+	}
+	else if (m == MAGIC_PENCIL) {
+		mode = MAGIC_PENCIL;
+		builder_tb -> show ();
+		mode_string = "Builder";
+	}
+	else {
+		mode = NONE;
+		mode_string = "";
+	}
+
+	current_mode ->setText (QString(mode_string.c_str ()));
+
+}
 
 
 void DDWin::lock_editing () {
@@ -1429,7 +2153,7 @@ void DDWin::unlock_editing () {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 MyGl::MyGl (DDWin *parent)
-   :    QGLWidget(parent)
+   :    QGLWidget(QGLFormat(QGL::SampleBuffers), parent)
 {
 
 
@@ -1437,8 +2161,6 @@ MyGl::MyGl (DDWin *parent)
     ddwin = parent;
 	setAcceptDrops(true) ; 
     init_vars ();
- //   time = QTime::currentTime ();
- //   startTimer( TIMER_INTERVAL );
     void    GL ();
 
 
@@ -1454,29 +2176,15 @@ void MyGl::init_vars (){
 //    waters_list = new_list ();
 
     select_color  = SELECT_COLOR ;
-    background_color  = BACKGROUND_COLOR ;
 
 
-    bindingsite_color  = BINDINGSITE_COLOR ;
 
-
-    water_color  = WATER_COLOR ;
-
-    current_color = CURRENT_COLOR;
-
-
-    sphere_radius = SPHERE_RADIUS;
-    stick_rad = STICK_RAD;
     aromatic_display_style = AROMATIC_DISPLAY_STYLE;
 
-    double_bond_inter_distance =DOUBLE_BOND_INTER_DISTANCE;
+
     aromatic_bond_inter_distance =AROMATIC_BOND_INTER_DISTANCE;
 
-    
-    vdw_scale =VDW_SCALE;
-    vdw_precision = VDW_PRECISION;
-    stick_precision = STICK_PRECISION;
-    sphere_precision = SPHERE_PRECISION;
+
     double_bond_stick_radius_scale = DOUBLE_BOND_STICK_RADIUS_SCALE;
 
 
@@ -1493,6 +2201,7 @@ void MyGl::init_vars (){
 
     center_of_rotation = vect ();
     center_of_view = vect ();
+	view_translations = vect ();
 
     zbeginy = 0.0f;
     tbeginx = 0.0f;
@@ -1504,7 +2213,7 @@ void MyGl::init_vars (){
 	left_point = vect (-1., 0., 0.);
 	right_point = vect (1., 0., 0.);
 	
-    zoom = false; translate = false; rotate = false; select = false; move = false; spin = false; selection_square = false; magic_pencil = false;
+    zoom = false; translate = false; rotate = false; select = false; move = false; spin = false; selection_square = false; magic_pencil = false; select_square_mode = false;
     clicked_atom = new Atom;
 
 
@@ -1535,13 +2244,76 @@ void MyGl::init_vars (){
     ThisRot.M[3] = 0.0f; ThisRot.M[4] = 1.0f; ThisRot.M[5] = 0.0f;
     ThisRot.M[6] = 0.0f; ThisRot.M[7] = 0.0f; ThisRot.M[8] = 1.0f;
 
+	select_pulse = 0;
+
+
+	startTimer (30); 
 
 
 
+}
 
 
+void MyGl::timerEvent ( QTimerEvent * event ) {
+	select_pulse ++; //int that controls the pulsating color for selections. 
+	set_clipping_plane (); //rotates the general clipping plane to be parallel to the viewer
+	for (unsigned int i = 0; i < ddwin ->molecules.size (); i++) {
+		if (get_needs_redraw(ddwin ->molecules[i])) {
+			GL_update_molecule(ddwin ->molecules[i]);
+		}
+		if (get_needs_backbone_redraw (ddwin ->molecules[i])) {
+			GL_update_backbone(ddwin ->molecules[i]);
+		}
+	}
+	for (unsigned int i = 0; i < ddwin ->database_grids.size (); i++) {
+		if (ddwin ->database_grids[i] ->database ->get_needs_redraw ()) {
+			ddwin ->database_grids[i] ->update_graphics ();
+		}
+	}
+	if (!ddwin ->running_threads.size ()) {
+		ddwin ->thread_menu ->hide ();
+	}
+	else {
+	ddwin ->thread_menu -> show ();
+	for (unsigned int i = 0; i < ddwin ->running_threads.size (); i++) {
+		if (ddwin ->running_threads[i] -> isFinished ()) {
+			Thread *th = ddwin ->running_threads[i];
+			ddwin ->running_threads.erase (ddwin ->running_threads.begin ()+i);
+			ddwin ->thread_menu -> clear (i);
+			i --;
+			delete th;
+		}
+		else {
+			ddwin ->thread_menu -> display_thread (i, ddwin ->running_threads[i]);
+		}
+	}
+	}
+	ddwin ->haptic_menu ->update_energy (); //triggers an update of the energy value if haptic simulation is running
+	ddwin ->haptic_menu ->maybe_save_result ();
+	updateGL (); //redraw the graphic scene
+}
 
+void MyGl::set_clipping_plane () {
+    GLdouble x1, x2, x3, y1, y2, y3, z1, z2, z3;
+    GLint viewport [4];
+    GLdouble model [16];
+    GLdouble proj [16]; 
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    glGetDoublev(GL_MODELVIEW_MATRIX, model);
+    glGetDoublev(GL_PROJECTION_MATRIX, proj);
+	double centerz = 0.995;
+	
+	gluUnProject (viewport[2]/2, viewport[3], centerz, model, proj, viewport, &x1, &y1, &z1);
+    gluUnProject (viewport[2], viewport[3]/2, centerz, model, proj, viewport, &x2, &y2, &z2);
+    gluUnProject (viewport[2]/2, viewport[3]/2, centerz, model, proj, viewport, &x3, &y3, &z3);
 
+	GLdouble a, b, c, d;
+	a = y1*(z2-z3) + y2*(z3-z1) + y3*(z1-z2);
+	b = z1*(x2-x3) + z2*(x3-x1) + z3*(x1-x2);
+	c = x1*(y2-y3) + x2*(y3-y1) + x3*(y1-y2);
+	d = -(x1* (y2*z3 - y3*z2) + x2*(y3*z1 - y1*z3) + x3*(y1*z2 - y2*z1));
+	double eq [4] = {a, b, c, d};
+	glClipPlane (GL_CLIP_PLANE0, eq);
 }
 
 void MyGl::free_list (int list) {
@@ -1569,12 +2341,18 @@ int MyGl::new_list () {
 
 
 
+void MyGl::translate_molecule (ZNMolecule *mol, vect v) {
+	FOR_ATOMS_OF_MOL(a, mol) {
+    sum_to_coordinates(&*a, v);
+  }
+	vect c = get_center (mol);
+		set_center (mol, sum (c, v));
+} 
 
 
 
 
-
-void MyGl::move_molecule (Molecule *mol, float x, float y, float z, bool cut_bool) {
+void MyGl::move_molecule (ZNMolecule *mol, float x, float y, float z, bool cut_bool) {
     vect v (x, y, z);
     if (cut_bool) {
         float mod = v.module (); 
@@ -1586,7 +2364,14 @@ void MyGl::move_molecule (Molecule *mol, float x, float y, float z, bool cut_boo
     FOR_ATOMS_OF_MOL(a, mol) {
         sum_to_coordinates(&*a, v);
     }
+	vect c = get_center (mol);
+	set_center (mol, sum (c, v));
 }
+
+
+
+
+
 
 void MyGl::initializeGL ()
 {
@@ -1610,13 +2395,16 @@ void MyGl::initializeGL ()
     glEnable (GL_NORMALIZE);
 
     glLightfv(GL_LIGHT0,GL_SPECULAR,specular);
-
-	glClearColor (background_color.redF (), background_color.greenF (), background_color.blueF (), background_color.alphaF ());							// Black Background
+	color background_color = *ddwin ->data ->background_color;
+	glClearColor (background_color.redF (), background_color.greenF (), background_color.blueF (), background_color.alphaF ());
+	GLfloat fogColor[4]= {background_color.redF (), background_color.greenF (), background_color.blueF (), background_color.alphaF ()};	
+    glFogfv(GL_FOG_COLOR, fogColor);	
+	
 	glClearDepth (1.0f);											// Depth Buffer Setup
 	glDepthFunc (GL_LEQUAL);										// The Type Of Depth Testing (Less || Equal)
 
   //  g_openGlStereoAvailable = GL_TRUE;    
-    if (ddwin->g_stereoMode == DDWin::StereoMode_ViaOpenGL) {glEnable (GL_STEREO); cerr <<"stereo enabled"<<endl;}
+    if (ddwin->g_stereoMode == DDWin::StereoMode_ViaOpenGL) {glEnable (GL_STEREO);}
 
 	glEnable (GL_DEPTH_TEST);										// Enable Depth Testing
 										// Select Flat Shading (Nice Definition Of Objects)
@@ -1630,9 +2418,11 @@ void MyGl::initializeGL ()
 	glEnable(GL_LIGHTING);											// Enable Lighting
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glLightModelf(GL_LIGHT_MODEL_TWO_SIDE,1.0);
-    glEnable(GL_POINT_SMOOTH);                                       //antialiasing
-    glEnable(GL_LINE_SMOOTH);
-	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+ //   glEnable(GL_POINT_SMOOTH);                                       //antialiasing
+ //   glEnable(GL_LINE_SMOOTH);
+//	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+	
+	
 //    glEnable(GL_POLYGON_SMOOTH);                                      
 //	glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
 	
@@ -1645,14 +2435,14 @@ void MyGl::initializeGL ()
 	glEnable(GL_BLEND);	
 
 
-    GLfloat fogColor[4]= {1.0f, 1.0f, 1.0f, 1.0f};
+
   //  glFogi(GL_FOG_MODE, GL_LINEAR);		
-    glFogfv(GL_FOG_COLOR, fogColor);			
+
     glFogf(GL_FOG_DENSITY, 0.005f);				
     glHint(GL_FOG_HINT, GL_DONT_CARE);			
- //   glFogf(GL_FOG_START, fog_begin);			
- //   glFogf(GL_FOG_END, 10000.0f);				
-   // glEnable(GL_FOG);				
+    glFogf(GL_FOG_START, fog_begin);			
+    glFogf(GL_FOG_END, 10000.0f);				
+    glEnable(GL_FOG);				
 
 }
 /*
@@ -1665,7 +2455,7 @@ void MyGl::haptic_timer () {
         ss<<fps<<" fps"<<endl;
         ddwin->mode_string = ss.str ();
         time = t;
-        Molecule * min_mol = ddwin->data->minimize->interaction_ff->target_mol;
+        ZNMolecule * min_mol = ddwin->data->minimize->interaction_ff->target_mol;
         ddwin->data->minimize->haptic_step ();
         draw_molecule (min_mol);
 }
@@ -1718,9 +2508,18 @@ void MyGl::timerEvent ( QTimerEvent * ) {
 
 
 void MyGl::paintGL () {
+	
+
+		color background_color = *ddwin ->data ->background_color;
+
+	GLfloat fogColor[4]= {background_color.redF (), background_color.greenF (), background_color.blueF (), background_color.alphaF ()};
+	    glFogfv(GL_FOG_COLOR, fogColor);
+		glClearColor (background_color.redF (), background_color.greenF (), background_color.blueF (), background_color.alphaF ());
   //  cout <<"paintGL"<<endl;
 
-//    GLdouble camerax, cameray, cameraz;
+	glLineWidth (*ddwin ->data ->line_width);
+
+
     GLdouble farx, fary, farz;
     GLdouble nearx, neary, nearz;
     GLdouble frontx, fronty, frontz;
@@ -1834,7 +2633,7 @@ void MyGl::paintGL () {
 
 		glDisable (GL_LIGHTING);
 		glColor4f (0.5,0.,0.5, 1.);
-		renderText (20, 20, QString(ddwin->mode_string.c_str()));
+	//	renderText (20, 20, QString(ddwin->mode_string.c_str()));
 		glEnable (GL_LIGHTING);
 
 
@@ -1860,11 +2659,15 @@ void MyGl::paintGL () {
             glFrontFace( GL_CCW );
         }
 #endif // 0
-
+#ifdef GL_MULTISAMPLE
+	glEnable (GL_MULTISAMPLE);
+#endif //GL_MULTISAMPLE
 		for (unsigned int i =1; i<ddwin->molecules.size(); i++) {
 			if (!ddwin->molecules[i]->selection) {  //selections are not drawn
+				if (get_clippable (ddwin->molecules[i])) glEnable (GL_CLIP_PLANE0);
                 GLdouble cx, cy, cz;
-			    gluProject (ddwin -> molecules[i] -> center.x(), ddwin -> molecules[i] -> center.y(), ddwin -> molecules[i] -> center.z(),model, proj, viewport,&cx, &cy, &cz);
+				vect cent = get_center (ddwin ->molecules[i]);
+			    gluProject (cent.x(), cent.y(), cent.z(),model, proj, viewport,&cx, &cy, &cz);
  
             //    glFogf(GL_FOG_START, cz);			
             //    glFogf(GL_FOG_END, cz+0.000002);
@@ -1881,11 +2684,13 @@ void MyGl::paintGL () {
        //         glFogf(GL_FOG_START, -nz);			
        //         glFogf(GL_FOG_END, -nz+20);
 				glDisable (GL_LIGHTING);
-				glCallList (ddwin->molecules[i]->line_list);
-				glCallList (ddwin->molecules[i]->backbone_list1); 
+				glCallList (get_line_list (ddwin->molecules[i]));
+				glLineWidth (3.f);
+				glCallList (get_backbone_list1 (ddwin->molecules[i])); 
+				glLineWidth (*ddwin ->data ->line_width);
 				glEnable(GL_LIGHTING);
-				glCallList (ddwin->molecules[i]->stick_list);
-				glCallList (ddwin->molecules[i]->backbone_list2);
+				glCallList (get_stick_list (ddwin->molecules[i])); 
+				glCallList (get_backbone_list2 (ddwin->molecules[i])); 
 				if (ddwin->show_labels && 0) {
                     FOR_ATOMS_OF_MOL(at, ddwin -> molecules[i]) {
 						glColor4f (0.,0.,0.,1.);
@@ -1894,13 +2699,30 @@ void MyGl::paintGL () {
 					}
 				}
 			}
+			glDisable (GL_CLIP_PLANE0);
 		}
 
 		for (unsigned int i =0; i<ddwin->graphical_objects.size(); i++) {
+			if (ddwin->graphical_objects[i]->is_clippable ()) glEnable (GL_CLIP_PLANE0);
 			if (ddwin->graphical_objects[i]->mesh) glDisable (GL_LIGHTING);
 			glCallList (ddwin->graphical_objects[i]->lst);
 			glEnable(GL_LIGHTING);
+			glDisable (GL_CLIP_PLANE0);
 		}
+		glDisable (GL_LIGHTING);
+		for (unsigned int i = 0; i<ddwin ->Hbonds.size (); i++) {
+			color c (1.f, 0.f, 0.f, ddwin ->Hbonds[i].perc);
+			my_line(ddwin ->Hbonds[i].v1, ddwin ->Hbonds[i].v2, c, c);
+		}
+//		for (unsigned int i = 0; i<ddwin ->vertex_list.size (); i++) {
+//			color c (1.f, 0.f, 0.f, 1.f);
+//			my_line(ddwin ->vertex_list[i], sum (ddwin ->vertex_list[i], vect(0.1,0.,0.)), c, c);
+//		}
+		glEnable(GL_LIGHTING);
+#ifdef GL_MULTISAMPLE
+		glDisable (GL_MULTISAMPLE);
+#endif //GL_MULTISAMPLE
+
 		// SELECTION SQUARE
 		if (selection_square) {
 			GLdouble x1, x2, x3, x4, y1, y2, y3, y4, z1, z2, z3, z4;
@@ -1950,9 +2772,14 @@ void MyGl::paintGL () {
 			glEnd ();
 			glEnable(GL_LIGHTING);
 		}
-
-
-
+		ddwin ->haptic_menu ->restrain_lock ->lockForRead ();
+		for (unsigned int i = 0; i < ddwin ->haptic_menu ->restrains.size (); i++) {
+			color c  (0.f, 1.f, 0.f, 1.f);
+			glDisable (GL_LIGHTING);
+			my_line (get_coordinates (ddwin ->haptic_menu ->restrains[i] ->at1), get_coordinates (ddwin ->haptic_menu ->restrains[i] ->at2), c, c);
+			glEnable (GL_LIGHTING);
+		}
+		ddwin ->haptic_menu ->restrain_lock ->unlock ();
 	}
 	glFlush ();				
 
@@ -2054,36 +2881,23 @@ void MyGl::matrix_transformations (bool stereo, int frameBuffer) {
         glTranslatef (head_tracking_x_position, -head_tracking_y_position, 0.f);
 
 
+        glTranslatef (0, 0, -15.f);
+		glTranslatef (view_translations.x(),view_translations.y(),view_translations.z());
+		
+	//	vect new_center_of_view = rotate_vector (subtract (center_of_view, center_of_rotation));
+	//	glTranslatef (new_center_of_view[0],new_center_of_view[1],new_center_of_view[2]);
+		
+
+     //   Transform.M[12] = center_of_rotation.x();
+     //   Transform.M[13] = center_of_rotation.y();
+     //   Transform.M[14] = center_of_rotation.z();
+
+		glMultMatrixf(Transform.M);
 
 
-        Transform.M[12] = center_of_view.x() -center_of_rotation.x();
-        Transform.M[13] = center_of_view.y()-center_of_rotation.y();
-        Transform.M[14] = center_of_view.z()-15-center_of_rotation.z();
+		glTranslatef (-center_of_rotation.x(),-center_of_rotation.y(),-center_of_rotation.z());
 
-	glMultMatrixf(Transform.M);
-
-
-    GLint viewport [4];
-    GLdouble model [16];
-    GLdouble proj [16]; 
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    glGetDoublev(GL_MODELVIEW_MATRIX, model);
-    glGetDoublev(GL_PROJECTION_MATRIX, proj);
-    GLdouble xxu, yyu, zzu, xxc, yyc, zzc, xxr, yyr, zzr;
-    gluUnProject (viewport[2]/2, viewport[3], 0, model, proj, viewport, &xxu, &yyu, &zzu);
-    gluUnProject (viewport[2]/2, viewport[3]/2, 0, model, proj, viewport, &xxc, &yyc, &zzc);
-    gluUnProject (viewport[2], viewport[3]/2, 0, model, proj, viewport, &xxr, &yyr, &zzr);
-
-
-    float newyx = xxu - xxc; 
-    float newyy = yyu - yyc;
-    float newyz = zzu - zzc;
-
-    float newxx = xxr - xxc; 
-    float newxy = yyr - yyc;
-    float newxz = zzr - zzc;
-
-		glTranslatef(-center_of_rotation.x(),-center_of_rotation.y(),-center_of_rotation.z());
+	//	glTranslatef(-center_of_rotation.x(),-center_of_rotation.y(),-center_of_rotation.z());
 
 
 }
@@ -2096,7 +2910,7 @@ void MyGl::matrix_transformations (bool stereo, int frameBuffer) {
 
 void MyGl::mousePressEvent ( QMouseEvent * e )
 {   
-
+	
     float x = e->x(); float y = e->y();
 	Qt::MouseButton button = e->button ();
 
@@ -2129,6 +2943,9 @@ void MyGl::mousePressEvent ( QMouseEvent * e )
                 if (ddwin->current_target!=0)
                     begin_spin (x, y);
             }
+			else if (select_square_mode) {
+				begin_selection_square (x, y);
+			}
             else {
                 begin_rotate (x, y);
             }
@@ -2161,7 +2978,7 @@ void MyGl::mouseReleaseEvent ( QMouseEvent * e )
             rotate = false;
             move = false;
             spin = false;
-
+            if (selection_square) end_selection_square ();
 
            LastRot = ThisRot;
             
@@ -2175,9 +2992,7 @@ void MyGl::mouseMoveEvent ( QMouseEvent * e )
     float x = e->x(); float y = e->y();
     lastx = x; lasty = y;
 
-    if (ddwin->builder->last_magic_pencil_atom) {
-        updateGL ();
-    }
+
 
 
     if (zoom){
@@ -2234,7 +3049,7 @@ void MyGl::continue_magic_pencil (float x, float y) {
     ddwin->magic_pencil_trail_z.push_back (zz);
     ddwin->magic_pencil_trail_wx.push_back (x);
     ddwin->magic_pencil_trail_wy.push_back (y);
-    updateGL ();
+
 }
 
 void MyGl::end_magic_pencil (float x, float y) {
@@ -2287,7 +3102,7 @@ void MyGl::end_magic_pencil (float x, float y) {
                     vect coord (xx, yy, zz);
                     at = ddwin->builder->add_atom_bonded_to (coord, ddwin->builder->magic_pencil_atomic_number, last);
                     ddwin->builder->last_magic_pencil_atom = at;
-                    draw_molecule ((Molecule *) last -> GetParent ());
+                    draw_molecule ((ZNMolecule *) last -> GetParent ());
                 }
                 else {
                     GLdouble lx, ly, lz;
@@ -2297,10 +3112,10 @@ void MyGl::end_magic_pencil (float x, float y) {
                     Atom *at;
                     at = ddwin->builder->new_atom (coord, ddwin->builder->magic_pencil_atomic_number);
                     ddwin->builder->last_magic_pencil_atom = at;
-                    draw_molecule ((Molecule *) at-> GetParent ());                
+                    draw_molecule ((ZNMolecule *) at-> GetParent ());                
                 }
             }
-            updateGL ();
+
         }
     }
     else { //drag
@@ -2309,7 +3124,7 @@ void MyGl::end_magic_pencil (float x, float y) {
             Atom *a = select_atom (x, y, 10, 10);
             if (a && ddwin->builder->start_magic_pencil_atom) {
                 if (a!=ddwin->builder->start_magic_pencil_atom) {
-                    Bond *bo = a-> GetBond (ddwin->builder->start_magic_pencil_atom);
+                    ZNBond *bo = a-> GetBond (ddwin->builder->start_magic_pencil_atom);
                     if (bo) { // edit bond
                         if (ddwin->builder->magic_pencil_atomic_number==-2) { //rubber
                             if (bo-> IsTriple ()) ddwin->builder->set_bond (bo, 2);
@@ -2378,7 +3193,7 @@ void MyGl::end_magic_pencil (float x, float y) {
     ddwin->magic_pencil_trail_z.clear ();
     ddwin->magic_pencil_trail_wx.clear ();
     ddwin->magic_pencil_trail_wy.clear ();
-    updateGL ();
+
 
 }
 
@@ -2393,15 +3208,17 @@ void MyGl::begin_selection_square (float x, float  y) {
 void MyGl::continue_selection_square (float x, float y) {
     selection_square_x2 = x;
     selection_square_y2 = y;
-    updateGL ();
+
 }
 
 
 void MyGl::end_selection_square () {
 
-    selection_square = false;
+    selection_square = false; //drawing the square
+	select_square_mode = false; //waiting for a click to start the square
+	unsetCursor();
     select_square ();
-    updateGL ();
+
 }
 
 
@@ -2416,9 +3233,9 @@ void MyGl::begin_zoom (float y )
 
 void MyGl::continue_zoom (float y )
 {
-    center_of_view.z() -= (y - zbeginy);
+    view_translations.z() -= (y - zbeginy);
     zbeginy = y;
-    updateGL ();
+
 }
 
 void MyGl::begin_move (float x, float y )
@@ -2443,11 +3260,15 @@ void MyGl::continue_translate (float x, float y )
 {
 //    translatefx += (x - tbeginx);
 //    translatefy += (y - tbeginy);
-    center_of_view.x() +=(x - tbeginx)/10;
-    center_of_view.y() -=(y - tbeginy)/10;
+    view_translations.x() +=(x - tbeginx)/10;
+    view_translations.y() -=(y - tbeginy)/10;
 
     tbeginx = x; tbeginy = y;
-    updateGL ();
+
+}
+
+void MyGl::translate_view (vect v) {
+	view_translations  = sum (view_translations, v);
 }
 
 void MyGl::continue_move (float x, float y )
@@ -2467,37 +3288,14 @@ void MyGl::continue_move (float x, float y )
  //   gluUnProject (viewport[2]/2, viewport[3]/2, 0, model, proj, viewport, &camerax, &cameray, &cameraz);
 //   gluUnProject (viewport[2]/2, viewport[3], 0, model, proj, viewport, &upx, &upy, &upz);
 //    gluUnProject (viewport[2], viewport[3]/2, 0, model, proj, viewport, &rightx, &righty, &rightz);
-    gluProject (ddwin->target_molecule->center.x(), ddwin->target_molecule->center.y(),ddwin->target_molecule->center.z(),model, proj, viewport,&centx, &centy, &centz);
+	vect center = get_center (ddwin->target_molecule);
+    gluProject (center.x(), center.y(), center.z(),model, proj, viewport,&centx, &centy, &centz);
     gluUnProject (x, viewport[3]-y, centz, model, proj, viewport, &targx, &targy, &targz);
 
-   // upx-=camerax; upy-=cameray; upz-=cameraz;
-  //  rightx-=camerax; righty-=cameray; rightz-=cameraz;
-  //  float modup = sqrt(upx*upx+upy*upy+upz*upz);
- //   float modright = sqrt(rightx*rightx+righty*righty+rightz*rightz);
- //   upx/=modup;     upy/=modup;     upz/=modup;
- //   rightx/=modright;    righty/=modright;    rightz/=modright;
-    
-  //  float xmove = (x - mbeginx)/50;
- //   float ymove = -(y - mbeginy)/50;
-//    cout << upx<<" "<<upy<<endl;
-
-//    float xx = xmove*rightx+ymove*upx;
-//    float yy = xmove*righty+ymove*upy;
-//    float zz = xmove*rightz+ymove*upz;
-
-    if (ddwin->haptic_mode && ddwin->data->minimize->haptic_dof_mode == 0){
-        if (ddwin->data->minimize->fragments.size ()) {
-            ddwin->data->minimize->fragments[0].translation.x() = targx;
-            ddwin->data->minimize->fragments[0].translation.y() = targy;
-            ddwin->data->minimize->fragments[0].translation.z() = targz;
-        }
-    }
-
-    else {
-    move_molecule (ddwin->target_molecule, targx-ddwin->target_molecule->center.x(), targy-ddwin->target_molecule->center.y(), targz-ddwin->target_molecule->center.z(), false);
+    move_molecule (ddwin->target_molecule, targx-center.x(), targy-center.y(), targz-center.z(), false);
 //    move_molecule (ddwin->target_molecule, xx, yy, zz);
     draw_molecule (ddwin->target_molecule);
-    }
+
 }
 
 void MyGl::continue_spin (float x, float y )
@@ -2525,7 +3323,7 @@ void MyGl::continue_spin (float x, float y )
 
     FOR_ATOMS_OF_MOL(a, ddwin -> target_molecule) {
         vect v = get_coordinates (&*a);
-        rotate_around_vector (v, axis, ddwin->target_molecule->center, spin);
+        rotate_around_vector (v, axis, get_center (ddwin->target_molecule), spin);
     }
     draw_molecule (ddwin->target_molecule);
     sbeginx = x;
@@ -2551,24 +3349,52 @@ void MyGl::continue_rotate (float x, float y )
     Matrix3fMulMatrix3f(&ThisRot, &LastRot);				// Accumulate Last Rotation Into This One
     Matrix4fSetRotationFromMatrix3f(&Transform, &ThisRot);	// Set Our Final Transform's Rotation From This One
 
-
-    updateGL ();
 }
 
-
-void MyGl::select_square () {
-    Molecule *selected_mol = NULL;
+void MyGl::select_MW (unsigned int an) {
+    ZNMolecule *selected_mol = NULL;
     if (ddwin -> target_molecule -> selection) {
         Selection *sel = (Selection *) ddwin -> target_molecule; 
-        if (sel -> molecules.size () == 1) {
-            selected_mol = sel -> molecules[0];
+        if (sel -> get_molecules ().size () == 1) {
+            selected_mol = sel -> get_molecules ()[0];
         }
 
         if (selected_mol) ddwin -> set_current_target (selected_mol);
         else ddwin -> set_current_target (0);
     }
     ddwin -> deselect ();
-    Molecule *mol = ddwin -> target_molecule;
+    ZNMolecule *mol = ddwin -> target_molecule;
+
+        Selection *sel = new Selection ();
+		ddwin ->add_molecule (sel);
+     //   ddwin->molecules.push_back (sel);
+    //    ddwin->target->insertItem (1000, QString(sel -> GetTitle ())); 
+//		ddwin-> emit_targets_updated ();   
+        ddwin->set_current_target (-1);
+		FOR_ATOMS_OF_MOL (a, mol) {
+			if (a-> GetAtomicNum () == an) sel -> select_atom (&*a);
+		}
+
+        find_limits (sel);
+        find_center (sel);
+
+}
+
+
+
+void MyGl::select_square () {
+    ZNMolecule *selected_mol = NULL;
+    if (ddwin -> target_molecule -> selection) {
+        Selection *sel = (Selection *) ddwin -> target_molecule; 
+        if (sel -> get_molecules ().size () == 1) {
+            selected_mol = sel -> get_molecules ()[0];
+        }
+
+        if (selected_mol) ddwin -> set_current_target (selected_mol);
+        else ddwin -> set_current_target (0);
+    }
+    ddwin -> deselect ();
+    ZNMolecule *mol = ddwin -> target_molecule;
     GLint viewport[4];
     GLuint *buffer = new GLuint[ddwin->target_molecule -> NumAtoms ()*4];
     glMatrixMode(GL_MODELVIEW);
@@ -2586,7 +3412,6 @@ void MyGl::select_square () {
     glPushMatrix();                            
     glLoadIdentity() ;
 
-    cerr << "select1"<<endl;
     glGetIntegerv(GL_VIEWPORT, viewport); 
     int x1, x2, y1, y2;
     if (selection_square_x1<selection_square_x2) {
@@ -2614,36 +3439,32 @@ void MyGl::select_square () {
     glPopMatrix();                            
     glMatrixMode(GL_MODELVIEW);      
              
-    cerr << "select2"<<endl;
+
     int hits =  glRenderMode (GL_RENDER);
 
 
     if (hits){ 
-        cerr << hits << endl;
+   //     cerr << hits << endl;
         Selection *sel = new Selection ();
-        ddwin->molecules.push_back (sel);
-        ddwin->target->insertItem (1000, QString(sel -> GetTitle ())); 
-		ddwin-> emit_targets_updated ();   
-        ddwin->set_current_target (-1);
+
         for (unsigned int i=0; i<hits; i++) {
             Atom * at = mol -> GetAtom (buffer[i*4+3]); 
             assert (at);
-            set_selected (at, true);
-            sel -> ZNAddAtomToSelection (at);
+            sel -> select_atom (at);
         }
 
-        FOR_BONDS_OF_MOL(b, mol) {   
+   //     FOR_BONDS_OF_MOL(b, mol) {   
  //            if (get_selected (&*b)) sel -> ZNAddBondToSelection (&*b);
-        }
-        sel->add_mol (mol);
-        sel->find_limits ();
-        sel->find_center ();
+  //      }
+		
+		find_limits (sel);
+        find_center (sel);
+		ddwin ->add_molecule (sel);   
+        ddwin->set_current_target (-1);
+
 
     }
-    cerr << "draw mol "<< mol -> GetTitle ()<<endl;
-    draw_molecule (mol);
-    cerr << "finished draw mol "<< mol -> GetTitle ()<<endl;
-    cerr << "select 3"<<endl;
+
     delete[] buffer;
 }
 
@@ -2711,11 +3532,17 @@ void MyGl::selectf (float x, float y) {
 
     Atom *a = select_atom (x, y, 5, 5);
     if (a) {
-        clicked_atom=a;
-        ddwin->show_atom_properties (clicked_atom);
+		if (ddwin ->adding_restrains) {
+			ddwin ->haptic_menu ->add_restrain_atom (a);
+		}
+		else {
+			clicked_atom=a;
+			ddwin->show_atom_properties (clicked_atom);
+		}
     }
 
 }
+
 
 void MyGl::draw_ring_line (Ring* ring) {
 /*    glPushMatrix ();
@@ -2734,7 +3561,7 @@ void MyGl::draw_ring_line (Ring* ring) {
   
     glBegin (GL_LINE_STRIP);
 
-    Bond *this_bond = ring->bonds[0];
+    ZNBond *this_bond = ring->bonds[0];
     Atom *prev_atom = ring->bonds[0]->GetBeginAtom ();
     Atom *next_atom = ring->bonds[0]->GetEndAtom ();
 //    cout <<"next atom "<<ring->bonds[0]->GetEndAtom ()->ID<<endl;
@@ -2825,7 +3652,7 @@ void MyGl::draw_ring_stick (Ring* ring) {
     //equation of plane Ax + By + Cz = 0
     rad-=radtwo;
 
-    Bond *this_bond = ring->bonds[0];
+    ZNBond *this_bond = ring->bonds[0];
     Atom *prev_atom = ring->bonds[0]->GetBeginAtom ();
     Atom *next_atom = ring->bonds[0]->GetEndAtom ();
 //    cout <<"next atom "<<ring->bonds[0]->GetEndAtom ()->ID<<endl;
@@ -2938,7 +3765,7 @@ void MyGl::draw_ring_stick (Ring* ring) {
 
 
 
-void MyGl::draw_bond_line (Bond* bond)
+void MyGl::draw_bond_line (ZNBond* bond)
 {
     glBegin(GL_LINES);
 	Atom *at1 = bond->GetBeginAtom ();
@@ -2952,7 +3779,7 @@ void MyGl::draw_bond_line (Bond* bond)
     glEnd();
 }
 
-void MyGl::draw_aromatic_bond_line (Bond* bond) {
+void MyGl::draw_aromatic_bond_line (ZNBond* bond) {
     float d=0.08f;
     glBegin(GL_LINES);
 	Atom *at1 = bond->GetBeginAtom ();
@@ -3011,14 +3838,14 @@ void MyGl::draw_aromatic_bond_line (Bond* bond) {
     }*/
 }
 
-void MyGl::draw_triple_bond_line (Bond * bond) {
+void MyGl::draw_triple_bond_line (ZNBond * bond) {
     draw_bond_line (bond);
     draw_double_bond_line (bond);
 }
 
 
 
-void MyGl::draw_double_bond_line (Bond* bond) {
+void MyGl::draw_double_bond_line (ZNBond* bond) {
     Atom *at0 = bond->GetBeginAtom ();
     Atom *at1 = bond->GetEndAtom ();
 
@@ -3116,7 +3943,7 @@ void MyGl::draw_double_bond_line (Bond* bond) {
 
 
 
-void MyGl::draw_bond_stick(Bond* bond)
+void MyGl::draw_bond_stick(ZNBond* bond)
 {
  
     float angle, height, mod_of_vector;
@@ -3153,7 +3980,7 @@ void MyGl::draw_bond_stick(Bond* bond)
 
 //    gluCylinder (quadratic,stick_rad,stick_rad,mod_of_vector*0.5,16, 1);
 
-    my_cylinder (stick_rad, stick_rad, height, stick_precision, bond->GetBeginAtom (), bond->GetEndAtom ());
+    my_cylinder (*ddwin ->data ->stick_radius, *ddwin ->data ->stick_radius, height, *ddwin ->data ->quality_scale * 5, bond->GetBeginAtom (), bond->GetEndAtom ());
 
     glPopMatrix ();
     
@@ -3166,7 +3993,7 @@ void MyGl::draw_bond_stick(Bond* bond)
         glPushMatrix ();
         setAtomColor(at1);
         glTranslatef (at1c.x(), at1c.y (), at1c.z ());
-        gluSphere (quadratic, stick_rad, stick_precision, stick_precision);
+        gluSphere (quadratic, *ddwin ->data ->stick_radius, *ddwin ->data ->quality_scale * 5, *ddwin ->data ->quality_scale * 5);
         glPopMatrix ();
     }
     if (!get_sad (at2p)) {
@@ -3174,7 +4001,7 @@ void MyGl::draw_bond_stick(Bond* bond)
         glPushMatrix ();
         setAtomColor(at2);
         glTranslatef (at2c.x(), at2c.y (), at2c.z ());
-        gluSphere (quadratic, stick_rad, stick_precision, stick_precision);
+        gluSphere (quadratic, *ddwin ->data ->stick_radius, *ddwin ->data ->quality_scale * 5, *ddwin ->data ->quality_scale * 5);
         glPopMatrix ();
     }
 
@@ -3198,7 +4025,7 @@ void MyGl::draw_bond_stick(Bond* bond)
 }
 
 
-void MyGl::draw_double_bond_stick (Bond* bond) {
+void MyGl::draw_double_bond_stick (ZNBond* bond) {
 
 
 
@@ -3224,7 +4051,7 @@ void MyGl::draw_double_bond_stick (Bond* bond) {
   
 //    gluCylinder (quadratic,stick_rad,stick_rad,mod_of_vector*0.5,16, 1);
 
-    my_cylinder (stick_rad/2, stick_rad/2, height, stick_precision, bond->GetBeginAtom (),bond->GetEndAtom ());
+    my_cylinder (*ddwin ->data ->stick_radius * *ddwin ->data ->double_bond_stick_scale, *ddwin ->data ->stick_radius * *ddwin ->data ->double_bond_stick_scale, height, *ddwin ->data ->quality_scale * 5, bond->GetBeginAtom (),bond->GetEndAtom ());
 
     glPopMatrix ();
 
@@ -3246,30 +4073,30 @@ void MyGl::draw_double_bond_stick (Bond* bond) {
   
 //    gluCylinder (quadratic,stick_rad,stick_rad,mod_of_vector*0.5,16, 1);
 
-    my_cylinder (stick_rad/2, stick_rad/2, height, stick_precision, bond->GetBeginAtom (),bond->GetEndAtom ());
+    my_cylinder (*ddwin ->data ->stick_radius * *ddwin ->data ->double_bond_stick_scale, *ddwin ->data ->stick_radius * *ddwin ->data ->double_bond_stick_scale, height, *ddwin ->data ->quality_scale * 5, bond->GetBeginAtom (),bond->GetEndAtom ());
 
     glPopMatrix ();
-  //  Molecule *mol  = (Molecule *) bond -> GetParent ();
+  //  ZNMolecule *mol  = (ZNMolecule *) bond -> GetParent ();
     if (CountBonds (bond->GetBeginAtom ())== 1) {
         glPushMatrix ();
         setAtomColor(bond->GetBeginAtom ());
         glTranslatef (verts[0][0], verts[0][1], verts[0][2]);
-        gluSphere (quadratic, stick_rad/2, stick_precision, stick_precision);
+        gluSphere (quadratic, *ddwin ->data ->stick_radius * *ddwin ->data ->double_bond_stick_scale, *ddwin ->data ->quality_scale * 5, *ddwin ->data ->quality_scale * 5);
         glPopMatrix ();
         glPushMatrix ();
         glTranslatef (verts[1][0], verts[1][1], verts[1][2]);
-        gluSphere (quadratic, stick_rad/2, stick_precision, stick_precision);
+        gluSphere (quadratic, *ddwin ->data ->stick_radius * *ddwin ->data ->double_bond_stick_scale, *ddwin ->data ->quality_scale * 5, *ddwin ->data ->quality_scale * 5);
         glPopMatrix ();
     }
     if (CountBonds (bond->GetEndAtom ())== 1) {
         glPushMatrix ();
         setAtomColor(bond->GetEndAtom ());
         glTranslatef (verts[2][0], verts[2][1], verts[2][2]);
-        gluSphere (quadratic, stick_rad/2, stick_precision, stick_precision);
+        gluSphere (quadratic, *ddwin ->data ->stick_radius * *ddwin ->data ->double_bond_stick_scale, *ddwin ->data ->quality_scale * 5, *ddwin ->data ->quality_scale * 5);
         glPopMatrix ();
         glPushMatrix ();
         glTranslatef (verts[3][0], verts[3][1], verts[3][2]);
-        gluSphere (quadratic, stick_rad/2, stick_precision, stick_precision);
+        gluSphere (quadratic, *ddwin ->data ->stick_radius * *ddwin ->data ->double_bond_stick_scale, *ddwin ->data ->quality_scale * 5, *ddwin ->data ->quality_scale * 5);
         glPopMatrix ();
     }
         
@@ -3277,14 +4104,14 @@ void MyGl::draw_double_bond_stick (Bond* bond) {
 
 }
 
-void MyGl::draw_triple_bond_stick (Bond* bond) {
+void MyGl::draw_triple_bond_stick (ZNBond* bond) {
     draw_bond_stick (bond);
     draw_double_bond_stick (bond);
 
 }
 
 
-void MyGl::draw_aromatic_bond_stick (Bond* bond) {
+void MyGl::draw_aromatic_bond_stick (ZNBond* bond) {
     draw_bond_stick (bond); /*
     float angle, height, mod_of_vector;
     float vecto[3];
@@ -3368,7 +4195,7 @@ void MyGl::draw_atom_sphere(Atom* atom) {
     glPushMatrix ();
     glTranslatef (v.x(), v.y(), v.z());
   //  my_sphere (sphere_radius,2*sphere_precision,sphere_precision, atom);
-    gluSphere (quadratic,sphere_radius,sphere_precision,sphere_precision);
+    gluSphere (quadratic,*ddwin ->data ->sphere_radius,*ddwin ->data ->quality_scale * 5,*ddwin ->data ->quality_scale * 5);
     glPopMatrix ();
 
 }
@@ -3380,7 +4207,7 @@ void MyGl::draw_atom_sel_sphere(Atom* atom) {
  //   setAtomColor(atom);
     glPushMatrix ();
     glTranslatef (v.x(), v.y(), v.z());
-    gluSphere (quadratic,sphere_radius,6,6);
+    gluSphere (quadratic,*ddwin ->data ->sphere_radius,6,6);
     glPopMatrix ();
 
 }
@@ -3394,7 +4221,7 @@ void MyGl::draw_atom_vdw_sphere(Atom* atom) {
     glPushMatrix ();
     glTranslatef (v.x(), v.y(), v.z());
     double vdw = etab.GetVdwRad (atom -> GetAtomicNum ());
-    gluSphere (quadratic, vdw, vdw_precision, vdw_precision);
+    gluSphere (quadratic, vdw, *ddwin ->data ->quality_scale * 7, *ddwin ->data ->quality_scale * 7);
     glPopMatrix ();
 
 }
@@ -3408,55 +4235,32 @@ void MyGl::draw_atom_scaled_vdw_sphere(Atom* atom) {
     glTranslatef (v.x(), v.y(), v.z());
    // my_sphere (atom->vdw*vdw_scale,sphere_precision,sphere_precision, atom);
     double vdw = etab.GetVdwRad (atom -> GetAtomicNum ());
-    gluSphere (quadratic, vdw*vdw_scale,sphere_precision,sphere_precision);
+    gluSphere (quadratic, vdw**ddwin ->data ->vdw_scale,*ddwin ->data ->quality_scale * 5,*ddwin ->data ->quality_scale * 5);
     glPopMatrix ();
 
 }
 
+void MyGl::draw_molecule (ZNMolecule *mol) {
+	set_needs_redraw(mol, true);
+}
 
-
-void MyGl::draw_molecule (Molecule* mol) {
+void MyGl::GL_update_molecule (ZNMolecule* mol) {
+	lock_geometry_for_read (mol);
+	redraw_counter++;
     if (mol->selection) {
         draw_list ( (Selection *) mol);
     }
     else draw_list (mol);
-    updateGL ();
+	set_needs_redraw(mol, false);
+	unlock_geometry (mol);
 }
 
-void MyGl::draw_backbone (Molecule* mol) {
-  /*  glNewList(mol->backbone_list1,GL_COMPILE);
-    for (unsigned int i=0; i<mol->residues.size();i++) {
-        if (mol->residues[i]->backbone_visible == true) {
-            if (mol->residues[i]->backbone_style == BACKBONE_LINE) {
-                set_color (mol -> residues [i] -> backbone_color);
-                glBegin(GL_LINE_STRIP);
-                for (unsigned int j=0; j<mol->residues[i]->backbone_list.size(); j++) {
-                    glVertex3f(mol->residues[i]->backbone_list[j].x(), mol->residues[i]->backbone_list[j].y(), mol->residues[i]->backbone_list[j].z());
-                }
-                glEnd();
-            }
-        }
-    }
-    glEndList();
-    glNewList(mol->backbone_list2,GL_COMPILE);
-    for (unsigned int i=0; i<mol->residues.size();i++) {
-        if (mol->residues[i]->backbone_visible == true) {
-            if (mol->residues[i]->backbone_style == BACKBONE_STICK) {
-                backbone_cylinder (mol->residues[i]);
-            }
-        }
-
-
-    }
-    glEndList();
-*/
+void MyGl::GL_update_backbone (ZNMolecule* mol) {
+	lock_geometry_for_read (mol);
+	draw_backbone_list(mol);
+	set_needs_backbone_redraw(mol, false);
+	unlock_geometry (mol);
 }
-
-//void MyGl::draw_surface (Molecule* mol) {
- //   SurfaceMenu *sur_men = new SurfaceMenu (0, "surf", ddwin->data, mol);
-
-//}
-
 
 void MyGl::draw_list (MarchingCubes * cube) {
 
@@ -3513,49 +4317,65 @@ void MyGl::draw_list (Grid& grid, int list) {
 
 
 void MyGl::draw_list (Selection* sel) {
-    sel->find_limits ();
-    sel->find_center ();
-    for (unsigned int i=0; i < sel->molecules.size (); i++) {
-        draw_list (sel->molecules[i]);
+    find_limits (sel);
+    find_center (sel);
+    for (unsigned int i=0; i < sel->get_molecules ().size (); i++) {
+        draw_list (sel->get_molecules ()[i]);
     }
 }
 
-void MyGl::draw_backbone_list (Molecule *mol) {
-	glNewList(mol->backbone_list1,GL_COMPILE);
+
+void MyGl::backbone_to_surface (ZNMolecule *mol, Surface *surf) {
+	find_backbone_data (mol);
+	FOR_RESIDUES_OF_MOL (res, mol) {
+		draw_backbone_stick (&*res, surf);
+	}
+	surf ->render();
+}
+
+
+void MyGl::draw_backbone_list (ZNMolecule *mol) {
+	glNewList(get_backbone_list1 (mol),GL_COMPILE);
 	FOR_RESIDUES_OF_MOL (r, mol) {
-		draw_backbone_line (&*r);
+		if (get_backbone_display_style (mol) == 1) {
+			find_backbone_data (mol);
+			draw_backbone_line (&*r);
+		}
 	}
 	glEndList ();
-	glNewList(mol->backbone_list2,GL_COMPILE);
+	glNewList(get_backbone_list2 (mol),GL_COMPILE);
 	FOR_RESIDUES_OF_MOL (r, mol) {
-		if (0) draw_backbone_stick(&*r);
+
+		if (get_backbone_display_style (mol) == 2) 		{
+			find_backbone_data (mol);
+			draw_backbone_stick(&*r);
+		}
 	}
 	glEndList ();
 }
 
-void MyGl::draw_list (Molecule* mol) {
- //   cerr << 0<< endl;
-    mol-> find_limits ();
- //   cerr << 0<< endl;
-    mol-> find_center ();
+void MyGl::draw_list (ZNMolecule* mol) {
 
-  //  cerr << 0<< endl;
+    find_limits (mol);
+
+    find_center (mol);
+
+
     FOR_ATOMS_OF_MOL(a, mol) {
         set_sad (&*a, false);
     }
-    glNewList(mol->line_list,GL_COMPILE);
+    glNewList(get_line_list (mol),GL_COMPILE);
 
     FOR_BONDS_OF_MOL (b, mol) {
         Atom *at1 = b -> GetBeginAtom ();
         Atom *at2 = b -> GetEndAtom ();
- //   cerr << b -> HasData ("visible");
- //   cerr << "here" << endl;
+
     bool vis = get_visible (&*b);
     int dsi = get_ds (&*b);
 
-   // cerr << dsi;
+
     if (vis) {
-    //    cerr << "yess"<<endl;
+
         int order;
         if (aromatic_display_style == AROMATIC_RINGS && b -> IsAromatic ()) order = 1;
         else order = b -> GetBondOrder ();
@@ -3585,7 +4405,7 @@ void MyGl::draw_list (Molecule* mol) {
         }
     }
     }
- //   cerr <<"3 ";
+
   //  vector<OBRing*>::iterator i;
   //  vector<OBRing*> *rlist = (vector<OBRing*>*)mol -> GetData("RingList");
 /*
@@ -3607,16 +4427,15 @@ void MyGl::draw_list (Molecule* mol) {
     }
     glEndList ();
 */
- //   cerr <<"4 ";
+
     glEndList ();
-    glNewList(mol->stick_list,GL_COMPILE);
+    glNewList(get_stick_list (mol),GL_COMPILE);
 
 
     FOR_BONDS_OF_MOL (b, mol) {        
         Atom *at1 = b -> GetBeginAtom ();
         Atom *at2 = b -> GetEndAtom ();
- //   cerr << b -> HasData ("visible");
- //   cerr << "here" << endl;
+
         bool vis = get_visible (&*b);
         int dsi = get_ds (&*b);
         if (vis) {
@@ -3639,7 +4458,7 @@ void MyGl::draw_list (Molecule* mol) {
             }
         }
     }
-  //  cerr <<"5 ";
+
     FOR_ATOMS_OF_MOL(a, mol) {
     bool v = get_visible (&*a);
     int dsi = get_ds (&*a);
@@ -3662,7 +4481,7 @@ void MyGl::draw_list (Molecule* mol) {
     }
 
     }
-  // cerr <<"6 ";
+
  /*   rlist = (vector<OBRing*>*)mol -> GetData("RingList");
     for (i = rlist->begin();i != rlist->end();++i)
     {
@@ -3682,12 +4501,11 @@ void MyGl::draw_list (Molecule* mol) {
     glEndList ();
 
 	draw_backbone_list (mol);
-
 }
 
 
 
-void MyGl::draw_atoms_for_selection (Molecule *mol){    //only works in rendermode select
+void MyGl::draw_atoms_for_selection (ZNMolecule *mol){    //only works in rendermode select
   //  glNewList(27,GL_COMPILE);
         int i = 0;
         FOR_ATOMS_OF_MOL(a, mol) {
@@ -3720,7 +4538,7 @@ void MyGl::setAtomColor(Atom* atom)
         scr = select_color.redF ();
         scg = select_color.greenF ();
         scb = select_color.blueF ();
-        sca = select_color.alphaF ();
+        sca = select_color.alphaF () * (0.5 + 0.5*sin ((float) select_pulse*3/40));
 
         r = scr * sca + col.redF ()   * ( 1 - sca);
         g = scg * sca + col.greenF () * ( 1 - sca);
@@ -3740,55 +4558,10 @@ void MyGl::setAtomColor(Atom* atom)
 void MyGl::update_current_color () {
 }
 */
-void MyGl::set_conf (int conf){
-
-    int atom_mode, bond_mode;
-
-
-	switch (conf) {
-		case WIREFRAME:
-            atom_mode = NO_ATOMS;
-            bond_mode = LINES;   
-            
-			break;
-		case STICK:
-            atom_mode = NO_ATOMS;
-            bond_mode = STICKS;  
-           
-            break;
-		case CPK: 
-            atom_mode = CPK_SPHERES;
-            bond_mode = NO_BONDS; 
-            break;
-		case BALLANDSTICK: 
-            atom_mode = SCALED_CPK_SPHERES;
-            bond_mode = STICKS;            
-            break;
-
-		case BALLANDLINE: 
-            atom_mode = SPHERES;
-            bond_mode = LINES;            
-            break;
-			
-		default:
-            atom_mode = NO_ATOMS;
-            bond_mode = LINES; 
-
-	}
-
-
-    ddwin->at_disp->setCurrentIndex (atom_mode);
-    ddwin->bo_disp->setCurrentIndex (bond_mode);
-
-}
 
 
 
-
-
-
-
-void MyGl::hide_hydrogens (Molecule* mol){
+void MyGl::hide_hydrogens (ZNMolecule* mol){
 
     FOR_ATOMS_OF_MOL(a, mol) {
         if (a -> IsHydrogen ()) {
@@ -3799,11 +4572,11 @@ void MyGl::hide_hydrogens (Molecule* mol){
 }
 
 
-void MyGl::hide_hydrogens (vector <Molecule *> molecules) {
+void MyGl::hide_hydrogens (vector <ZNMolecule *> molecules) {
     for (unsigned int n =0; n<molecules.size (); n++ ) hide_hydrogens (molecules[n]);
 }
 
-void MyGl::hide_nonpolar_hydrogens (Molecule* mol){
+void MyGl::hide_nonpolar_hydrogens (ZNMolecule* mol){
     FOR_ATOMS_OF_MOL(a, mol) {
         if (a -> IsNonPolarHydrogen ()) {
             set_visible (&*a, false);
@@ -3814,35 +4587,35 @@ void MyGl::hide_nonpolar_hydrogens (Molecule* mol){
 }
 
 
-void MyGl::hide_nonpolar_hydrogens (vector <Molecule *> molecules) {
+void MyGl::hide_nonpolar_hydrogens (vector <ZNMolecule *> molecules) {
     for (unsigned int n =0; n<molecules.size (); n++ ) hide_nonpolar_hydrogens (molecules[n]);
 }
 
 
-void MyGl::show_all_atoms (Molecule* mol){
+void MyGl::show_all_atoms (ZNMolecule* mol){
     FOR_ATOMS_OF_MOL(a, mol) {
             set_visible (&*a, true);
     }
     draw_molecule (mol);
 }
 
-void MyGl::show_all_atoms (vector <Molecule *> molecules) {
+void MyGl::show_all_atoms (vector <ZNMolecule *> molecules) {
     for (unsigned int n =0; n<molecules.size (); n++ ) show_all_atoms (molecules[n]);
 }
 
-void MyGl::hide_all_atoms (Molecule* mol){
+void MyGl::hide_all_atoms (ZNMolecule* mol){
     FOR_ATOMS_OF_MOL(a, mol) {
             set_visible (&*a, false);
     }
     draw_molecule (mol);
 }
 
-void MyGl::hide_all_atoms (vector <Molecule *> molecules) {
+void MyGl::hide_all_atoms (vector <ZNMolecule *> molecules) {
     for (unsigned int n =0; n<molecules.size (); n++ ) hide_all_atoms (molecules[n]);
 }
 
 
-void MyGl::apply_color_masks (vector <color_mask> masks, Molecule *mol, bool undoable) {
+void MyGl::apply_color_masks (vector <color_mask> masks, ZNMolecule *mol, bool undoable) {
     float c_red, c_green, c_blue, c_alpha,  ce_red, ce_green, ce_blue, ce_alpha, cb_red, cb_green, cb_blue, cb_alpha, sb_red, sb_green, sb_blue, sb_alpha, sm_red, sm_green, sm_blue, sm_alpha, se_red, se_green, se_blue, se_alpha, mid_width;
 
     mid_width = 0.1f;
@@ -3943,7 +4716,17 @@ void MyGl::apply_color_masks (vector <color_mask> masks, Molecule *mol, bool und
             else if (masks[ms].type == SCORE) {
                 float r, g, b, a;
                 float q = get_score (&*at);
-                if (q <= ddwin -> data -> score_begin) {
+				
+				
+				color col = average_3_colors (q, ddwin ->data ->score_begin_color, ddwin ->data ->score_mid_color, ddwin ->data ->score_end_color,
+											   ddwin ->data ->score_begin, ddwin ->data ->score_mid, ddwin ->data ->score_end) ;
+				
+				r = col.redF () * masks[ms].intensity;
+				g = col.greenF () * masks[ms].intensity;
+				b = col.blueF () * masks[ms].intensity;
+				a = col.alphaF () * masks[ms].intensity;
+				
+/*                if (q <= ddwin -> data -> score_begin) {
                     r = sb_red   * masks[ms].intensity;
                     g = sb_green * masks[ms].intensity;
                     b = sb_blue  * masks[ms].intensity;
@@ -3978,6 +4761,8 @@ void MyGl::apply_color_masks (vector <color_mask> masks, Molecule *mol, bool und
                     a = (sm_alpha * perc + se_alpha  * (1-perc)) * masks[ms].intensity;
 
                 }
+ 
+ */
                 assert (!(r > 1.f));
                 assert (!(g > 1.f));
                 assert (!(b > 1.f));
@@ -4022,9 +4807,11 @@ void MyGl::apply_color_masks (vector <color_mask> masks, Molecule *mol, bool und
 
 
 void MyGl::set_center_of_rotation (vect v) {
-    ChangeVectorCommand *command = new ChangeVectorCommand (center_of_rotation, v, this,"Set center of rotation");
-    ddwin -> execute (command);
-    
+	vect dis = unrotate_vector (subtract (v,center_of_rotation));
+	ChangeVectorCommand *command1 = new ChangeVectorCommand (center_of_rotation, v, this,"Set center of rotation");
+    ChangeVectorCommand *command2 = new ChangeVectorCommand (view_translations, sum (view_translations,dis), this,"Set center of rotation");
+    ddwin -> execute (command1);
+	ddwin -> execute (command2);
 }
 /*
 void MyGl::set_center_of_rotation (float x, float y, float z){
@@ -4034,17 +4821,13 @@ void MyGl::set_center_of_rotation (float x, float y, float z){
 */
 
 void MyGl::set_center_of_view (vect v) {
-    ChangeVectorCommand *command = new ChangeVectorCommand (center_of_view, v, this, "Set center of view");
+	vect dis = subtract (v,center_of_rotation);
+	dis = unrotate_vector (dis);
+    ChangeVectorCommand *command = new ChangeVectorCommand (view_translations, dis, this, "Set center of view");
     ddwin -> execute (command);
+	//view_translations = vect ();
 
 }
-/*
-void MyGl::set_center_of_view (float x, float y, float z){
-    vect v (x, y, z);
-    set_center_of_view (v);
- //   cout << "center of view set at: "<<x<<" "<<y<<" "<<z<<endl;
-}
-*/
 
 
 
@@ -4054,7 +4837,7 @@ void MyGl::screenshot (QString filename){
  GLint viewport [4];
    glGetIntegerv (GL_VIEWPORT, viewport);
    int w = viewport [2]; int h = viewport [3];
-//	cerr << w << " " << h << endl;
+
    unsigned char* image = new unsigned char[3*w*h];
 
 	FILE* fptr = fopen (filename.toLatin1(), "w" );
@@ -4084,27 +4867,6 @@ void MyGl::screenshot (QString filename){
 
 /////////////////////////////////////////SLOTS///////////////////////////////////////////////////////////////
 
-void MyGl::set_wireframe (){
-    set_conf (WIREFRAME);
-}
-
-void MyGl::set_stick (){
-    set_conf (STICK);
-}
-
-void MyGl::set_cpk (){
-    set_conf (CPK);
-}
-
-void MyGl::set_ballandline (){
-    set_conf (BALLANDLINE);
-}
-
-void MyGl::set_ballandstick (){
-    set_conf (BALLANDSTICK);
-}
-
-
 void MyGl::head_tracking_update (int x, int y) {
 	float scale = 0.1f;
 	float xf = x;
@@ -4131,15 +4893,111 @@ void MyGl::head_tracking_update (int x, int y) {
 //	Matrix3fMulMatrix3f(&ThisRot, &Last_Head_Tracking_Rot);				// Accumulate Last Rotation Into This One
 	Matrix4fSetRotationFromMatrix3f(&Head_Tracking_Transf, &ThisRot);
 
-	updateGL ();
+	
 }
 
 void MyGl::move_camera (float x, float y, float z) {
-    center_of_view.x() += x;
-    center_of_view.y() += y;
-    center_of_view.z() += z;
-    updateGL ();
+	vect v (x, y, z);
+	view_translations = sum (view_translations, v);
+
 }
+
+
+void MyGl::move_target (float x, float y, float z) {
+	ZNMolecule *mol = ddwin -> target_molecule;
+	vect v (x, y, z);
+	double rot [9];
+	rot [0] = Transform.M [0];
+	rot [1] = Transform.M [1];
+	rot [2] = Transform.M [2];
+	rot [3] = Transform.M [4];
+	rot [4] = Transform.M [5];
+	rot [5] = Transform.M [6];
+	rot [6] = Transform.M [8];
+	rot [7] = Transform.M [9];
+	rot [8] = Transform.M [10];
+	v = rotate_vector_using_matrix_9 (v, rot);
+	translate_molecule (mol, v);
+	draw_molecule(mol);
+
+}
+
+
+void MyGl::map_vector_on_vector_world (double x1, double y1, double z1, double x2, double y2, double z2) {
+	Quat4fT Quat;
+	Vector3fT vec1, vec2;
+	vec1.s.X = x1;
+	vec1.s.Y = y1;
+	vec1.s.Z = z1;
+
+	vec2.s.X = x2;
+	vec2.s.Y = y2;
+	vec2.s.Z = z2;
+	ArcBall.map_vector_on_vector (vec1, vec2, &Quat);
+
+
+    Matrix3fSetRotationFromQuat4f(&ThisRot, &Quat);		// Convert Quaternion Into Matrix3fT
+    Matrix3fMulMatrix3f(&ThisRot, &LastRot);				// Accumulate Last Rotation Into This One
+    Matrix4fSetRotationFromMatrix3f(&Transform, &ThisRot);
+
+	LastRot = ThisRot;
+
+}
+
+
+
+void MyGl::map_vector_on_vector_target (double x1, double y1, double z1, double x2, double y2, double z2) {
+	quaternion q (1., 0., 0., 0.);
+	vect v1 (x1, y1, z1);
+	vect v2 (x2, y2, z2);
+	double rot [9];
+	rot [0] = Transform.M [0];
+	rot [1] = Transform.M [1];
+	rot [2] = Transform.M [2];
+	rot [3] = Transform.M [4];
+	rot [4] = Transform.M [5];
+	rot [5] = Transform.M [6];
+	rot [6] = Transform.M [8];
+	rot [7] = Transform.M [9];
+	rot [8] = Transform.M [10];
+	v1 = rotate_vector_using_matrix_9 (v1, rot);
+	v2 = rotate_vector_using_matrix_9 (v2, rot);
+
+	q = map_vector_on_vector_quaternion (v1, v2);
+	rotate_molecule (ddwin->target_molecule, q, get_center (ddwin->target_molecule));
+	draw_molecule (ddwin->target_molecule);
+
+}
+
+vect MyGl::apply_world_rotation (vect v) {
+	double rot [9];
+	rot [0] = Transform.M [0];
+	rot [1] = Transform.M [1];
+	rot [2] = Transform.M [2];
+	rot [3] = Transform.M [4];
+	rot [4] = Transform.M [5];
+	rot [5] = Transform.M [6];
+	rot [6] = Transform.M [8];
+	rot [7] = Transform.M [9];
+	rot [8] = Transform.M [10];
+	return rotate_vector_using_matrix_9 (v, rot);
+}
+
+vect MyGl::deapply_world_rotation (vect v) {
+	double rot [9], inv[9];
+	rot [0] = Transform.M [0];
+	rot [1] = Transform.M [1];
+	rot [2] = Transform.M [2];
+	rot [3] = Transform.M [4];
+	rot [4] = Transform.M [5];
+	rot [5] = Transform.M [6];
+	rot [6] = Transform.M [8];
+	rot [7] = Transform.M [9];
+	rot [8] = Transform.M [10];
+	invert_matrix_9 (rot, inv);
+	return rotate_vector_using_matrix_9 (v, inv);
+}
+
 ////////////////////////////////////UTILITIES///////////////////////////////////////////////////////////////
 
 
@@ -4204,7 +5062,7 @@ void MyGl::haptic_to_world_coordinates (vect &haptic_p, vect &world_p, float min
 
 void MyGl::world_to_haptic_coordinates (vect &world_p, vect &haptic_p, float minx, float maxx, float miny, float maxy, float minz, float maxz) {
 
-	float rot [9], inv [9];
+	double rot [9], inv [9];
 	rot [0] = Transform.M [0];
 	rot [1] = Transform.M [1];
 	rot [2] = Transform.M [2];
@@ -4272,127 +5130,187 @@ void MyGl::world_to_haptic_coordinates (vect &world_p, vect &haptic_p, float min
 
 
 
+vect MyGl::rotate_vector (vect v) {
+	double rot [9];
+	rot [0] = Transform.M [0];
+	rot [1] = Transform.M [1];
+	rot [2] = Transform.M [2];
+	rot [3] = Transform.M [4];
+	rot [4] = Transform.M [5];
+	rot [5] = Transform.M [6];
+	rot [6] = Transform.M [8];
+	rot [7] = Transform.M [9];
+	rot [8] = Transform.M [10];
+	return rotate_vector_using_matrix_9 (v, rot);
 
-
-
-
-vector <vect> MyGl::get_backbone_points (Resid *res) {
-	bool prec = false, fol = false;
-	vect prec_vect = vect (0, 0,0);
-	vect fol_vect = vect (0, 0,0);
-	vector <vect> out;
-	Molecule *mol = NULL;
-	FOR_ATOMS_OF_RESIDUE (a, res) {
-		mol = (Molecule *) &*a -> GetParent ();
-	}
-	int indx =  res -> GetIdx ();
-	if (indx > 0) {
-		Resid *prec_res = mol -> GetResidue (indx - 1);
-		if (res ->GetChainNum () == prec_res ->GetChainNum ()) {
-			
-			FOR_ATOMS_OF_RESIDUE(a, prec_res) {
-				QString atomID = QString(prec_res->GetAtomID(&*a).c_str());
-				atomID.trimmed();
-				if (atomID == "C") {
-					prec = true;
-					prec_vect = get_coordinates(&*a);
-				}
-			}		}		
-	}
-	if (indx < mol -> NumResidues()-1) {
-		Resid *fol_res = mol -> GetResidue (indx +1);
-		if (res ->GetChainNum () == fol_res ->GetChainNum ()) {
-			
-			FOR_ATOMS_OF_RESIDUE(a, fol_res) {
-				QString atomID = QString(fol_res->GetAtomID(&*a).c_str());
-				atomID.trimmed();
-				if (atomID == "N") {
-					fol = true;
-					fol_vect = get_coordinates(&*a);
-				}
-			}	
-		}		
-	}
-	
-	FOR_ATOMS_OF_RESIDUE(a, res) {
-		QString atomID = QString(res->GetAtomID(&*a).c_str());
-		atomID.trimmed();
-		if (atomID == "N") {
-			if (prec) {
-				out.push_back(mean (prec_vect, get_coordinates(&*a)));
-			}
-			out.push_back(get_coordinates(&*a));
-		}
-	}
-	FOR_ATOMS_OF_RESIDUE(a, res) {
-		QString atomID = QString(res->GetAtomID(&*a).c_str());
-		atomID.trimmed();
-		if (atomID == "CA") {
-			out.push_back(get_coordinates(&*a));
-		}
-	}
-	FOR_ATOMS_OF_RESIDUE(a, res) {
-		QString atomID = QString(res->GetAtomID(&*a).c_str());
-		atomID.trimmed();
-		if (atomID == "C") {
-			out.push_back(get_coordinates(&*a));
-			if (fol) {
-				out.push_back(mean (fol_vect, get_coordinates(&*a)));
-			}
-		}
-	}
-	
-	out = smooth_list (out);
-	out = smooth_list (out);
-	out = smooth_list (out);
-	out = smooth_list (out);
-	out = smooth_list (out);
-	
-	
-	return out;
 }
 
 
-
-
-vector <vect> MyGl::smooth_list (vector <vect> lis){
-	vector <vect> out;
-	if (lis.size () > 1) {
-		vect beg = lis[0];
-		vect end = lis[lis.size ()-1];
-		out.push_back(beg);
-		for (unsigned int i = 1; i<lis.size (); i++) {
-			out.push_back (mean (lis [i], lis [i-1]));
-		}
-		out.push_back (end);
-	}
-	return out;
+vect MyGl::unrotate_vector (vect v) { 
+	double rot [9], inv [9];
+	rot [0] = Transform.M [0];
+	rot [1] = Transform.M [1];
+	rot [2] = Transform.M [2];
+	rot [3] = Transform.M [4];
+	rot [4] = Transform.M [5];
+	rot [5] = Transform.M [6];
+	rot [6] = Transform.M [8];
+	rot [7] = Transform.M [9];
+	rot [8] = Transform.M [10];
+	invert_matrix_9 (rot, inv);
+	return rotate_vector_using_matrix_9 (v, inv);
 }
-						   
 
-void MyGl::draw_backbone_stick (Resid *res) {
+void MyGl::draw_backbone_stick (Resid *res, Surface *surf) {
+	int n_points = *ddwin ->data ->quality_scale * 9;
+	vector <vect> random_points;
+	vector <vect> helix_points;
+	vector <vect> sheet_points;
+	float ha = *ddwin ->data ->backbone_tube_helix_a;
+	float hb = *ddwin ->data ->backbone_tube_helix_b;
+		float hc = *ddwin ->data ->backbone_tube_helix_c;
+		float sa = *ddwin ->data ->backbone_tube_sheet_a;
+		float sb = *ddwin ->data ->backbone_tube_sheet_b;
+		float sc = *ddwin ->data ->backbone_tube_sheet_c;
+	float ra = *ddwin ->data ->backbone_tube_random_a;
+	float rb = *ddwin ->data ->backbone_tube_random_b;
+	float rc = *ddwin ->data ->backbone_tube_random_c;
+	
+	for (unsigned int i = 0; i < n_points; i++) {
+		float da = 2*M_PI/(n_points-1);
+		float angl = i * da;
+		random_points.push_back(vect (sin (angl)*rb- (rc*rb *sin (angl)*sin (angl)*sin(angl)), cos (angl)*ra , 0.));
+		helix_points.push_back(vect (sin (angl)*hb- (hc*hb *sin (angl)*sin (angl)*sin(angl)), cos (angl)*ha , 0.));
+		sheet_points.push_back(vect (sin (angl)*sb- (sc*sb *sin (angl)*sin (angl)*sin(angl)), cos (angl)*sa , 0.));
+	}
+	vector <vect> *last_shape, *shape, *next_shape;
+	color last_col, col, next_col;
+	col = get_color (res);
+	last_col = col;
+	next_col = col;
+	last_shape = &random_points;
+	next_shape = &random_points;
+	shape = &random_points;
+	
+	if (is_helix (res)) shape = &helix_points;
+	else if (is_sheet (res)) shape = &sheet_points;
+	
+	vect dir = get_backbone_direction (res);
+	Resid *prec_res = get_previous_residue(res);
+	Resid *follow_res = get_following_residue(res);	
+	vect lastdir, nextdir;
+	if (prec_res) {
+		last_col = get_color (prec_res);
+		lastdir = get_backbone_direction(prec_res);
+		if (is_helix (prec_res)) last_shape = &helix_points; 
+		else if (is_sheet (prec_res)) last_shape = &sheet_points; 
+	}
+	else lastdir = dir;
+	if (follow_res) {
+		next_col = get_color (follow_res);
+		nextdir = get_backbone_direction(follow_res);
+		if (is_helix (follow_res)) next_shape = &helix_points; 
+		else if (is_sheet (follow_res)) next_shape = &sheet_points; 
+	}
+	else nextdir = dir;
+	if (dot_product(lastdir, dir) < 0.) lastdir.multiply(-1.);
+	if (dot_product(nextdir, dir) < 0.) nextdir.multiply(-1.);	
+
+	lastdir = mean (dir, lastdir);
+	nextdir = mean (nextdir, dir);
+	lastdir.normalise();
+	nextdir.normalise();
 	vector <vect> points = get_backbone_points (res);
-	color c1 = color (0.f, 1.f, 0.f);
-	color c2 = color (0.f, 1.f, 0.f);
-	float rad1 = 0.2;
-	float rad2 = 0.2;
-	if (points.size () > 1) {
-		for (unsigned int i = 1; i < points.size (); i++) {
-			my_cylinder (points[i-1], points [i], rad1, rad2, c1, c2, stick_precision);
+	add_guide_points_to_backbone (&*res, points);
+
+	color c2 = mean (last_col, col);
+	color c1 = mean (next_col, col);
+//	if (is_helix (res)) {c1 = c2 = color (1.f, 0.f, 0.f);}
+//	else if (is_sheet (res)) {c1 = c2 = color (1.f, 1.f, 0.f);}
+
+	
+	
+	if (points.size () > 3) {
+		float tot = ((float) points.size () -3);
+
+		for (unsigned int i = 3; i < points.size (); i++) {
+			
+			float dt = ((float) i-3) / tot;
+			dt = sin ((dt-0.5f)*M_PI);
+			
+			dt*= 0.5f;
+			dt += 0.5f;
+
+			color cc1, cc2;
+			cc1 = color ((float)(c1.redF()*dt+c2.redF()*(1-dt)),((float) c1.greenF()*dt+c2.greenF()*(1-dt)),(float) (c1.blueF()*dt+c2.blueF()*(1-dt)),((float) c1.alphaF()*dt+c2.alphaF()*(1-dt)));
+			vect v1, v2;
+			v2 = lastdir;
+			v1 = nextdir;
+			vector <vect> shape1, shape2;
+			for (unsigned int n = 0; n < n_points; n++) {
+				vect vv2 = mean ((*last_shape)[n], (*shape) [n]);
+				vect vv1 = mean ((*next_shape)[n], (*shape) [n]);	
+				shape1.push_back (vect (vv1.x()*dt + vv2.x()*(1-dt), vv1.y()*dt + vv2.y()*(1-dt), vv1.z()*dt + vv2.z()*(1-dt) ) );
+			}
+
+			vect d (v1.x()*dt + v2.x()*(1-dt), v1.y()*dt + v2.y()*(1-dt), v1.z()*dt + v2.z()*(1-dt)  );
+
+			dt = ((float) i-2) / tot;
+			dt = sin ((dt-0.5f) * PI);
+			dt*= 0.5f;
+			dt += 0.5f;
+			
+			cc2 = color ((float)(c1.redF()*dt+c2.redF()*(1-dt)),((float) c1.greenF()*dt+c2.greenF()*(1-dt)),(float) (c1.blueF()*dt+c2.blueF()*(1-dt)),((float) c1.alphaF()*dt+c2.alphaF()*(1-dt)));
+
+			for (unsigned int n = 0; n < n_points; n++) {
+				vect vv2 = mean ((*last_shape)[n], (*shape) [n]);
+				vect vv1 = mean ((*next_shape)[n], (*shape) [n]);	
+				shape2.push_back (vect (vv1.x()*dt + vv2.x()*(1-dt), vv1.y()*dt + vv2.y()*(1-dt), vv1.z()*dt + vv2.z()*(1-dt) ) );
+			}
+			vect d2 (v1.x()*dt + v2.x()*(1-dt), v1.y()*dt + v2.y()*(1-dt), v1.z()*dt + v2.z()*(1-dt)  );
+		//	cerr << d<<d2<<lastdir<<nextdir<<endl;
+		//	d2.normalise ();
+
+		//	d = d2 = vect (1., 0., 0.);
+
+			my_backbone_ribbon (points[i-3], points [i-2],points [i-1],points [i], d, d2, cc1, cc2, shape1, shape2, surf);
+
 		} 
+
 	}
 
 }
 
 void MyGl::draw_backbone_line (Resid *res) {
 	vector <vect> points = get_backbone_points (res);
-	color c1 = color (0.f, 1.f, 0.f);
-	color c2 = color (0.f, 1.f, 0.f);
-	float rad1 = 0.2;
-	float rad2 = 0.2;
+	color last_col, col, next_col;
+	col = get_color (res);
+	last_col = col;
+	next_col = col;
+	Resid *prec_res = get_previous_residue(res);
+	Resid *follow_res = get_following_residue(res);	
+	if (prec_res) {
+		last_col = get_color (prec_res);
+	}
+	if (follow_res) {
+		next_col = get_color (follow_res);
+	
+	}
+	
+	
+	color c2 = mean (last_col, col);
+	color c1 = mean (next_col, col);
+	
+	
+	
 	if (points.size () > 1) {
 		for (unsigned int i = 1; i < points.size (); i++) {
-			my_line (points[i-1], points [i], c1, c2);
+			float dt = ((float) i-1) / points.size ();
+			color cc1 = color ((float)(c1.redF()*dt+c2.redF()*(1-dt)),((float) c1.greenF()*dt+c2.greenF()*(1-dt)),(float) (c1.blueF()*dt+c2.blueF()*(1-dt)),((float) c1.alphaF()*dt+c2.alphaF()*(1-dt)));
+			dt = ((float) i) / points.size ();
+			color cc2 = color ((float)(c1.redF()*dt+c2.redF()*(1-dt)),((float) c1.greenF()*dt+c2.greenF()*(1-dt)),(float) (c1.blueF()*dt+c2.blueF()*(1-dt)),((float) c1.alphaF()*dt+c2.alphaF()*(1-dt)));
+
+			my_line (points[i-1], points [i], cc1, cc2);
 		} 
 	}
 	
@@ -4429,6 +5347,268 @@ void MyGl::my_line (vect v1, vect v2, color c1, color c2) {
 }
 
 
+void MyGl::my_backbone_ribbon (vect v1, vect v2, vect v3, vect v4, vect dir, vect dir2, color c1, color c2, vector <vect> shape1, vector <vect> shape2, Surface *surf) {
+	//Sandri's method
+	vect prec_vect = subtract (v2, v1);
+	vect cyl_vect = subtract (v3, v2);
+	vect post_vect = subtract (v4, v3);
+	prec_vect.normalise();
+	post_vect.normalise();
+	cyl_vect.normalise();
+	vect norm1 = mean (prec_vect, cyl_vect);
+	vect norm2 = mean (cyl_vect, post_vect);
+
+	
+	
+	vect par1, pp1, par2, pp2;
+	components (dir, norm1, par1, pp1);
+	components (dir2, norm2, par2, pp2);	
+	
+	double m1 [9], m2 [9], m [9];	
+	
+/*	
+	
+	vect newz = cyl_vect;
+	vect newy = dir;
+
+	vect newx = cross_product(newz, newy);
+	newy = cross_product(newz, newx);
+	newz.normalise();
+	newy.normalise();
+	newx.normalise();
+	
+	
+	
+	
+	m[0] = newx.x ();
+	m[3] = newx.y ();
+	m[6] = newx.z ();	
+	m[1] = newy.x ();
+	m[4] = newy.y ();
+	m[7] = newy.z ();	
+	m[2] = newz.x ();
+	m[5] = newz.y ();
+	m[8] = newz.z ();
+	quaternion q = map_vector_on_vector_quaternion(vect (0., 0., 1.), cyl_vect);
+	
+	
+*/	
+	
+	
+	
+	
+	
+	
+	vect newz1 = norm1;
+	vect newy1 = pp1;
+	newz1.normalise();
+	newy1.normalise();
+	vect newx1 = cross_product(newy1, newz1);
+
+	m1[0] = newx1.x ();
+	m1[3] = newx1.y ();
+	m1[6] = newx1.z ();	
+	m1[1] = newy1.x ();
+	m1[4] = newy1.y ();
+	m1[7] = newy1.z ();	
+	m1[2] = newz1.x ();
+	m1[5] = newz1.y ();
+	m1[8] = newz1.z ();	
+	
+	
+	vect newz2 = norm2;
+	vect newy2 = pp2;
+	newz2.normalise();
+	newy2.normalise();
+	vect newx2 = cross_product(newy2, newz2);
+
+	m2[0] = newx2.x ();
+	m2[3] = newx2.y ();
+	m2[6] = newx2.z ();	
+	m2[1] = newy2.x ();
+	m2[4] = newy2.y ();
+	m2[7] = newy2.z ();	
+	m2[2] = newz2.x ();
+	m2[5] = newz2.y ();
+	m2[8] = newz2.z ();	
+	
+	float angl = 0.f;
+	
+	glBegin (GL_QUAD_STRIP);
+	int slices = shape1.size ();
+	vect lastp1, lastp2, lastn1, lastn2;
+	SurfVertex *lastv1, *lastv2;
+
+    for (unsigned int n=0; n<slices; n++){
+
+		
+		vect p1 = shape1[n];
+		vect p2 = shape2[n];
+		
+		int last_n = n-1;
+		if (last_n < 0) last_n = slices-2;
+		int next_n = n+1;
+		if (next_n >= slices) next_n = 1;
+		
+		vect tan1 = subtract(shape1[next_n], shape1[last_n]);
+		vect tan2 = subtract(shape2[next_n], shape2[last_n]);
+		vect n1 = vect (-tan1.y(), tan1.x (), 0);
+		vect n2 = vect (-tan2.y(), tan2.x (), 0);		
+		
+		p1 = rotate_vector_using_matrix_9(p1, m1);
+		p2 = rotate_vector_using_matrix_9(p2, m2);	
+	
+		n1 = rotate_vector_using_matrix_9(n1, m1);
+		n2 = rotate_vector_using_matrix_9(n2, m2);
+		
+	//	p1 = rotate_vector_using_quaternion(p1, q);
+//		p2 = rotate_vector_using_quaternion(p2, q);	
+		
+	//	vect n1 = p1;
+	//	vect n2 = p2;
+		
+		p1 += v2;
+		p2 += v3;
+		
+		if (!surf) {
+			openGLSetColor(c1);
+			glNormal3f (n1.x (), n1.y (), n1.z ());
+			glVertex3f (p1.x (), p1.y (), p1.z ());
+		
+		
+			openGLSetColor(c2); 
+			glNormal3f (n2.x (), n2.y (), n2.z ());       
+			glVertex3f (p2.x (), p2.y (), p2.z ());
+		}
+		
+
+		
+		
+		else {
+			int num = surf ->vertices.size ();
+			SurfVertex *newv1 = new SurfVertex;
+			newv1->n = num;
+			newv1->normal = n1;
+			newv1->coordinates = p1;
+			newv1 ->col = c1;
+			
+			SurfVertex *newv2 = new SurfVertex;
+			newv2->n = num+1;
+			newv2->normal = n2;
+			newv2->coordinates = p2;
+			newv2 ->col = c2;
+			if (n>0) {
+
+				SurfFace *face = new SurfFace;	
+				face ->v1 = lastv1;
+				face ->v2 = lastv2;
+				face ->v3 = newv2;				
+				SurfFace *face2 = new SurfFace;
+				face2 ->v1 = newv2;
+				face2 ->v2 = newv1;
+				face2 ->v3 = lastv1;
+
+				surf ->faces.push_back (face);
+				surf ->faces.push_back (face2);				
+			}
+			lastp1 = p1;
+			lastp2 = p2;
+			lastn1 = n1;
+			lastn2 = n2;
+			lastv1 = newv1;
+			lastv2 = newv2;
+			surf ->vertices.push_back (lastv1);
+			surf ->vertices.push_back (lastv2);
+			
+		}
+    }
+    glEnd ();
+
+	
+	
+	
+}
+
+
+
+void MyGl::my_cylinder (vect v1, vect v2, vect v3, vect v4, float radone, float radtwo, color c1, color c2, unsigned int slices) {
+	vect prec_vect = subtract (v2, v1);
+	vect cyl_vect = subtract (v3, v2);
+	vect post_vect = subtract (v4, v3);
+	prec_vect.normalise();
+	post_vect.normalise();
+	cyl_vect.normalise();
+	vect norm1 = mean (prec_vect, cyl_vect);
+	vect norm2 = mean (cyl_vect, post_vect);
+
+	
+	glBegin (GL_QUAD_STRIP);
+    float angle = 0.0;
+    float da = 2*PI/slices;
+	quaternion q1 (0., 1., 0., 0.);
+	quaternion q2 (0., 1., 0., 0.);
+	q1 = map_vector_on_vector_quaternion(vect (0., 0., 1.), norm1);
+	q2 = map_vector_on_vector_quaternion(vect (0., 0., 1.), norm2);
+
+
+	
+	quaternion spin_quaternion1 (0., 1., 0., 0.);
+	quaternion spin_quaternion2 (0., 1., 0., 0.);		
+	vect pp1 = vect (0., radone, 0.);
+	pp1 = rotate_vector_using_quaternion(pp1, q1);	
+	vect pp2 = vect (0., radtwo, 0.);
+	pp2 = rotate_vector_using_quaternion(pp2, q2);	
+	
+	vect ref (3600., 0., 0.);
+	vect origin (0., 0., 0.);
+	double spin_angle1 = dihedral(pp1, origin, norm1, sum (norm1, ref))*M_PI/180.;
+	spin_quaternion1 = axis_angle_to_quaternion(norm1, spin_angle1);
+
+	double spin_angle2 = dihedral(pp2, origin, norm2, sum (norm2, ref))*M_PI/180.;
+	spin_quaternion2 = axis_angle_to_quaternion(norm2, spin_angle2);
+	
+
+	
+    for (unsigned int n=0; n<slices+1; n++){
+        angle = n*da;
+
+		vect p1 = vect ( sin (angle)*radone, cos (angle)*radone, 0.);
+		vect p2 = vect ( sin (angle)*radtwo, cos (angle)*radtwo, 0.);
+		
+
+		
+		p1 = rotate_vector_using_quaternion(p1, q1);
+		p2 = rotate_vector_using_quaternion(p2, q2);	
+		
+
+//		p1 = rotate_vector_using_quaternion(p1, spin_quaternion1);		
+//		p2 = rotate_vector_using_quaternion(p2, spin_quaternion2);	
+		
+		p1 += v2;
+		p2 += v3;
+
+
+
+		openGLSetColor(c1);
+		vect n1 = subtract (p1,v2);
+		vect n2 = subtract (p2,v3);
+        glNormal3f (n1.x (), n1.y (), n1.z ());
+        glVertex3f (p1.x (), p1.y (), p1.z ());
+
+		
+        openGLSetColor(c2); 
+        glNormal3f (n2.x (), n2.y (), n2.z ());       
+        glVertex3f (p2.x (), p2.y (), p2.z ());
+    }
+    glEnd ();
+    glPopMatrix ();
+	
+	
+	
+	
+}
+	
+	
 void MyGl::my_cylinder (vect v1, vect v2, float radone, float radtwo, color c1, color c2, unsigned int slices) {
     float angle_dir, height, mod_of_vector;
     vect at1c = v1;
@@ -4602,14 +5782,14 @@ void MyGl::my_sphere (float rad, unsigned int slices, unsigned int stacks, Atom*
 
 
 
-void MyGl::compute_double_bond_vertexes (Bond *bond, float out [4][3], float d) {
+void MyGl::compute_double_bond_vertexes (ZNBond *bond, float out [4][3], float d) {
 
     bool b0a = false;
     bool b0b = false;
     bool b1a = false;
     bool b1b = false;
 
-    if (!d) d = double_bond_inter_distance/2;
+    if (!d) d = *ddwin ->data ->double_bond_separation/2;
     Atom *at0 = bond -> GetBeginAtom ();
     Atom *at1 = bond -> GetEndAtom ();
     vect c0 = get_coordinates(at0);
@@ -4647,9 +5827,9 @@ void MyGl::compute_double_bond_vertexes (Bond *bond, float out [4][3], float d) 
             assert (b1);
             vect veccb0 = get_coordinates (b0);
             vect veccb1 = get_coordinates (b1);
-        //    cerr << "cb0 "<<cb0.x()<<" "<<cb0.y()<<" "<<cb0.z()<<endl;
+
             v0a = subtract (veccb0, c0);  //some form of checking which side of the axis we are is needed to avoid crossing double bonds
-       //     cerr << "v0a "<<v0a.x()<<" "<<v0a.y()<<" "<<v0a.z()<<endl;
+
             v0b = subtract (veccb1, c0);
             b0a = true;
             b0b = true;
@@ -4679,7 +5859,7 @@ void MyGl::compute_double_bond_vertexes (Bond *bond, float out [4][3], float d) 
             assert (b1);
             vect cb0 = get_coordinates(b0);
             vect cb1 = get_coordinates (b1);
-        //    cerr << cb0.x()<<" "<< cb0.y()<<" "<< cb0.z()<<" "<< cb1.x()<<" "<< cb1.y()<<" "<< cb1.z()<<endl;
+
             v1a = subtract (cb0, c1);  //some form of checking which side of the axis we are is needed to avoid crossing double bonds
             v1b = subtract (cb1, c1);
             b1a = true;

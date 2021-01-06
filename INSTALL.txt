@@ -1,0 +1,21 @@
+Zodiac 0.6
+
+BEFORE YOU INSTALL
+
+make sure you have Qt-4.4.3 and openbabel 2.2.0 installed
+
+This source countains a Zodiac.pro file to be used with qmake to generate platform-specific makefiles
+
+Unix:
+qmake
+make
+make install
+
+Mac:
+qmake -spec macx-xcode
+will generate a Zodiac.xproj project file for Xcode
+
+
+Windows (MinGW):
+qmake -spec win32-g++
+make

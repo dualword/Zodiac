@@ -64,7 +64,7 @@ bool MyListBoxItem::check_mol2 (string line){
 	iss >> filename;
 	iss >> filename; 
     return true;
-//	Molecule *mol = new Molecule ();
+//	ZNMolecule *mol = new ZNMolecule ();
 	//ifstream ifs (filename.c_str ());
 //	bool b = false;
 //	mol->readMultiMOL2 (filename, ifs, b);
@@ -227,7 +227,7 @@ void PlantsMainWin::setupwin()
 	flipn = new QPushButton( "Flip planar N", sag);
 	flipn->setCheckable( TRUE );
 
-	ffbp = new QPushButton( "Force Flipped Bond Planarity", sag);
+	ffbp = new QPushButton( "Force Flipped ZNBond Planarity", sag);
 	ffbp->setCheckable( TRUE );
 
 
@@ -479,7 +479,7 @@ void PlantsMainWin::setupwin()
 
 
 	fixpl = new QComboBox( flexhb2 );
-	addfixpb = new QPushButton("Add Fixed Protein Bond", flexhb2);
+	addfixpb = new QPushButton("Add Fixed Protein ZNBond", flexhb2);
 	flexlb = new Q3ListBox (flex);
 
 	Q3Accel *fla = new Q3Accel( flexlb );        
@@ -519,7 +519,7 @@ void PlantsMainWin::setupwin()
 	ywc->setValidator( new QDoubleValidator(  -999.0, 999.0, 2,ywc ) );
 	zwc->setValidator( new QDoubleValidator(  -999.0, 999.0, 2,zwc ) );
 	wr->setValidator( new QDoubleValidator(  -999.0, 999.0, 2,wr ) );
-	addwaterb = new QPushButton("Add Water Molecule", waterop);
+	addwaterb = new QPushButton("Add Water ZNMolecule", waterop);
 	connect ( addwaterb, SIGNAL( clicked() ), SLOT( add_water_slot() ) );
 
 	wref = new MyLineF (watertab, this, "Water Reference", 1);
@@ -718,7 +718,7 @@ void PlantsMainWin::add_ll_slot (){
 void PlantsMainWin::load_bs_from_ligand_slot (){
 	QString s = QFileDialog::getOpenFileName(this, tr ("open file"), " ",
 		tr ("Tripos Mol2 File (*.mol2)"));
-	Molecule *mol = window->data->check_mol2 (s.toStdString());
+	ZNMolecule *mol = window->data->check_mol2 (s.toStdString());
 //	if (mol->valid) {
 	//	vect bs = find_mass_center (mol->atoms); ///readd radius calculation
 	//	set_bindingsite (bs.x(), bs.y(), bs.z(), 12.f);
@@ -730,7 +730,7 @@ void PlantsMainWin::load_protein () {
 	vector <string> patlist, preslist;
 	if (pname.find (".mol2")!=string::npos) {
 
-		Molecule *prot;
+		ZNMolecule *prot;
 		prot =  window->data->check_mol2 (pname);
 		if (prot->valid) {
 			//       window->data->protein = prot;
@@ -769,7 +769,7 @@ void PlantsMainWin::load_ligand () {
 	vector <string> latlist;
 	if (lname.find (".mol2")!=string::npos) {
 
-		Molecule *lig;
+		ZNMolecule *lig;
 		lig =  window->data->check_mol2 (lname);
 //		if (lig->valid) {
 			//     window->data->ligand=lig;
@@ -850,11 +850,11 @@ void PlantsMainWin::check_bindingsite () {
 
 		//       window->data->ddwin->load_bindingsite (getfloat (x), getfloat (y), getfloat (z), getfloat (r));
 		Sphere *sph=window->data->ddwin->new_sphere ("Plants bindingsite");      
-		sph->set_center (getfloat (x), getfloat (y), getfloat (z));
+		sph->set_center (vect (getfloat (x), getfloat (y), getfloat (z)));
 		sph->set_radius (getfloat (r));
 		sph->set_color (1.0f, 1.0f, 1.0f, 0.4f);
 		sph->render_as_surface (); 
-		//      window->data->ddwin->gl->updateGL ();  
+		//      window->data->ddwin->  
 	}
 	else {
 		//       window->data->ddwin->hide_bindingsite ();    
@@ -901,8 +901,6 @@ void PlantsMainWin::check_outdir () {
 
 void PlantsMainWin::del_ifile () {
 	iflb->removeItem (iflb->currentItem ());
-	if (iflb->currentItem ()<window->data->ligands.size ()) 
-		window->data->ligands.erase (window->data->ligands.begin()+iflb->currentItem ());
 	check_ligands ();
 }
 

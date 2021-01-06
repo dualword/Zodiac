@@ -41,7 +41,7 @@
 
 
 
-string DDWin::POV_bond (Bond *bo) {
+string DDWin::POV_bond (ZNBond *bo, bool clippable) {
     stringstream out;
     bool vis = get_visible (bo);
     int ds = get_ds (bo);
@@ -54,17 +54,17 @@ string DDWin::POV_bond (Bond *bo) {
 
     if (ds != NO_BONDS) {
         if (ds == STICKS || ds == LINES) {
-            double a0size = vdw1 * gl->vdw_scale;
-            double a1size = vdw2 * gl->vdw_scale;
-            float stick_rad = gl->stick_rad;
-            if (ds == LINES)  stick_rad = 0.01f;   
+            double a0size = vdw1 * *data ->vdw_scale;
+            double a1size = vdw2 * *data ->vdw_scale;
+            float stick_rad = *data ->stick_radius;
+            if (ds == LINES)  stick_rad = 0.03f;   
             int order;
             if (gl->aromatic_display_style==KEKULE) order=bo->GetBondOrder ();
             else order = bo -> GetBondOrder ();              
             if (order == 1 || order == 4 || order == 5) {
                 vect c1 = get_coordinates(bo->GetBeginAtom ());
                 vect c2 = get_coordinates(bo->GetEndAtom ());
-				out <<POV_stick(c1, c2, col1, col2, stick_rad, a0size, a1size);
+				out <<POV_stick(c1, c2, col1, col2, stick_rad, a0size, a1size, clippable);
             }
             else if (order == 2) {
                 float verts  [4][3];
@@ -79,7 +79,8 @@ string DDWin::POV_bond (Bond *bo) {
                 float x2 = verts[2][0];
                 float y2 = verts[2][1];
                 float z2 = verts[2][2];
-                out << "merge {"<<endl;
+				out << POV_stick (vect (x1, y1, z1), vect (x2, y2, z2), col1, col2, stick_rad/2, a0size, a1size, clippable );
+   /*             out << "merge {"<<endl;
                 out << "    sphere {";
                 out << "<"<<x1<<","<<y1<<","<<z1<<">,"<<stick_rad/2<<endl;
                 out << "pigment { "<<POV_color (col1)<<"} finish {ambient 0.1 diffuse 0.7 phong 0.3 phong_size 30 }}"<<endl;    
@@ -101,13 +102,15 @@ string DDWin::POV_bond (Bond *bo) {
                 out << "}"<<endl;
 
 
-
+*/
                 x1 = verts[1][0];
                 y1 = verts[1][1];
                 z1 = verts[1][2];
                 x2 = verts[3][0];
                 y2 = verts[3][1];
                 z2 = verts[3][2];
+				out << POV_stick (vect (x1, y1, z1), vect (x2, y2, z2), col1, col2, stick_rad/2, a0size, a1size, clippable );
+				/*
                 out << "merge {"<<endl;
                 out << "    sphere {";
                 out << "<"<<x1<<","<<y1<<","<<z1<<">,"<<stick_rad/2<<endl;
@@ -126,31 +129,13 @@ string DDWin::POV_bond (Bond *bo) {
                 gradz = z2 - z1;
                 dist = sqrt (gradx*gradx + grady*grady + gradz*gradz);
                 out << "pigment {gradient <"<< gradx/dist<<","<< grady/dist<<","<< gradz/dist<<">\n  color_map {["<<a0size/dist<<" "<<POV_color (col1)<<"] ["<<1-a1size/dist<<" "<<POV_color (col2)<<"]} scale "<<dist<<" translate < "<<x1<<","<<y1<<","<<z1<<">}finish {ambient 0.1 diffuse 0.7 phong 0.3 phong_size 30 }}"<<endl;
+
      		out << "no_shadow" << endl;
                 out << "}"<<endl;
+				*/
 
-
-
-
-
-/*
-                out << "cylinder {"<<endl; 
-                out << "<"<<verts[0][0]<<","<<verts[0][1]<<","<<verts[0][2]<<">,";
-                out << "<"<<verts[2][0]<<","<<verts[2][1]<<","<<verts[2][2]<<">,"<<stick_rad<<endl;
-                out << "pigment { color rgbt <"<<bo->GetBeginAtom ()->color[0]<<","<<bo->GetBeginAtom ()->color[1]<<","<<bo->GetBeginAtom ()->color[2]<<","<<1-bo->GetBeginAtom ()->color[3]<<"> }finish {ambient 0.1 diffuse 0.7 phong 0.3 phong_size 30 }"<<endl;
-                out << "}"<<endl;
-
-                out << "cylinder {"<<endl; 
-                out << "<"<<verts[1][0]<<","<<verts[1][1]<<","<<verts[1][2]<<">,";
-                out << "<"<<verts[3][0]<<","<<verts[3][1]<<","<<verts[3][2]<<">,"<<stick_rad<<endl;
-
-
-                out << "pigment { color rgbt <"<<bo->GetBeginAtom ()->color[0]<<","<<bo->GetBeginAtom ()->color[1]<<","<<bo->GetBeginAtom ()->color[2]<<","<<1-bo->GetBeginAtom ()->color[3]<<"> }finish {ambient 0.1 diffuse 0.7 phong 0.3 phong_size 30 }"<<endl;
-
-
-                out << "}"<<endl;     */
             }
-      //      else cout<<"order"<<endl;
+
         }
     }
 
@@ -158,7 +143,7 @@ string DDWin::POV_bond (Bond *bo) {
     return out.str ();
 }
 
-string DDWin::POV_stick (vect v1, vect v2, color c1, color c2, float rad, float a0size, float a1size) {
+string DDWin::POV_stick (vect v1, vect v2, color c1, color c2, float rad, float a0size, float a1size, bool clippable) {
 	stringstream out;
 	out << "merge {"<<endl;
 	out << "    sphere {";
@@ -179,6 +164,7 @@ string DDWin::POV_stick (vect v1, vect v2, color c1, color c2, float rad, float 
 	out << "pigment {gradient <"<< gradx/dist<<","<< grady/dist<<","<< gradz/dist<<">\n  color_map {["<<a0size/dist<<" "<<POV_color (c1)<<"] ["<<1-a1size/dist<<" "<<POV_color (c2)<<"]} scale "<<dist<<" translate "<< POV_vector (v1)<<"}finish {ambient 0.1 diffuse 0.7 phong 0.3 phong_size 30 }}"<<endl;
 	
 	out << "no_shadow" << endl;
+	if (clippable) out << "clipped_by { plane <z>0}"<<endl;
 	out << "}"<<endl;
 	return out.str ();
 	
@@ -207,7 +193,7 @@ string DDWin::POV_vector (vect v) {
 }
 
 
-string DDWin::POV_atom (Atom *at){
+string DDWin::POV_atom (Atom *at, bool clippable){
     stringstream out;
     bool vis = get_visible (at);
     int ds = get_ds (at);
@@ -216,19 +202,27 @@ string DDWin::POV_atom (Atom *at){
     if (ds != NO_ATOMS && vis) {
          float rad;
          if (ds == CPK_SPHERES) rad = vdw;
-         else if (ds == SCALED_CPK_SPHERES) rad = vdw*gl->vdw_scale;
+         else if (ds == SCALED_CPK_SPHERES) rad = vdw* *data ->vdw_scale;
          else rad = 0;
 		vect v = get_coordinates(at);
-         float x = v.x();
-         float y = v.y();
-         float z = v.z();
          out << "sphere {"<<endl;
-         out << "<"<<x<<","<<y<<","<<z<<">,"<<rad<<endl;
+	out << POV_vector (v)<<","<<rad<<endl;
          out << "pigment { "<< POV_color (col)<<"} finish {ambient 0.1 diffuse 0.7 phong 0.3 phong_size 30}"<<endl;
          out << "}"<<endl;
      
     }
     return out.str ();              
+}
+
+string DDWin::POV_backbone (ZNMolecule *mol, bool clippable){
+	if (get_backbone_display_style (mol) == 2) {
+	Surface *surf = new Surface;
+	gl ->backbone_to_surface (mol, surf);
+	string s = POV_surface(surf, clippable);
+	delete surf;
+	return s;
+	}
+	return "";
 }
 
 
@@ -272,9 +266,9 @@ void DDWin::write_POV_source (string filename) {
 			*file << "\tinverse }" << endl;
 
 
-    *file << "#declare Backbone_pigment = pigment{ color rgbt <0.2, 0.0, 0.8, 0>}";
-    *file <<"#declare Backbone_finish = finish {ambient 0.1 diffuse 0.7 phong 0.3 phong_size 30 specular 0.8 crand 0.1}"<< endl;
-    *file << "#declare Backbone_rad = 0.1;"<<endl;
+ //   *file << "#declare Backbone_pigment = pigment{ color rgbt <0.2, 0.0, 0.8, 0>}";
+ //   *file <<"#declare Backbone_finish = finish {ambient 0.1 diffuse 0.7 phong 0.3 phong_size 30 specular 0.8 crand 0.1}"<< endl;
+ //   *file << "#declare Backbone_rad = 0.1;"<<endl;
 
 
 
@@ -287,21 +281,26 @@ void DDWin::write_POV_source (string filename) {
 		  << "\ttransform {Move}}" << endl;
 
 
-    *file << "global_settings { ambient_light rgb <1,1,1> ";
+    *file << "global_settings { ambient_light rgb <1.3,1.3,1.3> ";
 //    *file << "radiosity { brightness 0.6 }";
     *file <<"}"<<endl<<endl;
-    *file << "background {"<< POV_color (gl -> background_color)<<"}"<<endl;
+    *file << "background {"<< POV_color (*data -> background_color)<<"}"<<endl;
   //  *file << "camera {  location <"<<camerax<<","<<cameray<<","<<cameraz<<"> look_at <"<<lookx<<","<<looky<<","<<lookz<<"> up <"<<upx<<","<<upy<<","<<upz<<"> right <"<<rightx<<","<<righty<<","<<rightz<<">}"<<endl;
-    *file << "light_source {<0, 0, +30> color rgbt <1,1,1,0.3> transform {Move}}"<<endl<<endl;
+	*file <<"fog { distance 150 "<<POV_color (*data -> background_color)<<"}"<<endl;
+
+	
+    *file << "light_source {<0, 0, 0> color rgbt <1.3,1.3,1.3,0.3> transform {Move}}"<<endl<<endl;
 
     for (unsigned int i=0;i<molecules.size(); i++){
-        Molecule *mol = molecules[i];
+        ZNMolecule *mol = molecules[i];
+		bool clippable = get_clippable (mol); 
         FOR_BONDS_OF_MOL (b, mol) {
-            *file <<POV_bond (&*b);
+            *file <<POV_bond (&*b, clippable);
         }
         FOR_ATOMS_OF_MOL (a, mol) {
-            *file <<POV_atom (&*a);        
+            *file <<POV_atom (&*a, clippable);        
         }
+		*file << POV_backbone (mol);
  /*   vector<OBRing*>::iterator i;
     vector<OBRing*> *rlist = (vector<OBRing*>*)mol -> GetData("RingList");
     for (i = rlist->begin();i != rlist->end();++i) {
@@ -337,6 +336,9 @@ void DDWin::write_POV_source (string filename) {
         else if  (graphical_objects[i] -> is_sphere ()) {
             *file << POV_sphere ((Sphere *) graphical_objects[i]);
         }
+		else if (graphical_objects[i] -> is_map ()) {
+            *file << POV_map ((Map *) graphical_objects[i]);		
+		}
     }
     file->close ();
 
@@ -366,7 +368,7 @@ string DDWin::POV_ring (Ring *ring) {
     float A, B, C;
 
     Atom *next_atom, *last_atom;
-    Bond *next_b, *last_b;
+    ZNBond *next_b, *last_b;
     float tot_a, rotaxang=0.f, rangle=0.f;
         int side = -1;
     //equation of plane Ax + By + Cz = 0
@@ -533,8 +535,8 @@ string DDWin::POV_ring (Ring *ring) {
 
 
 
-string DDWin::POV_surface (Surface *surf) {
-
+string DDWin::POV_surface (Surface *surf, bool clippable) {
+	if (!surf->vertices.size ()) return "";
     stringstream out;
     out << "mesh2 {\n" <<endl;
     out <<  "    vertex_vectors {"<<endl;
@@ -554,7 +556,7 @@ string DDWin::POV_surface (Surface *surf) {
     out << surf->vertices.size ()<<", "<<endl;  
     for (unsigned int i=0; i<surf->vertices.size (); i++) {
         out <<"texture {pigment {"<<POV_color (surf -> vertices[i] ->col)<<endl;
-        out<<"}finish {ambient 0.1 diffuse 0.7 phong 0.3 phong_size 30 }}"<<endl;
+        out<<"}finish {ambient 0.1 diffuse 0.8 phong 0.1 phong_size 30 }}"<<endl;
     }  
     out <<"}"<<endl;
     out <<  "    face_indices {"<<endl;
@@ -567,7 +569,42 @@ string DDWin::POV_surface (Surface *surf) {
     return out.str ();
 }
 
-string DDWin::POV_sphere (Sphere *sphere) {
+string DDWin::POV_map (Map *map, bool clippable) {
+
+    stringstream out;
+    out << "mesh2 {\n" <<endl;
+    out <<  "    vertex_vectors {"<<endl;
+    out << map->vertices.size ()<<", "<<endl;
+    for (unsigned int i=0; i<map->vertices.size (); i++) {
+		
+        out <<POV_vector (map->vertices[i]->GetVector ()) <<endl;
+    }
+    out <<"}"<<endl;
+    out <<  "    normal_vectors {"<<endl;
+    out << map->vertices.size ()<<", "<<endl;
+    for (unsigned int i=0; i<map->vertices.size (); i++) {
+        out <<POV_vector (map->vertices[i]->normal)<<endl;
+    }
+    out <<"}"<<endl;
+    out <<"    texture_list {"<<endl;
+    out << map->vertices.size ()<<", "<<endl;  
+    for (unsigned int i=0; i<map->vertices.size (); i++) {
+        out <<"texture {pigment {"<<POV_color (map -> vertices[i] ->col)<<endl;
+        out<<"}finish {ambient 0.1 diffuse 0.7 phong 0.3 phong_size 30 }}"<<endl;
+    }  
+    out <<"}"<<endl;
+    out <<  "    face_indices {"<<endl;
+    out << map->faces.size ()<<", "<<endl;
+    for (unsigned int i=0; i<map->faces.size (); i++) {
+        out <<"<"<<map->faces[i]->v1->n<<","<<map->faces[i]->v2->n<<","<<map->faces[i]->v3->n<<">,"<<map->faces[i]->v1->n<<","<<map->faces[i]->v2->n<<","<<map->faces[i]->v3->n<<","<<endl;
+    }
+    out <<"}"<<endl;
+    out <<"}"<<endl;
+    return out.str ();
+}
+
+
+string DDWin::POV_sphere (Sphere *sphere, bool clippable) {
 
     stringstream out;
     out << "    sphere {";

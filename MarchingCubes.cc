@@ -44,7 +44,7 @@
 
 #include "LookUpTable.h"
 
-
+#include "thread.h"
 
 // step size of the arrays of vertices && triangles
 
@@ -140,12 +140,13 @@ MarchingCubes::~MarchingCubes()
 
 // main algorithm
 
-void MarchingCubes::run( real iso )
+void MarchingCubes::run( real iso, int *prog, int *max )
 
 //-----------------------------------------------------------------------------
 
 {
 
+	if (max)  *max = _size_z -2;
   printf("Marching Cubes begin: cpu %ld\n", clock() ) ;
 
 
@@ -154,8 +155,8 @@ void MarchingCubes::run( real iso )
 
 
 
-  for( _k = 0 ; _k < _size_z-1 ; _k++ )
-
+  for( _k = 0 ; _k < _size_z-1 ; _k++ ) {
+	if (prog) *prog = _k;
   for( _j = 0 ; _j < _size_y-1 ; _j++ )
 
   for( _i = 0 ; _i < _size_x-1 ; _i++ )
@@ -198,7 +199,7 @@ void MarchingCubes::run( real iso )
 
     process_cube( ) ;
 
-  }
+  } }
 
 
 
@@ -324,6 +325,62 @@ void MarchingCubes::clean_temps()
 
 
 
+void MarchingCubes::clean_mesh () 
+{
+  delete [] _vertices  ;
+
+  delete [] _triangles ;
+
+  _vertices  = (Vertex   *)NULL ;
+
+  _triangles = (Triangle *)NULL ;
+
+  _nverts = _ntrigs = 0 ;
+
+  _Nverts = _Ntrigs = 0 ;
+  
+
+  delete [] _x_verts;
+
+  delete [] _y_verts;
+
+  delete [] _z_verts;
+
+
+  _x_verts  = (int*)NULL ;
+
+  _y_verts  = (int*)NULL ;
+
+  _z_verts  = (int*)NULL ;
+
+}
+
+
+void MarchingCubes::init_mesh () 
+{
+ _x_verts = new int  [_size_x * _size_y * _size_z] ;
+
+  _y_verts = new int  [_size_x * _size_y * _size_z] ;
+
+  _z_verts = new int  [_size_x * _size_y * _size_z] ;
+
+
+
+  memset( _x_verts, -1, _size_x * _size_y * _size_z * sizeof( int ) ) ;
+
+  memset( _y_verts, -1, _size_x * _size_y * _size_z * sizeof( int ) ) ;
+
+  memset( _z_verts, -1, _size_x * _size_y * _size_z * sizeof( int ) ) ;
+
+  _nverts = _ntrigs = 0 ;
+
+  _Nverts = _Ntrigs = ALLOC_SIZE ;
+
+  _vertices  = new Vertex  [_Nverts] ;
+
+  _triangles = new Triangle[_Ntrigs] ;
+
+}
 
 
 //_____________________________________________________________________________
