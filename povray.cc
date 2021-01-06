@@ -40,6 +40,7 @@
 #define AROMATIC_BONDS 2
 
 
+
 string DDWin::POV_bond (Bond *bo) {
     stringstream out;
     bool vis = get_visible (bo);
@@ -61,35 +62,9 @@ string DDWin::POV_bond (Bond *bo) {
             if (gl->aromatic_display_style==KEKULE) order=bo->GetBondOrder ();
             else order = bo -> GetBondOrder ();              
             if (order == 1 || order == 4 || order == 5) {
-                vect& c1 = (vect &) bo->GetBeginAtom ()->GetVector ();
-                vect& c2 = (vect &) bo->GetEndAtom ()->GetVector ();
-                float x1 = c1.x();
-                float y1 = c1.y();
-                float z1 = c1.z();
-                float x2 = c2.x();
-                float y2 = c2.y();
-                float z2 = c2.z();
-                out << "merge {"<<endl;
-                out << "    sphere {";
-                out << "<"<<x1<<","<<y1<<","<<z1<<">,"<<stick_rad<<endl;
-                out << "pigment { "<<POV_color (col1)<<"} finish {ambient 0.1 diffuse 0.7 phong 0.3 phong_size 30 }}"<<endl;
-
-                out << "    sphere {";
-                out << "<"<<x2<<","<<y2<<","<<z2<<">,"<<stick_rad<<endl;
-                out << "pigment { "<<POV_color (col2)<<"} finish {ambient 0.1 diffuse 0.7 phong 0.3 phong_size 30 }}"<<endl;
-                out << "     cylinder {"<<endl; 
-                out << "<"<<x1<<","<<y1<<","<<z1<<">,";
-                out << "<"<<x2<<","<<y2<<","<<z2<<">,"<<stick_rad<<endl;
-
-                float gradx, grady, gradz, dist;
-                gradx = x2 - x1;
-                grady = y2 - y1;
-                gradz = z2 - z1;
-                dist = sqrt (gradx*gradx + grady*grady + gradz*gradz);
-                out << "pigment {gradient <"<< gradx/dist<<","<< grady/dist<<","<< gradz/dist<<">\n  color_map {["<<a0size/dist<<" "<<POV_color (col1)<<"] ["<<1-a1size/dist<<" "<<POV_color (col2)<<"]} scale "<<dist<<" translate < "<<x1<<","<<y1<<","<<z1<<">}finish {ambient 0.1 diffuse 0.7 phong 0.3 phong_size 30 }}"<<endl;
-  
-     
-                out << "}"<<endl;
+                vect c1 = get_coordinates(bo->GetBeginAtom ());
+                vect c2 = get_coordinates(bo->GetEndAtom ());
+				out <<POV_stick(c1, c2, col1, col2, stick_rad, a0size, a1size);
             }
             else if (order == 2) {
                 float verts  [4][3];
@@ -122,7 +97,7 @@ string DDWin::POV_bond (Bond *bo) {
                 dist = sqrt (gradx*gradx + grady*grady + gradz*gradz);
                 out << "pigment {gradient <"<< gradx/dist<<","<< grady/dist<<","<< gradz/dist<<">\n  color_map {["<<a0size/dist<<" "<<POV_color (col1)<<"] ["<<1-a1size/dist<<" "<<POV_color (col2)<<"]} scale "<<dist<<" translate < "<<x1<<","<<y1<<","<<z1<<">}finish {ambient 0.1 diffuse 0.7 phong 0.3 phong_size 30 }}"<<endl;
   
-     
+     		out << "no_shadow" << endl;
                 out << "}"<<endl;
 
 
@@ -151,7 +126,7 @@ string DDWin::POV_bond (Bond *bo) {
                 gradz = z2 - z1;
                 dist = sqrt (gradx*gradx + grady*grady + gradz*gradz);
                 out << "pigment {gradient <"<< gradx/dist<<","<< grady/dist<<","<< gradz/dist<<">\n  color_map {["<<a0size/dist<<" "<<POV_color (col1)<<"] ["<<1-a1size/dist<<" "<<POV_color (col2)<<"]} scale "<<dist<<" translate < "<<x1<<","<<y1<<","<<z1<<">}finish {ambient 0.1 diffuse 0.7 phong 0.3 phong_size 30 }}"<<endl;
-     
+     		out << "no_shadow" << endl;
                 out << "}"<<endl;
 
 
@@ -182,6 +157,33 @@ string DDWin::POV_bond (Bond *bo) {
     }
     return out.str ();
 }
+
+string DDWin::POV_stick (vect v1, vect v2, color c1, color c2, float rad, float a0size, float a1size) {
+	stringstream out;
+	out << "merge {"<<endl;
+	out << "    sphere {";
+	out << POV_vector (v1)<<","<<rad<<endl;
+	out << "pigment { "<<POV_color (c1)<<"} finish {ambient 0.1 diffuse 0.7 phong 0.3 phong_size 30 }}"<<endl;
+	
+	out << "    sphere {";
+	out << POV_vector (v2)<<","<<rad<<endl;
+	out << "pigment { "<<POV_color (c2)<<"} finish {ambient 0.1 diffuse 0.7 phong 0.3 phong_size 30 }}"<<endl;
+	out << "     cylinder {"<<endl; 
+	out <<POV_vector (v1)<<","<<POV_vector (v2)<<","<<rad<<endl;
+
+	float gradx, grady, gradz, dist;
+	gradx = v2.x() - v1.x();
+	grady = v2.y() - v1.y();
+	gradz = v2.z() - v1.z();
+	dist = sqrt (gradx*gradx + grady*grady + gradz*gradz);
+	out << "pigment {gradient <"<< gradx/dist<<","<< grady/dist<<","<< gradz/dist<<">\n  color_map {["<<a0size/dist<<" "<<POV_color (c1)<<"] ["<<1-a1size/dist<<" "<<POV_color (c2)<<"]} scale "<<dist<<" translate "<< POV_vector (v1)<<"}finish {ambient 0.1 diffuse 0.7 phong 0.3 phong_size 30 }}"<<endl;
+	
+	out << "no_shadow" << endl;
+	out << "}"<<endl;
+	return out.str ();
+	
+} 
+
 
 string DDWin::POV_color (color c) {
     stringstream out;
@@ -216,9 +218,10 @@ string DDWin::POV_atom (Atom *at){
          if (ds == CPK_SPHERES) rad = vdw;
          else if (ds == SCALED_CPK_SPHERES) rad = vdw*gl->vdw_scale;
          else rad = 0;
-         float x = at->GetVector ().x();
-         float y = at->GetVector ().y();
-         float z = at->GetVector ().z();
+		vect v = get_coordinates(at);
+         float x = v.x();
+         float y = v.y();
+         float z = v.z();
          out << "sphere {"<<endl;
          out << "<"<<x<<","<<y<<","<<z<<">,"<<rad<<endl;
          out << "pigment { "<< POV_color (col)<<"} finish {ambient 0.1 diffuse 0.7 phong 0.3 phong_size 30}"<<endl;
@@ -537,6 +540,7 @@ string DDWin::POV_surface (Surface *surf) {
     out <<  "    vertex_vectors {"<<endl;
     out << surf->vertices.size ()<<", "<<endl;
     for (unsigned int i=0; i<surf->vertices.size (); i++) {
+		
         out <<"<"<<surf->vertices[i]->GetVector ().x()<<","<<surf->vertices[i]->GetVector ().y()<<","<<surf->vertices[i]->GetVector ().z()<<">,"<<endl;
     }
     out <<"}"<<endl;

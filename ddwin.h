@@ -68,7 +68,18 @@ public:
     DDWin (QWidget *parent, Data *dat);
 
     string mode_string;
-	bool g_stereoAvailable;
+
+    enum StereoMode { StereoMode_None, StereoMode_VerticalInterlace, StereoMode_HorizontalInterlace, StereoMode_ViaOpenGL};
+
+    StereoMode g_stereoMode;
+    unsigned char *g_stencil_mask;
+    bool g_stencil_mask_needs_redraw;
+    unsigned int g_stencil_mask_frame_counter;
+    unsigned int g_stencil_mask_height;
+    unsigned int g_stencil_mask_height_tile;
+    unsigned int g_stencil_mask_width;
+    unsigned int g_stencil_mask_width_tile;
+
     vector <float > magic_pencil_trail_x;
     vector <float > magic_pencil_trail_y;
     vector <float > magic_pencil_trail_z;
@@ -149,6 +160,8 @@ private:
 
     QAction *builderAct;
     QAction *historyAct;
+    QAction *wiimoteAct;
+    QAction *wiimote2Act;
 
     QAction *hideHAct;
     QAction *hidenpHAct;
@@ -215,9 +228,11 @@ private:
         string POV_ring (Ring *ring);
         string POV_surface (Surface *surf);
         string POV_sphere (Sphere *sph);
+	
+	string POV_stick (vect v1, vect v2, color c1, color c2, float rad, float a1size, float a2size);
 
 
-
+		QString last_visited_dir;
 
 private slots:
 
@@ -233,6 +248,8 @@ private slots:
     void builder_slot ();
 
     void history_slot ();
+    void wiimote_slot ();
+   void wiimote2_slot ();
    
     void hide_hydrogens_slot ();
     void hide_nonpolar_hydrogens_slot ();
@@ -292,6 +309,10 @@ public slots:
         void recolor_by_score (Molecule *mol);
         void end_minimisation ();
 
+		void emit_targets_updated ();
+
+signals:
+	void targets_updated ();
 };
 
 
@@ -327,7 +348,7 @@ class MyGl : public QGLWidget
    Q_OBJECT
     public:
         MyGl (DDWin *parent);
-
+	bool needs_GL_update;
     void matrix_transformations (bool stereo = false, int frameBuffer = 0);
 
     void draw_molecule (Molecule* mol);
@@ -335,6 +356,8 @@ class MyGl : public QGLWidget
     void screenshot (QString filename);
     void set_center_of_rotation (vect v);
     void set_center_of_view (vect v);
+
+    void refreshStencilBuffer();
 
     color select_color;
     color background_color;
@@ -356,6 +379,8 @@ class MyGl : public QGLWidget
     float stereo_inter_eye_semi_distance;
 
 
+    float head_tracking_x_position, head_tracking_y_position;
+
 
 
 
@@ -370,19 +395,9 @@ class MyGl : public QGLWidget
     void hide_nonpolar_hydrogens (vector <Molecule*> mols);
     void show_all_atoms (Molecule* mol);
     void hide_all_atoms (Molecule* mol);
-/*    void color_by_atom (Molecule* mol);
-    void color_by_atom (vector <Molecule*> molecules);
-    void color_by_charge (Molecule* mol);
-    void color_by_charge (vector <Molecule*> molecules);
-    void color_by_score (Molecule* mol);
-    void color_atoms (Molecule* mol, int weight, float color[]);
-    void color_atoms (vector<Molecule*> molecules, int weight, float color[]);
-*/
 
-
-
- //   void draw_list (float x, float y, float z, float r, GLfloat color[], int list);
     void draw_list (Molecule* mol);
+	void draw_backbone_list (Molecule *mol);
     void draw_list (Selection* sel);
     void draw_list (MarchingCubes * cube);
 //    void draw_list (Grid& grid, int list);
@@ -403,20 +418,20 @@ class MyGl : public QGLWidget
 
     void compute_double_bond_vertexes (Bond *bond, float out[4][3], float d=0);
 
-        Matrix4fT Transform;
+        Matrix4fT Transform, Head_Tracking_Transf;
 
         void update_current_color ();
         QTime time, movie_time;
         bool  magic_pencil;
     void apply_color_masks (vector <color_mask> masks, Molecule *mol, bool undoable = TRUE);
+	
+	inline void get_viewport_points (vect &up, vect &down, vect &left, vect &right) {up = up_point; down = down_point; left = left_point; right = right_point;}
 public slots:
 
 
     private:
- //       void timerEvent( QTimerEvent * );
 
-
-    //    void haptic_timer ();
+	vect up_point, down_point, left_point, right_point; // to define the current view. updated by every paintGL call
 
         vector <float> vw_haptic_force;
         vector <float> el_haptic_force;
@@ -429,7 +444,7 @@ public slots:
  
         float lasta2, lasta2increment;
         bool    isClicked, isDragging;																		
-        Matrix3fT LastRot, ThisRot;
+        Matrix3fT LastRot, ThisRot; //Last_Head_Tracking_Rot;
 
         Point2fT    MousePt;
         bool zoom, translate, rotate, select, move, spin, selection_square;
@@ -489,18 +504,21 @@ public slots:
         void draw_atom_scaled_vdw_sphere(Atom* atom);
 
 
-
-
-
+        void draw_backbone_line (Resid *res);
+        void draw_backbone_stick (Resid *res);
+	vector <vect> get_backbone_points (Resid *res) ;
+	vector <vect> smooth_list (vector <vect> lis);
         void setAtomColor(Atom* atom);
+		void openGLSetColor (color col);
 
 
         void set_conf (int conf);
 
 
 
-        void backbone_cylinder (Resid *res);
+		void my_line (vect v1, vect v2, color c1, color c2);
 		void my_cylinder (float rada, float radb, float lenght, unsigned int slices, Atom* at1, Atom *at2);
+		void my_cylinder (vect v1, vect v2, float radone, float radtwo, color c1, color c2, unsigned int slices) ;
         void my_sphere (float rad, unsigned int slices, unsigned int stacks, Atom* at);
 
 
@@ -518,7 +536,8 @@ public slots:
         void set_ballandline ();
         void set_ballandstick ();
 
-
+	void head_tracking_update (int x, int y);
+	void move_camera (float x, float y, float z);
 
      //   void hide_hydrogens ();
      //   void hide_nonpolar_hydrogens ();

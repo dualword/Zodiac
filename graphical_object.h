@@ -30,16 +30,6 @@
 using namespace std;
 class MarchingCubes;
 
-class SurfVertex
- {
-    public:
-  //  SurfVertex ();
-    inline vect& GetVector () {return coordinates;};
-    vect coordinates;
-    color col;
-    vect normal;
-    int n;
-}; 
 
 typedef struct {
     SurfVertex* v1;
@@ -53,7 +43,7 @@ class GraphicalObject {
 public:
     GraphicalObject ();
     string name;
-    int list;
+    int lst;
     inline void set_name (string nam) {name = nam;};
     bool mesh;
     virtual bool is_surface ();
@@ -69,12 +59,15 @@ public:
     void render ();
     bool is_surface ();
 
-
+	float near_to_dist;
     vector <SurfFace *> faces;
     vector <SurfVertex *> vertices;
-    void set_molecule (Molecule *mo);
+    void set_molecule (Molecule *mo, Molecule *near_to);
+	Molecule *near_to;
     Molecule *molecule;
     cutoffGrid<Atom*> *grid;
+    cutoffGrid<Atom*> *near_to_grid;
+	
 private:
 
     void color_vertex_by_atom (SurfVertex *vert, float a); 

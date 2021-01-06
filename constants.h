@@ -53,7 +53,6 @@ class color;
 
 
 
-
 typedef struct {
 	int type, only_to, excluding;
     float intensity;
@@ -84,7 +83,7 @@ const    GLfloat specular[] = { 0.8f, 0.8f, 0.8f, 1.0f };
 const    GLfloat diffuse[] = { 0.8f, 0.8f, 0.8f, 0.0f };
 
 const string TITLE = "ZODIAC     v - ";
-const string VERSION = "0.4 beta release";
+const string VERSION = "0.5 beta";
 /*
 #ifdef WIN32
 const string PARAMETER_DIR = "C:\\Documents and Settings\\Nick Avis\\My Documents\\Visual Studio 2005\\Projects\\zodiac\\zodiac\\parameters\\";
@@ -105,8 +104,8 @@ const float FF_NEAR_NONBONDED_CUTOFF = 2.0;
 const float STICK_RAD = 0.1f;
 const float DOUBLE_BOND_INTER_DISTANCE = 0.15f;
 const float AROMATIC_BOND_INTER_DISTANCE = 0.15f;
-const int STICK_PRECISION = 15;
-const int SPHERE_PRECISION = 15;
+const int STICK_PRECISION = 20;
+const int SPHERE_PRECISION = 20;
 const float SPHERE_RADIUS = 0.1f;
 const float VDW_SCALE = 0.2f;
 const int VDW_PRECISION = 15;
@@ -162,7 +161,9 @@ void axis_angle_to_quaternion (vect axis, float angle, float *quaternion);
 //void axis_angle_to_quaternion (float *axis, float angle, float *quaternion);
 void multiply_quaternions (float *q1, float *q2, float *product);
 vect rotate_vector_using_quaternion (vect v, float *q);
-//void rotate_vector_using_quaternion (float *v, float *q, float *out);
+vect rotate_vector_using_matrix_16 (vect v, float *m);
+vect rotate_vector_using_matrix_9 (vect v, float *m);
+void invert_matrix_9 (float *mat, float *inverse); 
 void normalize_quaternion (float *q);
 
 

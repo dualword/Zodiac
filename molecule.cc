@@ -26,6 +26,35 @@
 
 
 
+vect get_coordinates (Atom *at) {
+	lock_force_mutex(at);
+	vect v = (vect &) at -> GetVector ();
+	unlock_force_mutex(at);
+	return v;
+}
+
+vect get_coordinates (SurfVertex *ver) {
+	vect v = (vect &) ver -> GetVector ();
+	return v;
+}
+
+
+
+void set_coordinates (Atom *at, vect v) {
+	lock_force_mutex(at);
+	at -> SetVector (v);
+	unlock_force_mutex(at);
+}
+
+void sum_to_coordinates (Atom *at, vect v) {
+	lock_force_mutex(at);
+	vect v1 = (vect &) at -> GetVector ();
+	vect v2 = sum (v, v1);
+	at -> SetVector (v2);
+	unlock_force_mutex(at);	
+}
+
+
 
 void mend_coordinates (Molecule *mol) {
 	double x = 0.;
@@ -50,7 +79,7 @@ vect find_mass_center (vector<Atom*>& invec){
 	
 	unsigned int numMid = 0;
 	for (i = 0; i < invec.size(); i++) {
-	    vect a = sum (midCoo, (vect &) invec[i]-> GetVector ());
+	    vect a = sum (midCoo, get_coordinates (invec[i]));
         midCoo = a;
 		numMid++;
 		
@@ -124,6 +153,47 @@ void set_force (Atom *at, vect v) {
 	assert (d);
 	d -> SetValue (v);
 }
+
+vect get_back_force (Atom *at) {
+	VectorData *d = (VectorData *) at -> GetData ("back_force");
+	assert (d);
+	return d -> GetGenericValue ();
+}
+
+void set_back_force (Atom *at, vect v) {
+	VectorData *d = (VectorData *) at -> GetData ("back_force");
+	assert (d);
+	d -> SetValue (v);
+}
+
+void flush_forces (Atom *at) {
+	vect f = get_back_force (at);
+	set_force (at, f);
+	vect n (0., 0., 0.);
+	set_back_force (at, n);
+}
+
+void flush_scores (Atom *at) {
+	double f = get_back_score (at);
+//	cerr << f << endl;
+	set_score (at, f);
+	set_back_score (at, 0.);
+}
+
+
+void lock_force_mutex (Atom *at) {
+	MutexData *d = (MutexData *) at -> GetData ("force_mutex");
+	assert (d);
+	d -> GetGenericValue () ->lock ();
+}
+
+void unlock_force_mutex (Atom *at) {
+	MutexData *d = (MutexData *) at -> GetData ("force_mutex");
+	assert (d);
+	d -> GetGenericValue () ->unlock ();
+}
+
+
 
 int get_MMFFtype (Atom *atom) {
 	Molecule *mol = (Molecule *) atom -> GetParent ();
@@ -1345,14 +1415,14 @@ void set_score (Atom *at, double dd) {
 }
 
 
-double get_old_score (Atom *at) {
-	DoubleData *d = (DoubleData *) at -> GetData ("old score");
+double get_back_score (Atom *at) {
+	DoubleData *d = (DoubleData *) at -> GetData ("back_score");
 	assert (d);
 	return d -> GetGenericValue ();
 }
 
-void set_old_score (Atom *at, double dd) {
-	DoubleData *d = (DoubleData *) at -> GetData ("old score");
+void set_back_score (Atom *at, double dd) {
+	DoubleData *d = (DoubleData *) at -> GetData ("back_score");
 	assert (d);
 	d -> SetValue (dd);
 }
@@ -1408,7 +1478,7 @@ void Molecule::find_center () {
     z = 0.;
 
     FOR_ATOMS_OF_MOL (a, this) {
-        vect& coor = (vect&) a -> GetVector ();
+        vect coor = get_coordinates (&*a);
 
         n++;
         x += coor. x ();
@@ -1427,19 +1497,21 @@ void Molecule::find_limits () {
     double xm, ym, zm, xM, yM, zM;
     xm = ym = zm = 1000000.;
     xM = yM = zM = -1000000.;
+	double xt=0., yt=0., zt=0.;
     FOR_ATOMS_OF_MOL (a, this) {
 
-        vect& coor = (vect&) a -> GetVector ();
-        double x = coor.x();
-        double y = coor.y();
-        double z = coor.z();
-        if (x < xm) xm = x;
-        if (x > xM) xM = x;
-        if (y < ym) ym = y;
-        if (y > yM) yM = y;
-        if (z < zm) zm = z;
-        if (z > zM) zM = z;
+        vect coor = get_coordinates (&*a);
+        xt = coor.x();
+        yt = coor.y();
+        zt = coor.z();
+        if (xt < xm) xm = xt;
+        if (xt > xM) xM = xt;
+        if (yt < ym) ym = yt;
+        if (yt > yM) yM = yt;
+        if (zt < zm) zm = zt;
+        if (zt > zM) zM = zt;
      }
+	 if (xm > xM || ym > yM || zm > zM) cerr << "error in calculating limits" <<endl;
      min_corner = vect (xm, ym, zm);
      max_corner = vect (xM, yM, zM);
 
@@ -1462,10 +1534,10 @@ void Molecule::ZNinit_atom (Atom *a) {
             a -> SetData (score);
         }
 
-        if (!a -> HasData ("old score")) {
-            DoubleData *old_score = new DoubleData;
-            old_score -> SetAttribute ("old score");
-            a -> SetData (old_score);
+        if (!a -> HasData ("back_score")) {
+            DoubleData *back_score = new DoubleData;
+            back_score -> SetAttribute ("back_score");
+            a -> SetData (back_score);
         }
 
         if (!a -> HasData ("display style")) {
@@ -1487,6 +1559,20 @@ void Molecule::ZNinit_atom (Atom *a) {
             force -> SetAttribute ("f");
             a -> SetData (force);
         }
+		
+		if (!a -> HasData ("back_force")) {
+            VectorData *force = new VectorData;
+            force -> SetAttribute ("back_force");
+            a -> SetData (force);
+        }
+	
+	if (!a -> HasData ("force_mutex")) {
+		MutexData *mut = new MutexData;
+		QMutex *mutex = new QMutex;
+		mut -> SetValue (mutex);
+		mut -> SetAttribute ("force_mutex");
+		a -> SetData (mut);
+	}
 
 
         if (!a -> HasData ("selected")) {
@@ -1691,7 +1777,7 @@ void Molecule::ZNSetConformers () {
 */
     IncrementMod();
  //   cerr << "5" << endl;
-    int m,n;
+    int m,n=0;
     vector3 v;
     vector<pair<OBAtom*,int> >::iterator k;
     double hbrad = etab.CorrectedBondRad(1,0);
@@ -1922,11 +2008,11 @@ color Molecule::get_color_mw (Atom *at) {
 //etable should have color data as well...
     vector <double> colors;
     colors = etab.GetRGB (at -> GetAtomicNum ());
-    if (at -> GetAtomicNum () == 6) {
+  /*  if (at -> GetAtomicNum () == 6) {
         colors [0] = 0.;
         colors [1] = 0.;
         colors [2] = 0.;
-    }
+    }*/
     return color ((float) colors[0], (float)colors[1],(float) colors[2]);
 /*
     float r, g, b;

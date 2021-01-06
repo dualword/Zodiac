@@ -202,7 +202,7 @@ int PLP::getPLPtype (Atom *at) {
         if (mol->bonded_to (at, -2, 1)) return BOTH;
         else return ACCEPTOR;
     }
-    else if (at -> IsNitrogen () == 7) {
+    else if (at -> IsNitrogen () ) {
         if (mol->bonded_to (at, -2, 1)) return DONOR;
         else return ACCEPTOR;
     }

@@ -18,6 +18,7 @@
 /*************************************************************/
 
 #ifdef WIN32
+#define VC_EXTRALEAN
 #include <windows.h>
 #endif // WIN32
 
@@ -104,6 +105,11 @@ void    ArcBall_t::drag(const Point2fT* NewPt, Quat4fT* NewRot)
 {
     //Map the point to the sphere
     this->_mapToSphere(NewPt, &this->EnVec);
+    this ->map_vector_on_vector (this -> StVec, this -> EnVec, NewRot);
+}
+
+void ArcBall_t::map_vector_on_vector (Vector3fT v1, Vector3fT v2, Quat4fT* NewRot)
+{
 
     //Return the quaternion equivalent to the rotation
     if (NewRot)
@@ -111,7 +117,7 @@ void    ArcBall_t::drag(const Point2fT* NewPt, Quat4fT* NewRot)
         Vector3fT  Perp;
 
         //Compute the vector perpendicular to the begin && end vectors
-        Vector3fCross(&Perp, &this->StVec, &this->EnVec);
+        Vector3fCross(&Perp, &v1, &v2);
 
         //Compute the length of the perpendicular vector
         if (Vector3fLength(&Perp) > Epsilon)    //if its non-zero
@@ -122,7 +128,7 @@ void    ArcBall_t::drag(const Point2fT* NewPt, Quat4fT* NewRot)
             NewRot->s.Z = Perp.s.Z;
      //       cout << NewRot->s.X <<" "<< NewRot->s.Y <<" "<<NewRot->s.Z <<" "<< endl;
             //In the quaternion values, w is cosine (theta / 2), where theta is rotation angle
-            NewRot->s.W= Vector3fDot(&this->StVec, &this->EnVec);
+            NewRot->s.W= Vector3fDot(&v1, &v2);
         }
         else                                    //if its zero
         {
@@ -133,5 +139,6 @@ void    ArcBall_t::drag(const Point2fT* NewPt, Quat4fT* NewRot)
             NewRot->s.W = 0.0f;
         }
     }
-}
 
+
+}

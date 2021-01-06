@@ -77,7 +77,7 @@ class MMFFabInteraction : public ForceFieldInteraction {
     int type;
     bool linear;
     float value ();
-    void set_forces ();
+    void set_forces (bool score = false);
 };
 
 
@@ -86,7 +86,7 @@ class MMFFsbInteraction : public ForceFieldInteraction {
 	Atom *at3;
     double theta0, kijk, kkji, r0ij, r0kj;
     float value ();
-    void set_forces ();
+    void set_forces (bool score = false);
 };
 
 class MMFFopInteraction : public ForceFieldInteraction {
@@ -94,7 +94,7 @@ class MMFFopInteraction : public ForceFieldInteraction {
 	Atom *at3, *at4;
     double koop;
     float value ();
-    void set_forces ();
+    void set_forces (bool score = false);
 };
 
 
@@ -104,7 +104,7 @@ class MMFFtoInteraction : public ForceFieldInteraction {
     double v1, v2, v3;
     int type;
     float value ();
-    void set_forces ();
+    void set_forces (bool score = false);
 };
 
 class MMFFvwInteraction : public ForceFieldInteraction {
@@ -170,8 +170,10 @@ public:
 
 
     void load_internal_interactions ();
+	void load_internal_interactions (vector <ForceFieldInteraction*> *v);
     void load_nonbonded_interactions ();
 
+	void load_nonbonded_interactions_for_atom (Atom *at, queue <ForceFieldInteraction*> *q);
 
 
     double compute_total_energy ();

@@ -1,0 +1,837 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 42;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0060B7AE12DD07185A204E79 /* haptics.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = EDCCA751B9CEFEF78CA527FC /* haptics.cpp */; settings = {ATTRIBUTES = (); }; };
+		019AD8E21321E6D1D3DA7B8F /* plants_mainwin.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = 667B75056221E7BF506AEEEC /* plants_mainwin.cc */; settings = {ATTRIBUTES = (); }; };
+		069D05B0128AE5DC7EE31738 /* QtCore.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 7BC2E65A5E699A5E5D834CA2 /* QtCore.framework */; };
+		0723894245081934E09737A4 /* thread.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = 8E30788BB51C60E163B16D39 /* thread.cc */; settings = {ATTRIBUTES = (); }; };
+		1389C139297A08641B31A677 /* molecule.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = F21078A75B5BFB201BAABFC9 /* molecule.cc */; settings = {ATTRIBUTES = (); }; };
+		1C5905B9A690E5D99D596035 /* arcball.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = F96E33F4498781C35E5C5EA9 /* arcball.cc */; settings = {ATTRIBUTES = (); }; };
+		1FCA5C05548C2C83F74410D2 /* moc_plants_mainwin.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 692CDD0F0AFB2F16074EC25D /* moc_plants_mainwin.cpp */; settings = {ATTRIBUTES = (); }; };
+		2AF13BFF480153C65C28D980 /* MMFF.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = EFC667A2E2B6620F4485731B /* MMFF.cc */; settings = {ATTRIBUTES = (); }; };
+		301611D420F5AE20F2FB1611 /* moc_plants.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 028BBFCA41D9D25F3970C178 /* moc_plants.cpp */; settings = {ATTRIBUTES = (); }; };
+		348B53813B96C2221198B3C4 /* minimize.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = 4789BCDB8E3CD55945F6446A /* minimize.cc */; settings = {ATTRIBUTES = (); }; };
+		3A9A1C86EC80CEC84AE0AD97 /* moc_myline.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 92CCBF5FC09A191F44BEF904 /* moc_myline.cpp */; settings = {ATTRIBUTES = (); }; };
+		3FC939143AD8AD930E91C250 /* constants.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = 896F9CEC468CEB0AA5BFBC93 /* constants.cc */; settings = {ATTRIBUTES = (); }; };
+		40A4F43E11690A9F4132263C /* ZNdata.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = 7FE86ED17C108C83E6804FD5 /* ZNdata.cc */; settings = {ATTRIBUTES = (); }; };
+		4CBF65D1BCB7B989974355A1 /* menu.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = 9C054F9C62EFC3F4D3B31BD4 /* menu.cc */; settings = {ATTRIBUTES = (); }; };
+		501667F26B3C1FF6767A7C12 /* QtGui.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 9B36DA7E32F0304E780E7972 /* QtGui.framework */; };
+		51D4DBF7CB8537BE86EBD055 /* AppKit.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 821416211D63F190AAAD016A /* AppKit.framework */; };
+		56B67918EBFB340536C05DD0 /* PLP.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = 72744A25CC8EEEED18677984 /* PLP.cc */; settings = {ATTRIBUTES = (); }; };
+		66A2CB58AB7217AC556E373E /* ply.c in Build Sources */ = {isa = PBXBuildFile; fileRef = 780D50E165A998248DE6432E /* ply.c */; settings = {ATTRIBUTES = (); }; };
+		85DEBA6B937C2B258A6885B6 /* qrc_zodiac.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 2DD2DEAC0C750997DB97629C /* qrc_zodiac.cpp */; settings = {ATTRIBUTES = (); }; };
+		9274C4A889CB8734C944C9AD /* maths.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = E98BF64F6BB0C418A2DD9511 /* maths.cc */; settings = {ATTRIBUTES = (); }; };
+		9375E3B23D542F070245586C /* povray.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = 8F5383E53271F9116D8DBE65 /* povray.cc */; settings = {ATTRIBUTES = (); }; };
+		974D0C1192DC7101F24B6F07 /* moc_ddwin.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 4FBEF6C129BC50B5604DA2CE /* moc_ddwin.cpp */; settings = {ATTRIBUTES = (); }; };
+		978F6C15E13C97783D4AEE9D /* FF.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = 955420CA6FB7BCE6E39A401D /* FF.cc */; settings = {ATTRIBUTES = (); }; };
+		9A7CD8328C38C4361A612DE2 /* MarchingCubes.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = EA9C410F6C2F638EE012D917 /* MarchingCubes.cc */; settings = {ATTRIBUTES = (); }; };
+		9EEE7BBC7128ECAE0D4481E8 /* plants.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = 25EACE760B1DE95891036C5B /* plants.cc */; settings = {ATTRIBUTES = (); }; };
+		A19B12B40CF47E9EFC5DF0AE /* moc_thread.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 41263F91C86B28624BB8E483 /* moc_thread.cpp */; settings = {ATTRIBUTES = (); }; };
+		B37A0F0E0D61BE1800CF3144 /* database.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = B37A0F0D0D61BE1800CF3144 /* database.cc */; };
+		B3AAFF790D6306DD009FA57E /* actions.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = B3AAFF780D6306DD009FA57E /* actions.cc */; };
+		B3ACE9070DC7DBE200B9C16B /* zeden.icns in Bundle Resources */ = {isa = PBXBuildFile; fileRef = B3ACE9060DC7DBE200B9C16B /* zeden.icns */; };
+		B3B75E700D5217F8006C77CA /* Zodiac.app in Project Copy */ = {isa = PBXBuildFile; fileRef = B3B75E6D0D5217F8006C77CA /* Zodiac.app */; };
+		B3B75E850D522240006C77CA /* OpenGL.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = B3B75E840D522240006C77CA /* OpenGL.framework */; };
+		B3B75E8A0D522283006C77CA /* Qt3Support.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = B3B75E880D522283006C77CA /* Qt3Support.framework */; };
+		B3B75E8B0D522283006C77CA /* QtOpenGL.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = B3B75E890D522283006C77CA /* QtOpenGL.framework */; };
+		B3B75EA10D5226B4006C77CA /* QtSql.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = B3B75EA00D5226B4006C77CA /* QtSql.framework */; };
+		B3B75EA60D522839006C77CA /* QtXml.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = B3B75EA50D522839006C77CA /* QtXml.framework */; };
+		B3B75EAB0D52285B006C77CA /* QtNetwork.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = B3B75EAA0D52285B006C77CA /* QtNetwork.framework */; };
+		B3B75EB00D522A27006C77CA /* libopenbabel.dylib in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = B3B75EAF0D522A27006C77CA /* libopenbabel.dylib */; };
+		B3CFE7650DA534DD00B02422 /* wiimote.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = B3CFE7640DA534DD00B02422 /* wiimote.cc */; };
+		C5DABD357379C02C14CC908F /* Zodiac.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = EA50B5F3340A72F9668AEED8 /* Zodiac.cc */; settings = {ATTRIBUTES = (); }; };
+		C8FD4A1AAA37CF2CA2824CCF /* Carbon.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = DA138F75C9F545CDAE7FB264 /* Carbon.framework */; };
+		CB0905C4149030F754C67F4F /* graphical_object.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = 14DE17949C4CDD65D72AB165 /* graphical_object.cc */; settings = {ATTRIBUTES = (); }; };
+		D20420E7509828C25F9197F0 /* main_opengl.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 9DFA0167A1755C3845831F9A /* main_opengl.cpp */; settings = {ATTRIBUTES = (); }; };
+		D70FC07B79D450FC48800565 /* command.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = 5F1FAD61BFD9DABB69F6F230 /* command.cc */; settings = {ATTRIBUTES = (); }; };
+		D8C1B1DA823D8267EEC53E98 /* builder.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = 996A976A75B1A6EE3DBB0308 /* builder.cc */; settings = {ATTRIBUTES = (); }; };
+		E149F1375762B9CC9BF8DCF3 /* moc_menu.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 27E491205DBB7625977A84A9 /* moc_menu.cpp */; settings = {ATTRIBUTES = (); }; };
+		E62A6A3861E35A88EDCD63C9 /* myline.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = 0C5E5B7176C4532535B2B7AA /* myline.cc */; settings = {ATTRIBUTES = (); }; };
+		E6FE771C31BD888969BD1E79 /* qrc_resources.cpp in Build Sources */ = {isa = PBXBuildFile; fileRef = 43657A1495917FFB693BCFFE /* qrc_resources.cpp */; settings = {ATTRIBUTES = (); }; };
+		EA4B89055544002414018F2E /* chemscore.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = E40E8690AAC16554D83F8A84 /* chemscore.cc */; settings = {ATTRIBUTES = (); }; };
+		F463E2063173CD335D533B0C /* plantsconfig.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = 282129E05075A4B77D4080D3 /* plantsconfig.cc */; settings = {ATTRIBUTES = (); }; };
+		F9E76E570E10AF14870553A7 /* ApplicationServices.framework in Frameworks & Libraries */ = {isa = PBXBuildFile; fileRef = 27AE7A480FD6C52FCA80FECD /* ApplicationServices.framework */; };
+		FE82D390995A85B4100F3239 /* ddwin.cc in Build Sources */ = {isa = PBXBuildFile; fileRef = F7A838C34320B23351911BBD /* ddwin.cc */; settings = {ATTRIBUTES = (); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		F6069D5A5DA8AA28EDB8B3C6 /* Project Copy */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /Users/nicola/Desktop/Zodiac;
+			dstSubfolderSpec = 0;
+			files = (
+				B3B75E700D5217F8006C77CA /* Zodiac.app in Project Copy */,
+			);
+			name = "Project Copy";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		028BBFCA41D9D25F3970C178 /* moc_plants.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = moc_plants.cpp; sourceTree = "<group>"; };
+		0910198BADEF83CB8A1E4369 /* menu.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = menu.h; sourceTree = "<group>"; };
+		0C5E5B7176C4532535B2B7AA /* myline.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = myline.cc; sourceTree = "<group>"; };
+		0E2042936C3A4BC220C92724 /* cutoffGrid.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cutoffGrid.h; sourceTree = "<group>"; };
+		0FC9F2CA79E0768AEB7D0E2C /* FF.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FF.h; sourceTree = "<group>"; };
+		14DE17949C4CDD65D72AB165 /* graphical_object.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = graphical_object.cc; sourceTree = "<group>"; };
+		25EACE760B1DE95891036C5B /* plants.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = plants.cc; sourceTree = "<group>"; };
+		27AE7A480FD6C52FCA80FECD /* ApplicationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ApplicationServices.framework; path = /System/Library/Frameworks/ApplicationServices.framework; sourceTree = "<absolute>"; };
+		27E491205DBB7625977A84A9 /* moc_menu.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = moc_menu.cpp; sourceTree = "<group>"; };
+		282129E05075A4B77D4080D3 /* plantsconfig.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = plantsconfig.cc; sourceTree = "<group>"; };
+		2DD2DEAC0C750997DB97629C /* qrc_zodiac.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = qrc_zodiac.cpp; sourceTree = "<group>"; };
+		41263F91C86B28624BB8E483 /* moc_thread.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = moc_thread.cpp; sourceTree = "<group>"; };
+		41AFB1E7DD2B8FA8DB699A82 /* LookUpTable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LookUpTable.h; sourceTree = "<group>"; };
+		43657A1495917FFB693BCFFE /* qrc_resources.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = qrc_resources.cpp; sourceTree = "<group>"; };
+		4575A68B796002CA968BC0DD /* constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = constants.h; sourceTree = "<group>"; };
+		4789BCDB8E3CD55945F6446A /* minimize.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = minimize.cc; sourceTree = "<group>"; };
+		478E222303A9924D4A033B58 /* ddwin.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ddwin.h; sourceTree = "<group>"; };
+		4B542B67E37C6C37273A60D6 /* molecule.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = molecule.h; sourceTree = "<group>"; };
+		4B6EB53A168A25597F087E84 /* chemscore.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = chemscore.h; sourceTree = "<group>"; };
+		4C2693EB81D94CC17C8EC5EA /* maths.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = maths.h; sourceTree = "<group>"; };
+		4FBEF6C129BC50B5604DA2CE /* moc_ddwin.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = moc_ddwin.cpp; sourceTree = "<group>"; };
+		5355E4824038312988995C7A /* MarchingCubes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MarchingCubes.h; sourceTree = "<group>"; };
+		59D216A9BD7977B2A28FBD25 /* plants_mainwin.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = plants_mainwin.h; sourceTree = "<group>"; };
+		5F1FAD61BFD9DABB69F6F230 /* command.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = command.cc; sourceTree = "<group>"; };
+		661A581BAD89E6E216916CE6 /* ui_zodiac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ui_zodiac.h; sourceTree = "<group>"; };
+		667B75056221E7BF506AEEEC /* plants_mainwin.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = plants_mainwin.cc; sourceTree = "<group>"; };
+		692CDD0F0AFB2F16074EC25D /* moc_plants_mainwin.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = moc_plants_mainwin.cpp; sourceTree = "<group>"; };
+		6B250EE0C461C57CB3A63298 /* Zodiac.pro */ = {isa = PBXFileReference; lastKnownFileType = text; path = Zodiac.pro; sourceTree = "<group>"; };
+		6CC4D5B67CFDF4F692C300D0 /* zodiac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = zodiac.h; sourceTree = "<group>"; };
+		72744A25CC8EEEED18677984 /* PLP.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PLP.cc; sourceTree = "<group>"; };
+		7739F6CDFCFC4DCB8E3E2DB4 /* PLP.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PLP.h; sourceTree = "<group>"; };
+		780D50E165A998248DE6432E /* ply.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = ply.c; sourceTree = "<group>"; };
+		7BC2E65A5E699A5E5D834CA2 /* QtCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QtCore.framework; path = /Library/Frameworks/QtCore.framework; sourceTree = "<absolute>"; };
+		7FE86ED17C108C83E6804FD5 /* ZNdata.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ZNdata.cc; sourceTree = "<group>"; };
+		821416211D63F190AAAD016A /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
+		83BC070BEF7725161A944E64 /* arcball.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = arcball.h; sourceTree = "<group>"; };
+		83D5B249A8E7DE62EDAE7097 /* graphical_object.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = graphical_object.h; sourceTree = "<group>"; };
+		891AC9182900490DBAEA6B57 /* plants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = plants.h; sourceTree = "<group>"; };
+		896F9CEC468CEB0AA5BFBC93 /* constants.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = constants.cc; sourceTree = "<group>"; };
+		8E30788BB51C60E163B16D39 /* thread.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = thread.cc; sourceTree = "<group>"; };
+		8F5383E53271F9116D8DBE65 /* povray.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = povray.cc; sourceTree = "<group>"; };
+		904B9299489559F50FFED213 /* command.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = command.h; sourceTree = "<group>"; };
+		92CCBF5FC09A191F44BEF904 /* moc_myline.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = moc_myline.cpp; sourceTree = "<group>"; };
+		955420CA6FB7BCE6E39A401D /* FF.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FF.cc; sourceTree = "<group>"; };
+		996A976A75B1A6EE3DBB0308 /* builder.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = builder.cc; sourceTree = "<group>"; };
+		9ACA62BA73BAC14C21211B3E /* haptics.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = haptics.h; sourceTree = "<group>"; };
+		9B36DA7E32F0304E780E7972 /* QtGui.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QtGui.framework; path = /Library/Frameworks/QtGui.framework; sourceTree = "<absolute>"; };
+		9C054F9C62EFC3F4D3B31BD4 /* menu.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = menu.cc; sourceTree = "<group>"; };
+		9DFA0167A1755C3845831F9A /* main_opengl.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main_opengl.cpp; sourceTree = "<group>"; };
+		A67868956A81466B6E8FC067 /* thread.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = thread.h; sourceTree = "<group>"; };
+		B37A0F0C0D61BE1800CF3144 /* database.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = database.h; sourceTree = "<group>"; };
+		B37A0F0D0D61BE1800CF3144 /* database.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = database.cc; sourceTree = "<group>"; };
+		B3AAFF770D6306DD009FA57E /* actions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = actions.h; sourceTree = "<group>"; };
+		B3AAFF780D6306DD009FA57E /* actions.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = actions.cc; sourceTree = "<group>"; };
+		B3ACE9060DC7DBE200B9C16B /* zeden.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = zeden.icns; sourceTree = "<group>"; };
+		B3B75E6D0D5217F8006C77CA /* Zodiac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Zodiac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B3B75E840D522240006C77CA /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = SDKs/MacOSX10.5.sdk/System/Library/Frameworks/OpenGL.framework; sourceTree = SYSTEM_DEVELOPER_DIR; };
+		B3B75E880D522283006C77CA /* Qt3Support.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Qt3Support.framework; path = /Library/Frameworks/Qt3Support.framework; sourceTree = "<absolute>"; };
+		B3B75E890D522283006C77CA /* QtOpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QtOpenGL.framework; path = /Library/Frameworks/QtOpenGL.framework; sourceTree = "<absolute>"; };
+		B3B75EA00D5226B4006C77CA /* QtSql.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QtSql.framework; path = /Library/Frameworks/QtSql.framework; sourceTree = "<absolute>"; };
+		B3B75EA50D522839006C77CA /* QtXml.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QtXml.framework; path = /Library/Frameworks/QtXml.framework; sourceTree = "<absolute>"; };
+		B3B75EAA0D52285B006C77CA /* QtNetwork.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QtNetwork.framework; path = /Library/Frameworks/QtNetwork.framework; sourceTree = "<absolute>"; };
+		B3B75EAF0D522A27006C77CA /* libopenbabel.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libopenbabel.dylib; path = /usr/local/lib/libopenbabel.dylib; sourceTree = "<absolute>"; };
+		B3CFE7630DA534DD00B02422 /* wiimote.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = wiimote.h; sourceTree = "<group>"; };
+		B3CFE7640DA534DD00B02422 /* wiimote.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = wiimote.cc; sourceTree = "<group>"; };
+		B3E709D10D72D0FA00AC2157 /* atom.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = atom.h; sourceTree = "<group>"; };
+		B3E709D20D72D0FA00AC2157 /* babelconfig-win32.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "babelconfig-win32.h"; sourceTree = "<group>"; };
+		B3E709D30D72D0FA00AC2157 /* base.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = base.h; sourceTree = "<group>"; };
+		B3E709D40D72D0FA00AC2157 /* bitvec.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = bitvec.h; sourceTree = "<group>"; };
+		B3E709D50D72D0FA00AC2157 /* bond.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = bond.h; sourceTree = "<group>"; };
+		B3E709D60D72D0FA00AC2157 /* bondtyper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = bondtyper.h; sourceTree = "<group>"; };
+		B3E709D70D72D0FA00AC2157 /* canon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = canon.h; sourceTree = "<group>"; };
+		B3E709D80D72D0FA00AC2157 /* chains.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = chains.h; sourceTree = "<group>"; };
+		B3E709D90D72D0FA00AC2157 /* chiral.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = chiral.h; sourceTree = "<group>"; };
+		B3E709DA0D72D0FA00AC2157 /* data.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = data.h; sourceTree = "<group>"; };
+		B3E709DB0D72D0FA00AC2157 /* dlhandler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dlhandler.h; sourceTree = "<group>"; };
+		B3E709DC0D72D0FA00AC2157 /* fingerprint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fingerprint.h; sourceTree = "<group>"; };
+		B3E709DD0D72D0FA00AC2157 /* forcefield.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = forcefield.h; sourceTree = "<group>"; };
+		B3E709DE0D72D0FA00AC2157 /* generic.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = generic.h; sourceTree = "<group>"; };
+		B3E709DF0D72D0FA00AC2157 /* grid.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = grid.h; sourceTree = "<group>"; };
+		B3E709E00D72D0FA00AC2157 /* groupcontrib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = groupcontrib.h; sourceTree = "<group>"; };
+		B3E709E10D72D0FA00AC2157 /* internalcoord.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = internalcoord.h; sourceTree = "<group>"; };
+		B3E709E20D72D0FA00AC2157 /* kinetics.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = kinetics.h; sourceTree = "<group>"; };
+		B3E709E30D72D0FA00AC2157 /* lineend.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lineend.h; sourceTree = "<group>"; };
+		B3E709EB0D72D0FA00AC2157 /* matrix3x3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = matrix3x3.h; sourceTree = "<group>"; };
+		B3E709EC0D72D0FA00AC2157 /* vector3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = vector3.h; sourceTree = "<group>"; };
+		B3E709ED0D72D0FA00AC2157 /* matrix.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = matrix.h; sourceTree = "<group>"; };
+		B3E709EE0D72D0FA00AC2157 /* mol.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mol.h; sourceTree = "<group>"; };
+		B3E709EF0D72D0FA00AC2157 /* molchrg.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = molchrg.h; sourceTree = "<group>"; };
+		B3E709F00D72D0FA00AC2157 /* obconversion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = obconversion.h; sourceTree = "<group>"; };
+		B3E709F10D72D0FA00AC2157 /* oberror.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = oberror.h; sourceTree = "<group>"; };
+		B3E709F20D72D0FA00AC2157 /* obiter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = obiter.h; sourceTree = "<group>"; };
+		B3E709F30D72D0FA00AC2157 /* obmolecformat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = obmolecformat.h; sourceTree = "<group>"; };
+		B3E709F40D72D0FA00AC2157 /* obutil.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = obutil.h; sourceTree = "<group>"; };
+		B3E709F50D72D0FA00AC2157 /* parsmart.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = parsmart.h; sourceTree = "<group>"; };
+		B3E709F60D72D0FA00AC2157 /* patty.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = patty.h; sourceTree = "<group>"; };
+		B3E709F70D72D0FA00AC2157 /* phmodel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = phmodel.h; sourceTree = "<group>"; };
+		B3E709F80D72D0FA00AC2157 /* pluginiter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pluginiter.h; sourceTree = "<group>"; };
+		B3E709F90D72D0FA00AC2157 /* rand.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = rand.h; sourceTree = "<group>"; };
+		B3E709FA0D72D0FB00AC2157 /* reaction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = reaction.h; sourceTree = "<group>"; };
+		B3E709FB0D72D0FB00AC2157 /* residue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = residue.h; sourceTree = "<group>"; };
+		B3E709FC0D72D0FB00AC2157 /* ring.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ring.h; sourceTree = "<group>"; };
+		B3E709FD0D72D0FB00AC2157 /* rotamer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = rotamer.h; sourceTree = "<group>"; };
+		B3E709FE0D72D0FB00AC2157 /* rotor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = rotor.h; sourceTree = "<group>"; };
+		B3E709FF0D72D0FB00AC2157 /* typer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = typer.h; sourceTree = "<group>"; };
+		B3E70A000D72D0FB00AC2157 /* xml.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = xml.h; sourceTree = "<group>"; };
+		B3E70A080D72D15500AC2157 /* babelconfig-mac.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "babelconfig-mac.h"; sourceTree = "<group>"; };
+		B689A0AA7960FD9313629470 /* myline.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = myline.h; sourceTree = "<group>"; };
+		BCFF5A7BE62E9244B712568E /* minimize.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = minimize.h; sourceTree = "<group>"; };
+		CE889E04BC1CB80F7DB55E8C /* ZNdata.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZNdata.h; sourceTree = "<group>"; };
+		D690CB80E61CE8861AE3688D /* MMFF.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MMFF.h; sourceTree = "<group>"; };
+		D7DA6145AB9539ECDE332D13 /* resources.qrc */ = {isa = PBXFileReference; lastKnownFileType = text; path = resources.qrc; sourceTree = "<group>"; };
+		DA138F75C9F545CDAE7FB264 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = /System/Library/Frameworks/Carbon.framework; sourceTree = "<absolute>"; };
+		E40E8690AAC16554D83F8A84 /* chemscore.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = chemscore.cc; sourceTree = "<group>"; };
+		E6A875C3D380AE927CEF7076 /* ply.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ply.h; sourceTree = "<group>"; };
+		E98BF64F6BB0C418A2DD9511 /* maths.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = maths.cc; sourceTree = "<group>"; };
+		EA1DDE14F1EAF8245B25C180 /* zodiac.ui */ = {isa = PBXFileReference; lastKnownFileType = text; path = zodiac.ui; sourceTree = "<group>"; };
+		EA50B5F3340A72F9668AEED8 /* Zodiac.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Zodiac.cc; sourceTree = "<group>"; };
+		EA9C410F6C2F638EE012D917 /* MarchingCubes.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MarchingCubes.cc; sourceTree = "<group>"; };
+		EC238E46678FBB8C4AF6D590 /* zodiac.qrc */ = {isa = PBXFileReference; lastKnownFileType = text; path = zodiac.qrc; sourceTree = "<group>"; };
+		EDCCA751B9CEFEF78CA527FC /* haptics.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = haptics.cpp; sourceTree = "<group>"; };
+		EFC667A2E2B6620F4485731B /* MMFF.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MMFF.cc; sourceTree = "<group>"; };
+		F065C22B8725ACB1EC40C634 /* builder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = builder.h; sourceTree = "<group>"; };
+		F21078A75B5BFB201BAABFC9 /* molecule.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = molecule.cc; sourceTree = "<group>"; };
+		F7A838C34320B23351911BBD /* ddwin.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ddwin.cc; sourceTree = "<group>"; };
+		F96E33F4498781C35E5C5EA9 /* arcball.cc */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = arcball.cc; sourceTree = "<group>"; };
+		F9E92C9025F8CF97B7A8305B /* plantsconfig.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = plantsconfig.h; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		2A1043669E6E5A7426EA502A /* Frameworks & Libraries */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				501667F26B3C1FF6767A7C12 /* QtGui.framework in Frameworks & Libraries */,
+				C8FD4A1AAA37CF2CA2824CCF /* Carbon.framework in Frameworks & Libraries */,
+				51D4DBF7CB8537BE86EBD055 /* AppKit.framework in Frameworks & Libraries */,
+				069D05B0128AE5DC7EE31738 /* QtCore.framework in Frameworks & Libraries */,
+				F9E76E570E10AF14870553A7 /* ApplicationServices.framework in Frameworks & Libraries */,
+				B3B75E850D522240006C77CA /* OpenGL.framework in Frameworks & Libraries */,
+				B3B75E8A0D522283006C77CA /* Qt3Support.framework in Frameworks & Libraries */,
+				B3B75E8B0D522283006C77CA /* QtOpenGL.framework in Frameworks & Libraries */,
+				B3B75EA10D5226B4006C77CA /* QtSql.framework in Frameworks & Libraries */,
+				B3B75EA60D522839006C77CA /* QtXml.framework in Frameworks & Libraries */,
+				B3B75EAB0D52285B006C77CA /* QtNetwork.framework in Frameworks & Libraries */,
+				B3B75EB00D522A27006C77CA /* libopenbabel.dylib in Frameworks & Libraries */,
+			);
+			name = "Frameworks & Libraries";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		05596AB53D8D521C69802C27 /* Zodiac */ = {
+			isa = PBXGroup;
+			children = (
+				FB61758D0F0FDA4BA867C3D5 /* Sources */,
+				46E892BBB6BB6952967E0561 /* Temporary Sources */,
+				883D7615C4D2DE3FA1218F12 /* Headers */,
+				7CABE3C80E79AD2B307756D2 /* Sources [qmake] */,
+				52C235EBF1C9B07808119459 /* Sources [RCC] */,
+				EEC299C65D5017EB9DD513B0 /* Sources [UIC] */,
+				ED1E82605DD74B483AF3C982 /* External Frameworks and Libraries */,
+				B3B75E6E0D5217F8006C77CA /* Products */,
+			);
+			name = Zodiac;
+			sourceTree = "<group>";
+		};
+		46E892BBB6BB6952967E0561 /* Temporary Sources */ = {
+			isa = PBXGroup;
+			children = (
+				4FBEF6C129BC50B5604DA2CE /* moc_ddwin.cpp */,
+				27E491205DBB7625977A84A9 /* moc_menu.cpp */,
+				92CCBF5FC09A191F44BEF904 /* moc_myline.cpp */,
+				028BBFCA41D9D25F3970C178 /* moc_plants.cpp */,
+				692CDD0F0AFB2F16074EC25D /* moc_plants_mainwin.cpp */,
+				41263F91C86B28624BB8E483 /* moc_thread.cpp */,
+				43657A1495917FFB693BCFFE /* qrc_resources.cpp */,
+				2DD2DEAC0C750997DB97629C /* qrc_zodiac.cpp */,
+				661A581BAD89E6E216916CE6 /* ui_zodiac.h */,
+			);
+			name = "Temporary Sources";
+			sourceTree = "<group>";
+		};
+		52C235EBF1C9B07808119459 /* Sources [RCC] */ = {
+			isa = PBXGroup;
+			children = (
+				D7DA6145AB9539ECDE332D13 /* resources.qrc */,
+				EC238E46678FBB8C4AF6D590 /* zodiac.qrc */,
+			);
+			name = "Sources [RCC]";
+			sourceTree = "<group>";
+		};
+		7CABE3C80E79AD2B307756D2 /* Sources [qmake] */ = {
+			isa = PBXGroup;
+			children = (
+				B3ACE9060DC7DBE200B9C16B /* zeden.icns */,
+				6B250EE0C461C57CB3A63298 /* Zodiac.pro */,
+			);
+			name = "Sources [qmake]";
+			sourceTree = "<group>";
+		};
+		883D7615C4D2DE3FA1218F12 /* Headers */ = {
+			isa = PBXGroup;
+			children = (
+				B3CFE7630DA534DD00B02422 /* wiimote.h */,
+				83BC070BEF7725161A944E64 /* arcball.h */,
+				B37A0F0C0D61BE1800CF3144 /* database.h */,
+				B3AAFF770D6306DD009FA57E /* actions.h */,
+				F065C22B8725ACB1EC40C634 /* builder.h */,
+				4B6EB53A168A25597F087E84 /* chemscore.h */,
+				904B9299489559F50FFED213 /* command.h */,
+				4575A68B796002CA968BC0DD /* constants.h */,
+				0E2042936C3A4BC220C92724 /* cutoffGrid.h */,
+				478E222303A9924D4A033B58 /* ddwin.h */,
+				0FC9F2CA79E0768AEB7D0E2C /* FF.h */,
+				83D5B249A8E7DE62EDAE7097 /* graphical_object.h */,
+				9ACA62BA73BAC14C21211B3E /* haptics.h */,
+				41AFB1E7DD2B8FA8DB699A82 /* LookUpTable.h */,
+				5355E4824038312988995C7A /* MarchingCubes.h */,
+				4C2693EB81D94CC17C8EC5EA /* maths.h */,
+				0910198BADEF83CB8A1E4369 /* menu.h */,
+				BCFF5A7BE62E9244B712568E /* minimize.h */,
+				D690CB80E61CE8861AE3688D /* MMFF.h */,
+				4B542B67E37C6C37273A60D6 /* molecule.h */,
+				B689A0AA7960FD9313629470 /* myline.h */,
+				891AC9182900490DBAEA6B57 /* plants.h */,
+				59D216A9BD7977B2A28FBD25 /* plants_mainwin.h */,
+				F9E92C9025F8CF97B7A8305B /* plantsconfig.h */,
+				7739F6CDFCFC4DCB8E3E2DB4 /* PLP.h */,
+				E6A875C3D380AE927CEF7076 /* ply.h */,
+				A67868956A81466B6E8FC067 /* thread.h */,
+				CE889E04BC1CB80F7DB55E8C /* ZNdata.h */,
+				6CC4D5B67CFDF4F692C300D0 /* zodiac.h */,
+			);
+			name = Headers;
+			sourceTree = "<group>";
+		};
+		B3B75E6E0D5217F8006C77CA /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B3B75E6D0D5217F8006C77CA /* Zodiac.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B3E709D00D72D0FA00AC2157 /* openbabel */ = {
+			isa = PBXGroup;
+			children = (
+				B3E70A080D72D15500AC2157 /* babelconfig-mac.h */,
+				B3E709D10D72D0FA00AC2157 /* atom.h */,
+				B3E709D20D72D0FA00AC2157 /* babelconfig-win32.h */,
+				B3E709D30D72D0FA00AC2157 /* base.h */,
+				B3E709D40D72D0FA00AC2157 /* bitvec.h */,
+				B3E709D50D72D0FA00AC2157 /* bond.h */,
+				B3E709D60D72D0FA00AC2157 /* bondtyper.h */,
+				B3E709D70D72D0FA00AC2157 /* canon.h */,
+				B3E709D80D72D0FA00AC2157 /* chains.h */,
+				B3E709D90D72D0FA00AC2157 /* chiral.h */,
+				B3E709DA0D72D0FA00AC2157 /* data.h */,
+				B3E709DB0D72D0FA00AC2157 /* dlhandler.h */,
+				B3E709DC0D72D0FA00AC2157 /* fingerprint.h */,
+				B3E709DD0D72D0FA00AC2157 /* forcefield.h */,
+				B3E709DE0D72D0FA00AC2157 /* generic.h */,
+				B3E709DF0D72D0FA00AC2157 /* grid.h */,
+				B3E709E00D72D0FA00AC2157 /* groupcontrib.h */,
+				B3E709E10D72D0FA00AC2157 /* internalcoord.h */,
+				B3E709E20D72D0FA00AC2157 /* kinetics.h */,
+				B3E709E30D72D0FA00AC2157 /* lineend.h */,
+				B3E709E70D72D0FA00AC2157 /* math */,
+				B3E709ED0D72D0FA00AC2157 /* matrix.h */,
+				B3E709EE0D72D0FA00AC2157 /* mol.h */,
+				B3E709EF0D72D0FA00AC2157 /* molchrg.h */,
+				B3E709F00D72D0FA00AC2157 /* obconversion.h */,
+				B3E709F10D72D0FA00AC2157 /* oberror.h */,
+				B3E709F20D72D0FA00AC2157 /* obiter.h */,
+				B3E709F30D72D0FA00AC2157 /* obmolecformat.h */,
+				B3E709F40D72D0FA00AC2157 /* obutil.h */,
+				B3E709F50D72D0FA00AC2157 /* parsmart.h */,
+				B3E709F60D72D0FA00AC2157 /* patty.h */,
+				B3E709F70D72D0FA00AC2157 /* phmodel.h */,
+				B3E709F80D72D0FA00AC2157 /* pluginiter.h */,
+				B3E709F90D72D0FA00AC2157 /* rand.h */,
+				B3E709FA0D72D0FB00AC2157 /* reaction.h */,
+				B3E709FB0D72D0FB00AC2157 /* residue.h */,
+				B3E709FC0D72D0FB00AC2157 /* ring.h */,
+				B3E709FD0D72D0FB00AC2157 /* rotamer.h */,
+				B3E709FE0D72D0FB00AC2157 /* rotor.h */,
+				B3E709FF0D72D0FB00AC2157 /* typer.h */,
+				B3E70A000D72D0FB00AC2157 /* xml.h */,
+			);
+			path = openbabel;
+			sourceTree = "<group>";
+		};
+		B3E709E70D72D0FA00AC2157 /* math */ = {
+			isa = PBXGroup;
+			children = (
+				B3E709EB0D72D0FA00AC2157 /* matrix3x3.h */,
+				B3E709EC0D72D0FA00AC2157 /* vector3.h */,
+			);
+			path = math;
+			sourceTree = "<group>";
+		};
+		ED1E82605DD74B483AF3C982 /* External Frameworks and Libraries */ = {
+			isa = PBXGroup;
+			children = (
+				9B36DA7E32F0304E780E7972 /* QtGui.framework */,
+				B3B75EA00D5226B4006C77CA /* QtSql.framework */,
+				B3B75EA50D522839006C77CA /* QtXml.framework */,
+				B3B75EAF0D522A27006C77CA /* libopenbabel.dylib */,
+				B3B75EAA0D52285B006C77CA /* QtNetwork.framework */,
+				B3B75E880D522283006C77CA /* Qt3Support.framework */,
+				B3B75E890D522283006C77CA /* QtOpenGL.framework */,
+				B3B75E840D522240006C77CA /* OpenGL.framework */,
+				DA138F75C9F545CDAE7FB264 /* Carbon.framework */,
+				821416211D63F190AAAD016A /* AppKit.framework */,
+				7BC2E65A5E699A5E5D834CA2 /* QtCore.framework */,
+				27AE7A480FD6C52FCA80FECD /* ApplicationServices.framework */,
+			);
+			name = "External Frameworks and Libraries";
+			sourceTree = "<group>";
+		};
+		EEC299C65D5017EB9DD513B0 /* Sources [UIC] */ = {
+			isa = PBXGroup;
+			children = (
+				EA1DDE14F1EAF8245B25C180 /* zodiac.ui */,
+			);
+			name = "Sources [UIC]";
+			sourceTree = "<group>";
+		};
+		FB61758D0F0FDA4BA867C3D5 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				B3E709D00D72D0FA00AC2157 /* openbabel */,
+				B37A0F0D0D61BE1800CF3144 /* database.cc */,
+				F96E33F4498781C35E5C5EA9 /* arcball.cc */,
+				996A976A75B1A6EE3DBB0308 /* builder.cc */,
+				E40E8690AAC16554D83F8A84 /* chemscore.cc */,
+				5F1FAD61BFD9DABB69F6F230 /* command.cc */,
+				896F9CEC468CEB0AA5BFBC93 /* constants.cc */,
+				F7A838C34320B23351911BBD /* ddwin.cc */,
+				955420CA6FB7BCE6E39A401D /* FF.cc */,
+				14DE17949C4CDD65D72AB165 /* graphical_object.cc */,
+				EDCCA751B9CEFEF78CA527FC /* haptics.cpp */,
+				9DFA0167A1755C3845831F9A /* main_opengl.cpp */,
+				EA9C410F6C2F638EE012D917 /* MarchingCubes.cc */,
+				E98BF64F6BB0C418A2DD9511 /* maths.cc */,
+				9C054F9C62EFC3F4D3B31BD4 /* menu.cc */,
+				4789BCDB8E3CD55945F6446A /* minimize.cc */,
+				EFC667A2E2B6620F4485731B /* MMFF.cc */,
+				F21078A75B5BFB201BAABFC9 /* molecule.cc */,
+				B3CFE7640DA534DD00B02422 /* wiimote.cc */,
+				0C5E5B7176C4532535B2B7AA /* myline.cc */,
+				25EACE760B1DE95891036C5B /* plants.cc */,
+				667B75056221E7BF506AEEEC /* plants_mainwin.cc */,
+				282129E05075A4B77D4080D3 /* plantsconfig.cc */,
+				72744A25CC8EEEED18677984 /* PLP.cc */,
+				780D50E165A998248DE6432E /* ply.c */,
+				8F5383E53271F9116D8DBE65 /* povray.cc */,
+				8E30788BB51C60E163B16D39 /* thread.cc */,
+				7FE86ED17C108C83E6804FD5 /* ZNdata.cc */,
+				EA50B5F3340A72F9668AEED8 /* Zodiac.cc */,
+				B3AAFF780D6306DD009FA57E /* actions.cc */,
+			);
+			name = Sources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		FD7D0A9C9F332A1C487E8B19 /* Zodiac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B3B75E790D52181F006C77CA /* Build configuration list for PBXNativeTarget "Zodiac" */;
+			buildPhases = (
+				D7BA7D76DAB5DD13389D6332 /* Qt Qmake */,
+				A0A52A2ADF7A1E2A99738674 /* Qt Preprocessors */,
+				F6069D5A5DA8AA28EDB8B3C6 /* Project Copy */,
+				C29B8785722055ED95EF7B57 /* Build Sources */,
+				2A1043669E6E5A7426EA502A /* Frameworks & Libraries */,
+				3787F99312C85FF0073FD7BA /* Bundle Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Zodiac;
+			productName = Zodiac;
+			productReference = B3B75E6D0D5217F8006C77CA /* Zodiac.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		91B15E841AA80083484172DE /* Project object */ = {
+			isa = PBXProject;
+			buildConfigurationList = 2A951308CDB28F104D0A4BD2 /* Build configuration list for PBXProject "Zodiac" */;
+			compatibilityVersion = "Xcode 2.4";
+			hasScannedForEncodings = 1;
+			mainGroup = 05596AB53D8D521C69802C27 /* Zodiac */;
+			productRefGroup = B3B75E6E0D5217F8006C77CA /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				FD7D0A9C9F332A1C487E8B19 /* Zodiac */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		3787F99312C85FF0073FD7BA /* Bundle Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B3ACE9070DC7DBE200B9C16B /* zeden.icns in Bundle Resources */,
+			);
+			name = "Bundle Resources";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		A0A52A2ADF7A1E2A99738674 /* Qt Preprocessors */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			name = "Qt Preprocessors";
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "make -C /Users/nicola/Desktop/Zodiac -f Zodiac.xcodeproj/qt_preprocess.mak";
+		};
+		D7BA7D76DAB5DD13389D6332 /* Qt Qmake */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			name = "Qt Qmake";
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "make -C /Users/nicola/Desktop/Zodiac -f Zodiac.xcodeproj/qt_makeqmake.mak";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C29B8785722055ED95EF7B57 /* Build Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1C5905B9A690E5D99D596035 /* arcball.cc in Build Sources */,
+				D8C1B1DA823D8267EEC53E98 /* builder.cc in Build Sources */,
+				EA4B89055544002414018F2E /* chemscore.cc in Build Sources */,
+				D70FC07B79D450FC48800565 /* command.cc in Build Sources */,
+				3FC939143AD8AD930E91C250 /* constants.cc in Build Sources */,
+				FE82D390995A85B4100F3239 /* ddwin.cc in Build Sources */,
+				978F6C15E13C97783D4AEE9D /* FF.cc in Build Sources */,
+				CB0905C4149030F754C67F4F /* graphical_object.cc in Build Sources */,
+				0060B7AE12DD07185A204E79 /* haptics.cpp in Build Sources */,
+				D20420E7509828C25F9197F0 /* main_opengl.cpp in Build Sources */,
+				9A7CD8328C38C4361A612DE2 /* MarchingCubes.cc in Build Sources */,
+				9274C4A889CB8734C944C9AD /* maths.cc in Build Sources */,
+				4CBF65D1BCB7B989974355A1 /* menu.cc in Build Sources */,
+				348B53813B96C2221198B3C4 /* minimize.cc in Build Sources */,
+				2AF13BFF480153C65C28D980 /* MMFF.cc in Build Sources */,
+				1389C139297A08641B31A677 /* molecule.cc in Build Sources */,
+				E62A6A3861E35A88EDCD63C9 /* myline.cc in Build Sources */,
+				9EEE7BBC7128ECAE0D4481E8 /* plants.cc in Build Sources */,
+				019AD8E21321E6D1D3DA7B8F /* plants_mainwin.cc in Build Sources */,
+				F463E2063173CD335D533B0C /* plantsconfig.cc in Build Sources */,
+				56B67918EBFB340536C05DD0 /* PLP.cc in Build Sources */,
+				66A2CB58AB7217AC556E373E /* ply.c in Build Sources */,
+				9375E3B23D542F070245586C /* povray.cc in Build Sources */,
+				0723894245081934E09737A4 /* thread.cc in Build Sources */,
+				40A4F43E11690A9F4132263C /* ZNdata.cc in Build Sources */,
+				C5DABD357379C02C14CC908F /* Zodiac.cc in Build Sources */,
+				974D0C1192DC7101F24B6F07 /* moc_ddwin.cpp in Build Sources */,
+				E149F1375762B9CC9BF8DCF3 /* moc_menu.cpp in Build Sources */,
+				3A9A1C86EC80CEC84AE0AD97 /* moc_myline.cpp in Build Sources */,
+				301611D420F5AE20F2FB1611 /* moc_plants.cpp in Build Sources */,
+				1FCA5C05548C2C83F74410D2 /* moc_plants_mainwin.cpp in Build Sources */,
+				A19B12B40CF47E9EFC5DF0AE /* moc_thread.cpp in Build Sources */,
+				E6FE771C31BD888969BD1E79 /* qrc_resources.cpp in Build Sources */,
+				85DEBA6B937C2B258A6885B6 /* qrc_zodiac.cpp in Build Sources */,
+				B37A0F0E0D61BE1800CF3144 /* database.cc in Build Sources */,
+				B3AAFF790D6306DD009FA57E /* actions.cc in Build Sources */,
+				B3CFE7650DA534DD00B02422 /* wiimote.cc in Build Sources */,
+			);
+			name = "Build Sources";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		8DB1DD96F65B1BF1FFC506E0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				LD_MAP_FILE_PATH = "$(TARGET_TEMP_DIR)/$(PRODUCT_NAME)-LinkMap-$(CURRENT_VARIANT)-$(CURRENT_ARCH).txt";
+				LIBRARY_SEARCH_PATHS = "";
+			};
+			name = Debug;
+		};
+		95E1EB2E5DDD587BE5B3E548 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				LD_MAP_FILE_PATH = "$(TARGET_TEMP_DIR)/$(PRODUCT_NAME)-LinkMap-$(CURRENT_VARIANT)-$(CURRENT_ARCH).txt";
+				LIBRARY_SEARCH_PATHS = "";
+			};
+			name = Release;
+		};
+		B3B75E730D5217F8006C77CA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUILD_ROOT = /Users/nicola/Desktop/Zodiac;
+				COPY_PHASE_STRIP = NO;
+				DYLIB_COMPATIBILITY_VERSION = 1.0;
+				DYLIB_CURRENT_VERSION = 1.0.0;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_2)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_1)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_2)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_3)",
+				);
+				FRAMEWORK_SEARCH_PATHS_QUOTED_1 = "\"$(SRCROOT)\"";
+				FRAMEWORK_SEARCH_PATHS_QUOTED_2 = "\"$(DEVELOPER_DIR)/SDKs/MacOSX10.5.sdk/System/Library/Frameworks\"";
+				FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(DEVELOPER_DIR)/SDKs/MacOSX10.5.sdk/System/Library/Frameworks\"";
+				FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_2 = "\"$(SRCROOT)\"";
+				FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_3 = "\"$(SRCROOT)/../wii/MacOsX/WiiRemoteFramework/build/Release\"";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				HEADER_SEARCH_PATHS = (
+					/Library/Frameworks/QtCore.framework/Versions/4/Headers,
+					/usr/include/QtCore,
+					/Library/Frameworks/QtGui.framework/Versions/4/Headers,
+					/usr/include/QtGui,
+					/usr/include,
+					.,
+					.,
+					.,
+					/usr/local/include,
+					/System/Library/Frameworks/CarbonCore.framework/Headers,
+					"/usr/local/Qt4.3/mkspecs/macx-xcode",
+				);
+				INFOPLIST_FILE = Info.plist;
+				LEXFLAGS = "";
+				LIBRARY_SEARCH_PATHS = (
+					/Library/Frameworks,
+					/System/Library/Frameworks/,
+				);
+				OTHER_CFLAGS = (
+					"-pipe",
+					"-g",
+					"-Wall",
+					"-W",
+					"-DQT_GUI_LIB",
+					"-DQT_CORE_LIB",
+					"-DQT_SHARED",
+				);
+				OTHER_CPLUSPLUSFLAGS = (
+					"-pipe",
+					"-g",
+					"-Wall",
+					"-W",
+					"-DQT_GUI_LIB",
+					"-DQT_CORE_LIB",
+					"-DQT_SHARED",
+				);
+				OTHER_LDFLAGS = (
+					"-headerpad_max_install_names",
+					"-L/Library/Frameworks",
+					"-liconv",
+					"-lz",
+					"-lm",
+				);
+				OTHER_REZFLAGS = "";
+				PREBINDING = NO;
+				PRODUCT_NAME = Zodiac;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = "";
+				YACCFLAGS = "-d";
+			};
+			name = Debug;
+		};
+		B3B75E740D5217F8006C77CA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUILD_ROOT = /Users/nicola/Desktop/Zodiac;
+				COPY_PHASE_STRIP = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1.0;
+				DYLIB_CURRENT_VERSION = 1.0.0;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_2)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_3)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_4)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_5)",
+				);
+				FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(DEVELOPER_DIR)/SDKs/MacOSX10.5.sdk/System/Library/Frameworks\"";
+				FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_2 = "\"$(SRCROOT)\"";
+				FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_3 = "\"$(SRCROOT)\"";
+				FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_4 = "\"$(DEVELOPER_DIR)/SDKs/MacOSX10.5.sdk/System/Library/Frameworks\"";
+				FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_5 = "\"$(SRCROOT)/../wii/MacOsX/WiiRemoteFramework/build/Release\"";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				HEADER_SEARCH_PATHS = (
+					/Library/Frameworks/QtCore.framework/Versions/4/Headers,
+					/usr/include/QtCore,
+					/Library/Frameworks/QtGui.framework/Versions/4/Headers,
+					/usr/include/QtGui,
+					/usr/include,
+					.,
+					.,
+					.,
+					/usr/local/include,
+					/System/Library/Frameworks/CarbonCore.framework/Headers,
+					"/usr/local/Qt4.3/mkspecs/macx-xcode",
+				);
+				INFOPLIST_FILE = Info.plist;
+				LEXFLAGS = "";
+				LIBRARY_SEARCH_PATHS = (
+					/Library/Frameworks,
+					/System/Library/Frameworks/,
+				);
+				OTHER_CFLAGS = (
+					"-pipe",
+					"-g",
+					"-Wall",
+					"-W",
+					"-DQT_GUI_LIB",
+					"-DQT_CORE_LIB",
+					"-DQT_SHARED",
+				);
+				OTHER_CPLUSPLUSFLAGS = (
+					"-pipe",
+					"-g",
+					"-Wall",
+					"-W",
+					"-DQT_GUI_LIB",
+					"-DQT_CORE_LIB",
+					"-DQT_SHARED",
+				);
+				OTHER_LDFLAGS = (
+					"-headerpad_max_install_names",
+					"-L/Library/Frameworks",
+					"-liconv",
+					"-lz",
+					"-lm",
+				);
+				OTHER_REZFLAGS = "";
+				PREBINDING = NO;
+				PRODUCT_NAME = Zodiac;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = "";
+				YACCFLAGS = "-d";
+			};
+			name = Release;
+		};
+		B3B75E750D5217F8006C77CA /* Default */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUILD_ROOT = /Users/nicola/Desktop/Zodiac;
+				DYLIB_COMPATIBILITY_VERSION = 1.0;
+				DYLIB_CURRENT_VERSION = 1.0.0;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_2)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_1)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_2)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_3)",
+				);
+				FRAMEWORK_SEARCH_PATHS_QUOTED_1 = "\"$(SRCROOT)\"";
+				FRAMEWORK_SEARCH_PATHS_QUOTED_2 = "\"$(DEVELOPER_DIR)/SDKs/MacOSX10.5.sdk/System/Library/Frameworks\"";
+				FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(DEVELOPER_DIR)/SDKs/MacOSX10.5.sdk/System/Library/Frameworks\"";
+				FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_2 = "\"$(SRCROOT)\"";
+				FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_3 = "\"$(SRCROOT)/../wii/MacOsX/WiiRemoteFramework/build/Release\"";
+				HEADER_SEARCH_PATHS = (
+					/Library/Frameworks/QtCore.framework/Versions/4/Headers,
+					/usr/include/QtCore,
+					/Library/Frameworks/QtGui.framework/Versions/4/Headers,
+					/usr/include/QtGui,
+					/usr/include,
+					.,
+					.,
+					.,
+					/usr/local/include,
+					/System/Library/Frameworks/CarbonCore.framework/Headers,
+					"/usr/local/Qt4.3/mkspecs/macx-xcode",
+				);
+				INFOPLIST_FILE = Info.plist;
+				LEXFLAGS = "";
+				LIBRARY_SEARCH_PATHS = (
+					/Library/Frameworks,
+					/System/Library/Frameworks/,
+				);
+				OTHER_CFLAGS = (
+					"-pipe",
+					"-g",
+					"-Wall",
+					"-W",
+					"-DQT_GUI_LIB",
+					"-DQT_CORE_LIB",
+					"-DQT_SHARED",
+				);
+				OTHER_CPLUSPLUSFLAGS = (
+					"-pipe",
+					"-g",
+					"-Wall",
+					"-W",
+					"-DQT_GUI_LIB",
+					"-DQT_CORE_LIB",
+					"-DQT_SHARED",
+				);
+				OTHER_LDFLAGS = (
+					"-headerpad_max_install_names",
+					"-L/Library/Frameworks",
+					"-liconv",
+					"-lz",
+					"-lm",
+				);
+				OTHER_REZFLAGS = "";
+				PREBINDING = NO;
+				PRODUCT_NAME = Zodiac;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = "";
+				YACCFLAGS = "-d";
+			};
+			name = Default;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		2A951308CDB28F104D0A4BD2 /* Build configuration list for PBXProject "Zodiac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8DB1DD96F65B1BF1FFC506E0 /* Debug */,
+				95E1EB2E5DDD587BE5B3E548 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B3B75E790D52181F006C77CA /* Build configuration list for PBXNativeTarget "Zodiac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B3B75E730D5217F8006C77CA /* Debug */,
+				B3B75E740D5217F8006C77CA /* Release */,
+				B3B75E750D5217F8006C77CA /* Default */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Default;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 91B15E841AA80083484172DE /* Project object */;
+}

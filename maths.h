@@ -40,7 +40,7 @@ class vect : public OpenBabel::vector3 {
     inline double module () {return length ();};
     inline void trunc_at (double f) {if (module () > f) scale_to (f);}
     void multiply (double f);
-   void null ();
+    void null ();
     void normalise (); 
     void scale_to (double f);
 

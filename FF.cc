@@ -15,6 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
+
 #include "database.h"
 #include <openbabel/forcefield.h>
 #include "FF.h"
@@ -25,6 +26,7 @@
 #include <float.h>
 #define isnan _isnan
 #endif // WIN32
+
 
 
 ForceFieldInteraction::ForceFieldInteraction () {
@@ -49,13 +51,13 @@ double ForceFieldInteraction::derive (double &variable, double *function_value) 
 }*/
 
 double ForceFieldInteraction::derive (Atom *at, double *function_value) {
-    vect &v = (vect &) at -> GetVector ();
+    vect v = get_coordinates(at);
 	double ref = v.x ();
-	at -> SetVector (vect (ref-DX, v.y (), v.z ()));
+	set_coordinates (at,vect (ref-DX, v.y (), v.z ()));
     double E = value ();
-	at -> SetVector (vect (ref+DX, v.y (), v.z ()));
+	set_coordinates (at,vect (ref+DX, v.y (), v.z ()));
     double E2 = value ();
-	at -> SetVector (vect (ref, v.y (), v.z ()));
+	set_coordinates (at,vect (ref, v.y (), v.z ()));
     if (function_value) *function_value = (E2 + E) / 2.f;	
     assert (!isnan ((E2-E)/(2*DX)));
 //	cerr << "derive" << (E2-E)/(2*DX)<<endl; 
@@ -63,13 +65,13 @@ double ForceFieldInteraction::derive (Atom *at, double *function_value) {
 }
 
 double ForceFieldInteraction::derive_y (Atom *at, double *function_value) {
-    vect &v = (vect &) at -> GetVector ();
+    vect v = get_coordinates(at);
 	double ref = v.y ();
-	at -> SetVector (vect (v.x (), ref-DX, v.z ()));
+	set_coordinates (at, vect (v.x (), ref-DX, v.z ()));
     double E = value ();
-	at -> SetVector (vect (v.x (), ref+DX, v.z ()));
+	set_coordinates (at, vect (v.x (), ref+DX, v.z ()));
     double E2 = value ();
-	at -> SetVector (vect (v.x (), ref, v.z ()));
+	set_coordinates (at, vect (v.x (), ref, v.z ()));
     if (function_value) *function_value = (E2 + E) / 2.f;
     assert (!isnan ((E2-E)/(2*DX)));
 //	cerr << "derive" << (E2-E)/(2*DX)<<endl; 
@@ -77,13 +79,13 @@ double ForceFieldInteraction::derive_y (Atom *at, double *function_value) {
 }
 
 double ForceFieldInteraction::derive_z (Atom *at, double *function_value) {
-    vect &v = (vect &) at -> GetVector ();
+    vect v = get_coordinates(at);
 	double ref = v.z ();
-	at -> SetVector (vect (v.x (), v.y (), ref-DX));
+	set_coordinates (at, vect (v.x (), v.y (), ref-DX));
     double E = value ();
-	at -> SetVector (vect (v.x (), v.y (), ref+DX));
+	set_coordinates (at, vect (v.x (), v.y (), ref+DX));
     double E2 = value ();
-	at -> SetVector (vect (v.x (), v.y (), ref));
+	set_coordinates (at, vect (v.x (), v.y (), ref));
     if (function_value) *function_value = (E2 + E) / 2.f;
     assert (!isnan ((E2-E)/(2*DX)));
 //	cerr << "derive" << (E2-E)/(2*DX)<<endl; 
@@ -95,34 +97,34 @@ double ForceFieldInteraction::derive_z (Atom *at, double *function_value) {
 void ForceFieldInteraction::set_forces (bool score) {
     assert (at1);
     assert (at2);
-	vect &v1 = (vect &) at1 -> GetVector ();
-	double &x1 = v1.x();
+	vect v1 = get_coordinates (at1);
+	double x1 = v1.x();
 	//cerr << "v1" << v1 << endl;
 	//cerr << "x1" << x1 << endl;
     assert (at1 != at2);
-    vect dir = subtract ((vect&) at1 -> GetVector (), (vect&) at2 -> GetVector ());
+    vect dir = subtract (get_coordinates(at1), get_coordinates(at2));
 	if (!dir.module ()) dir = vect (1., 0., 0.);
     assert (dir.module ());
     double score_val;
     double force_x;
     force_x = derive (at1, &score_val);
     dir.multiply (force_x / dir.x());
-    vect force1 = get_force (at1);
-    vect force2 = get_force (at2);
+    vect force1 = get_back_force (at1);
+    vect force2 = get_back_force (at2);
     force2 += dir;
     force1 -= dir;
-    set_force (at1, force1);
-	set_force (at2, force2);
+    set_back_force (at1, force1);
+	set_back_force (at2, force2);
 
     if (score) {
-		double score1 = get_old_score (at1);
-		double score2 = get_old_score (at2);
+		double score1 = get_back_score (at1);
+		double score2 = get_back_score (at2);
 	//	cerr <<score1;
 		score1 += score_val;
 		score2 += score_val;
 	//	cerr << score1 << score_val<< endl;
-		set_old_score (at1, score1);
-		set_old_score (at2, score2);
+		set_back_score (at1, score1);
+		set_back_score (at2, score2);
     }
 
 }
@@ -190,7 +192,7 @@ void ForceField::initialize_internal (Molecule* mol, vector<Molecule *> envir) {
     clear ();
     load_environment (envir, mol);
     load_mol (mol);
-    load_internal_interactions ();
+    load_internal_interactions (0);
 }
 
 void ForceField::initialize_interaction (Molecule* mol, vector<Molecule *> envir) {
@@ -205,7 +207,7 @@ void ForceField::initialize (Molecule* mol, vector<Molecule *> envir) {
     clear ();
     load_environment (envir, mol);
     load_mol (mol);
-    load_internal_interactions ();
+    load_internal_interactions (0);
     load_nonbonded_interactions ();
 
 }

@@ -24,12 +24,17 @@
 #include "ddwin.h"
 #include "MMFF.h"
 
+
 #ifdef HAPTICS
 #include "haptics.h"
 #endif //HAPTICS
 
+
 int main( int argc, char **argv )
 {
+
+// wiimote_kickstart() ;
+
     QApplication a( argc, argv );
 
 #ifdef HAPTICS

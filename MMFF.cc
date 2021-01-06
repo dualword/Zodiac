@@ -56,7 +56,7 @@ float MMFFbsInteraction::value () {
     assert (at1);
     assert (at2);
     assert (at1 != at2);
-    double r = dist ((vect &) at1-> GetVector (), (vect &) at2-> GetVector ());
+    double r = dist (get_coordinates (at1), get_coordinates (at2));
     double dr = r - r0;
     double cs = -2.;
 	double out = 143.9325*kb*0.5*(dr*dr)*(1.+cs*dr+(7./12)*(cs*cs*dr*dr));
@@ -76,7 +76,7 @@ float MMFFabInteraction::value () {
     assert (at2);
     assert (at3);
     assert (at1 != at3);
-    double theta = angle ((vect &)at1-> GetVector (), (vect &)at2-> GetVector (), (vect &)at3-> GetVector ());
+    double theta = angle (get_coordinates (at1), get_coordinates (at2), get_coordinates (at3));
     double cb = -0.4*PI/180;
     double dtheta = theta - theta0;
 
@@ -89,6 +89,7 @@ float MMFFabInteraction::value () {
     }
     else {
 		double out = 0.043844*ka*0.5*dtheta*dtheta*(1+cb*dtheta);
+		assert (!isnan (out));
 	//	cout <<"ANGLE BENDINGS "<<at1->GetIdx ()<<" "<<at2->GetIdx ()<<" "<<at3->GetIdx ()<<" "<< at1->GetVector ()<<" "<<at2->GetVector ()<<" "<<at3->GetVector ()<<" "<<theta0<<" "<<theta<<" "<< out <<" "<<endl;
         return (float) out;
     }
@@ -102,9 +103,9 @@ float MMFFsbInteraction::value () {
     assert (at2);
     assert (at3);
 //	cerr <<at1 -> GetVector () << at2 -> GetVector ()<< at3 -> GetVector ()<<angle ((vect &)at1-> GetVector (), (vect &)at2-> GetVector (), (vect &)at3-> GetVector ())<<" "<<theta0<<endl;
-    double theta = angle ((vect &)at1-> GetVector (), (vect &)at2-> GetVector (), (vect &)at3-> GetVector ());
-    double rij = dist ((vect &)at1-> GetVector (), (vect &)at2-> GetVector ());
-    double rkj = dist ((vect &)at3-> GetVector (), (vect &)at2-> GetVector ());
+    double theta = angle (get_coordinates (at1), get_coordinates (at2), get_coordinates (at3));
+    double rij = dist (get_coordinates (at1), get_coordinates (at2));
+    double rkj = dist (get_coordinates (at3), get_coordinates (at2));
     double drij = rij - r0ij;
     double drkj = rkj - r0kj;
     double dtheta = theta - theta0;   
@@ -122,7 +123,7 @@ float MMFFopInteraction::value () {
     assert (at2);
     assert (at3);
     assert (at4);
-    double chi = 180.* wilson ((vect &) at1-> GetVector (), (vect &) at2-> GetVector (), (vect &) at3-> GetVector (), (vect &) at4-> GetVector ()) / PI;
+    double chi = 180.* wilson (get_coordinates (at1), get_coordinates (at2), get_coordinates (at3), get_coordinates (at4)) / PI;
   //     cout <<"OUT OF PLANE "<< opint->at1->MMFFtype<<" "<< opint->at2->MMFFtype<<" "<<opint->at3->MMFFtype<<" "<< opint->at4->MMFFtype<<" "<<chi*180/PI<<" "<<k<<" "<< 0.043844*0.5*k*chi*chi <<endl;
     double out = 0.043844*0.5*koop*chi*chi;
     assert (!isnan (out));
@@ -136,7 +137,7 @@ float MMFFtoInteraction::value () {
     assert (at2);
     assert (at3);
     assert (at4);
-    double phi = dihedral ((vect &) at1-> GetVector (), (vect &) at2-> GetVector (), (vect &) at3-> GetVector (),(vect &) at4-> GetVector ());
+    double phi = dihedral (get_coordinates (at1), get_coordinates (at2), get_coordinates (at3), get_coordinates (at4));
     phi = phi*PI/180; //cos takes rad
   //     cout <<"TORSION INTERACTIONS "<< at1->MMFFtype<<" "<< at2->MMFFtype<<" "<<at3->MMFFtype<<" "<< at4->MMFFtype<<" " <<type<<" "<< phi*180/PI<<" "<<0.5*(v1 * (1 + cos (phi)) + v2 * (1 - cos (2*phi)) + v3 * (1 + cos (3*phi)))<<" "<<v1<<" "<<v2<<" "<<v3<<endl;
     double out = 0.5*(v1 * (1.0 + cos (phi)) + v2 * (1.0 - cos (2.0*phi)) + v3 * (1.0 + cos (3.0*phi)));
@@ -151,7 +152,7 @@ float MMFFvwInteraction::value () {
     assert (at2);
     assert (at1 != at2);
     
-    double r = dist ((vect &) at1-> GetVector (), (vect &) at2-> GetVector ());
+    double r = dist (get_coordinates (at1), get_coordinates (at2));
      //  cout <<"VDW "<< at1->ID<<" "<< at2->ID<<" "<< r<<" "<<r0<<" "<<e<<" "<<e*pow((1.07*r0/(r+0.07*r0)),7)*((1.12*pow(r0,7)/(pow(r,7)+0.12*pow(r0,7)))-2)<<endl;
     double out = e*pow((1.07*r0/(r+0.07*r0)),7)*((1.12*pow(r0,7)/(pow(r,7)+0.12*pow(r0,7)))-2.);
     assert (!isnan (out));
@@ -166,7 +167,7 @@ float MMFFelInteraction::value () {
     double qi = at1-> GetPartialCharge ();
     double qj = at2-> GetPartialCharge ();
     double delta = 0.05;
-    double r = dist ((vect &) at1-> GetVector (), (vect &) at2-> GetVector ());
+    double r = dist (get_coordinates (at1), get_coordinates (at2));
   //  double D = 1.0; D assumed to be 1
    // int n = 1; n assumed to be 1
     double out = 332.0716 * qi * qj / (r + delta) * scale;
@@ -180,7 +181,7 @@ float MMFFelInteraction::value () {
 
 
 
-void MMFFabInteraction::set_forces () {
+void MMFFabInteraction::set_forces (bool score) {
     assert (at1);
     assert (at2);
     assert (at3);
@@ -198,24 +199,31 @@ void MMFFabInteraction::set_forces () {
     float force_3y = derive_y (at3);
     float force_3z = derive_z (at3);
     vect force3 (-force_3x, -force_3y, -force_3z);
+	assert (!isnan (force_1x));	assert (!isnan (force_1x));	assert (!isnan (force_1x));
+	assert (!isnan (force_1y));	assert (!isnan (force_1y));	assert (!isnan (force_1y));
+	assert (!isnan (force_1z));	assert (!isnan (force_1z));	assert (!isnan (force_1z));
+
+
 
 //	cerr << force1<<force2<<force3<<endl;
-	vect pforce1 = get_force (at1);
-    vect pforce2 = get_force (at2);
-    vect pforce3 = get_force (at3);
+	vect pforce1 = get_back_force (at1);
+    vect pforce2 = get_back_force (at2);
+    vect pforce3 = get_back_force (at3);
 	//cerr << "force was " << pforce1;
 	pforce1 = sum (pforce1, force1);
 	pforce2 = sum (pforce2, force2);
 	pforce3 = sum (pforce3, force3);
 //	cerr << " and now after "<<force1<< " is "<<pforce1<<endl;
-	set_force (at1, pforce1);
-	set_force (at2, pforce2);
-	set_force (at3, pforce3);
+
+	set_back_force (at1, pforce1);
+	set_back_force (at2, pforce2);
+	set_back_force (at3, pforce3);
+//	cerr << "AB interaction "<< pforce1<<pforce2<<pforce3<<endl;
 }
 
 
 
-void MMFFsbInteraction::set_forces () {
+void MMFFsbInteraction::set_forces (bool score) {
     assert (at1);
     assert (at2);
     assert (at3);
@@ -233,25 +241,32 @@ void MMFFsbInteraction::set_forces () {
     float force_3y = derive_y (at3);
     float force_3z = derive_z (at3);
     vect force3 (-force_3x, -force_3y, -force_3z);
+	assert (!isnan (force_1x));	assert (!isnan (force_1x));	assert (!isnan (force_1x));
+	assert (!isnan (force_1y));	assert (!isnan (force_1y));	assert (!isnan (force_1y));
+	assert (!isnan (force_1z));	assert (!isnan (force_1z));	assert (!isnan (force_1z));
+
+
 
 //	cerr << force1<<force2<<force3<<endl;
-	    vect pforce1 = get_force (at1);
-    vect pforce2 = get_force (at2);
-    vect pforce3 = get_force (at3);
+	vect pforce1 = get_back_force (at1);
+    vect pforce2 = get_back_force (at2);
+    vect pforce3 = get_back_force (at3);
 	//cerr << "force was " << pforce1;
 	pforce1 = sum (pforce1, force1);
 	pforce2 = sum (pforce2, force2);
 	pforce3 = sum (pforce3, force3);
 //	cerr << " and now after "<<force1<< " is "<<pforce1<<endl;
-	set_force (at1, pforce1);
-	set_force (at2, pforce2);
-	set_force (at3, pforce3);
+
+	set_back_force (at1, pforce1);
+	set_back_force (at2, pforce2);
+	set_back_force (at3, pforce3);
+//	cerr << "SB interaction "<< pforce1<<pforce2<<pforce3<<endl;
 }
 
 
 
 
-void MMFFopInteraction::set_forces () {
+void MMFFopInteraction::set_forces (bool score) {
 
     assert (at1);
     assert (at2);
@@ -277,23 +292,24 @@ void MMFFopInteraction::set_forces () {
     float force_4z = derive_z (at4);
     vect force4 (-force_4x, -force_4y, -force_4z);
 
-    vect pforce1 = get_force (at1);
-    vect pforce2 = get_force (at2);
-    vect pforce3 = get_force (at3);
-    vect pforce4 = get_force (at4);
+    vect pforce1 = get_back_force (at1);
+    vect pforce2 = get_back_force (at2);
+    vect pforce3 = get_back_force (at3);
+    vect pforce4 = get_back_force (at4);
 
     pforce1 += force1;
     pforce2 += force2;
     pforce3 += force3;
     pforce4 += force4;
-	set_force (at1, pforce1);
-	set_force (at2, pforce2);
-	set_force (at3, pforce3);
-	set_force (at4, pforce4); 
+
+	set_back_force (at1, pforce1);
+	set_back_force (at2, pforce2);
+	set_back_force (at3, pforce3);
+	set_back_force (at4, pforce4); 
 }
 
 
-void MMFFtoInteraction::set_forces () {
+void MMFFtoInteraction::set_forces (bool score) {
 
     assert (at1);
     assert (at2);
@@ -319,19 +335,20 @@ void MMFFtoInteraction::set_forces () {
     float force_4z = derive_z (at4);
     vect force4 (-force_4x, -force_4y, -force_4z);
 
-    vect pforce1 = get_force (at1);
-    vect pforce2 = get_force (at2);
-    vect pforce3 = get_force (at3);
-    vect pforce4 = get_force (at4);
+    vect pforce1 = get_back_force (at1);
+    vect pforce2 = get_back_force (at2);
+    vect pforce3 = get_back_force (at3);
+    vect pforce4 = get_back_force (at4);
 
     pforce1 += force1;
     pforce2 += force2;
     pforce3 += force3;
     pforce4 += force4;
-	set_force (at1, pforce1);
-	set_force (at2, pforce2);
-	set_force (at3, pforce3);
-	set_force (at4, pforce4); 
+	
+	set_back_force (at1, pforce1);
+	set_back_force (at2, pforce2);
+	set_back_force (at3, pforce3);
+	set_back_force (at4, pforce4); 
 }
 
 
@@ -1530,7 +1547,7 @@ int MMFF::get_pt_row (int an) {
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void MMFF::load_internal_interactions () {
+void MMFF::load_internal_interactions (vector <ForceFieldInteraction *> *vect = 0) {
     clear_internal_interactions ();
     Molecule *mol = target_mol;
 
@@ -1553,7 +1570,10 @@ void MMFF::load_internal_interactions () {
         int pl = get_bs_pl (bsint->type, I, J);
         bsint->kb = bsParameters[pl] -> kb;
         bsint->r0 = bsParameters[pl] -> r0;
-        bsInteractions.push_back (bsint);
+		if (vect) vect -> push_back (bsint);
+
+        else bsInteractions.push_back (bsint);
+					//				cerr << "adding BS interaction "<<endl;
         
     }
 
@@ -1592,8 +1612,10 @@ void MMFF::load_internal_interactions () {
                     abint->ka = abParameters[abpl]->ka;
                     abint->theta0 = abParameters[abpl]->theta0;                   
                     abint->linear = get_linear (get_MMFFtype (abint->at2));
-                    abInteractions.push_back (abint); 
 					
+					if (vect) vect -> push_back (abint);
+                    else abInteractions.push_back (abint);
+		
 //stretch-bend					
 					MMFFsbInteraction *sbint = new MMFFsbInteraction;
 					sbint->at1 =abint->at1;
@@ -1601,7 +1623,7 @@ void MMFF::load_internal_interactions () {
 					sbint->at3 =abint->at3;
 
 					sbint->theta0 = abint->theta0;
-
+			//		cerr << "adding AB interaction "<<endl;
 
 
 					
@@ -1632,7 +1654,9 @@ void MMFF::load_internal_interactions () {
                       
                     sbint->r0ij = bsParameters[ijbspl]->r0;
                     sbint->r0kj = bsParameters[kjbspl]->r0;
-                    sbInteractions.push_back (sbint);                     
+					
+					if (vect) vect -> push_back (sbint);
+                    else sbInteractions.push_back (sbint);                    
                 }
 				}
             }
@@ -1708,7 +1732,8 @@ void MMFF::load_internal_interactions () {
             opint->at3 = at3;
             opint->at4 = at4;
             opint->koop = koop;
-            opInteractions.push_back (opint);
+			if (vect) vect -> push_back (opint);
+			else opInteractions.push_back (opint);
             
             opint = new MMFFopInteraction;
             opint->at1 = at1;          
@@ -1716,7 +1741,8 @@ void MMFF::load_internal_interactions () {
             opint->at3 = at4;
             opint->at4 = at3;
             opint->koop = koop;
-            opInteractions.push_back (opint);
+			if (vect) vect -> push_back (opint);
+			else opInteractions.push_back (opint);
             
             opint = new MMFFopInteraction;
             opint->at1 = at3;          
@@ -1724,7 +1750,8 @@ void MMFF::load_internal_interactions () {
             opint->at3 = at4;
             opint->at4 = at1;
             opint->koop = koop;
-            opInteractions.push_back (opint);
+			if (vect) vect -> push_back (opint);
+			else opInteractions.push_back (opint);
         }
     } 
 //torsions 
@@ -1784,7 +1811,8 @@ void MMFF::load_internal_interactions () {
 		toint->v1 = V1;
 		toint->v2 = V2;
 		toint->v3 = V3;
-		toInteractions.push_back (toint);
+		if (vect) vect -> push_back (toint);
+		else toInteractions.push_back (toint);
 	
     } 
 
@@ -1821,14 +1849,16 @@ void MMFF::load_internal_interactions () {
 					vwint -> at2 = at2;
 					vwint -> e = get_vdw_e (vwint->at1, vwint->at2);
 					vwint -> r0 = get_vdw_r0 (vwint->at1, vwint->at2);
-					vwInteractions.push_back (vwint);
+					if (vect) vect -> push_back (vwint);
+					else vwInteractions.push_back (vwint);
 
 					MMFFelInteraction *elint = new MMFFelInteraction;
 					elint->at1 = at1;
 					elint->at2 = at2;
 					if (distance ==4) elint->scale = 0.75;
 					else elint->scale =1;
-					elInteractions.push_back (elint);               
+					if (vect) vect -> push_back (elint);
+					else elInteractions.push_back (elint);              
 			
 			     }  
 			}
@@ -2249,39 +2279,49 @@ void MMFF::clear_nonbonded_interactions () {
     elNBInteractions.clear ();
 }
 
+
+
+void MMFF::load_nonbonded_interactions_for_atom (Atom *a, queue <ForceFieldInteraction *> *queue = 0) {
+	objectList<Atom*>* nbAtoms = far_grid ->getNeighborObjects(get_coordinates (&*a));
+	if (nbAtoms) {
+		vector <Atom *> neighbours = nbAtoms -> objects;      
+		for (unsigned int j=0; j<neighbours.size (); j++) {
+			assert (a != neighbours[j]);
+			MMFFelInteraction *elint = new MMFFelInteraction;
+			elint -> at1   = a;
+			elint -> at2   = neighbours[j];
+			elint -> scale = 1.f;
+			if (queue) queue -> push (elint);
+			else elNBInteractions.push_back (elint);    
+		}        
+	}
+	objectList<Atom*>* nbAtoms2 = near_grid->getNeighborObjects(get_coordinates (&*a));
+	if (nbAtoms2) {
+		vector <Atom *> neighbours2 = nbAtoms2 -> objects;      
+		for (unsigned int j=0; j<neighbours2.size (); j++) {
+			assert (a != neighbours2[j]);
+			MMFFvwInteraction *vwint = new MMFFvwInteraction;
+			vwint->at1 = a;
+			vwint->at2 = neighbours2[j];
+			vwint -> e = get_vdw_e (vwint->at1, vwint->at2);
+			vwint -> r0 = get_vdw_r0 (vwint->at1, vwint->at2);
+			//        vwint->scale =1;
+			if (queue) queue -> push (vwint);
+			else vwNBInteractions.push_back (vwint);
+		}        
+	}
+}
+
+
+
+
 void MMFF::load_nonbonded_interactions () {
 
     clear_nonbonded_interactions ();
     assert (target_mol);
     Molecule *mol = target_mol;
     FOR_ATOMS_OF_MOL (a, target_mol) {
-		objectList<Atom*>* nbAtoms = far_grid->getNeighborObjects((vect &) a -> GetVector ());
-        if (nbAtoms) {
-            vector <Atom *> neighbours = nbAtoms -> objects;      
-            for (unsigned int j=0; j<neighbours.size (); j++) {
-                assert (&*a != neighbours[j]);
-                MMFFelInteraction *elint = new MMFFelInteraction;
-                elint -> at1   = &*a;
-                elint -> at2   = neighbours[j];
-                elint -> scale = 1.f;
-                elNBInteractions.push_back (elint);    
-            }        
-        }
-        objectList<Atom*>* nbAtoms2 = near_grid->getNeighborObjects((vect &) a -> GetVector ());
-        if (nbAtoms2) {
-            vector <Atom *> neighbours2 = nbAtoms2 -> objects;      
-            for (unsigned int j=0; j<neighbours2.size (); j++) {
-                assert (&*a != neighbours2[j]);
-                MMFFvwInteraction *vwint = new MMFFvwInteraction;
-                vwint->at1 = &*a;
-                vwint->at2 = neighbours2[j];
-                vwint -> e = get_vdw_e (vwint->at1, vwint->at2);
-                vwint -> r0 = get_vdw_r0 (vwint->at1, vwint->at2);
-        //        vwint->scale =1;
-                vwNBInteractions.push_back (vwint);
-   
-            }        
-        }
+		load_nonbonded_interactions_for_atom (&*a);
     }
 }
 

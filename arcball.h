@@ -438,8 +438,8 @@
 
             //Mouse drag, calculate rotation
             void    drag(const Point2fT* NewPt, Quat4fT* NewRot);
-
-        protected:
+	    void    map_vector_on_vector (Vector3fT v1, Vector3fT v2, Quat4fT *NewRot);
+  //      protected:
             Vector3fT   StVec;          //Saved click vector
             Vector3fT   EnVec;          //Saved drag vector
             GLfloat     AdjustWidth;    //Mouse bounds width

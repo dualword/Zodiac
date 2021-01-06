@@ -452,7 +452,7 @@ MoveAtomsCommand::MoveAtomsCommand (MyGl *gl_point, int mod) : Command ()
 void MoveAtomsCommand::redo () {
     if (mode != 1) {
         for (unsigned int i=0; i < target_atoms.size (); i++) {
-            target_atoms [i] -> SetVector (present_coordinates [i]);
+            set_coordinates (target_atoms [i], present_coordinates [i]);
         }
         if (redraw) {
             vector <Molecule *> drawn_mols;
@@ -477,7 +477,7 @@ void MoveAtomsCommand::redo () {
 void MoveAtomsCommand::add (Atom *at, vect coo) {
     target_atoms.push_back (at);
     previous_coordinates.push_back ( coo);
-    present_coordinates.push_back ( (vect &) at -> GetVector ());  
+    present_coordinates.push_back ( get_coordinates(at));  
     
 }
 
@@ -485,7 +485,7 @@ void MoveAtomsCommand::add (Atom *at, vect coo) {
 void MoveAtomsCommand::undo () {
     if (mode != 0) {
         for (unsigned int i=0; i < target_atoms.size (); i++) {
-            target_atoms [i] -> SetVector (previous_coordinates [i]);
+            set_coordinates (target_atoms [i] ,previous_coordinates [i]);
         }
         if (redraw) {
             vector <Molecule *> drawn_mols;

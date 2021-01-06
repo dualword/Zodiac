@@ -297,6 +297,74 @@ void multiply_quaternions (float *q1, float *q2, float *prod) {
 
 }
 
+void invert_matrix_9 (float *m, float *i) {
+    float m11, m12, m13, m21, m22, m23, m31, m32, m33;
+    m11  = m[0];
+    m12  = m[1];
+    m13  = m[2];
+    m21  = m[3];
+    m22  = m[4];
+    m23  = m[5];
+    m31  = m[6];
+    m32  = m[7];
+    m33  = m[8];
+	float det = m11*m22*m33 + m12*m23*m31 + m13*m31*m32 - m11*m23*m32 - m12*m21*m33 - m13*m22*m31;
+	if (det == 0) det = 0.0000001f;
+	i[0] = (m22*m33 - m23*m32) / det;
+	i[1] = (m13*m32 - m12*m33) / det;
+	i[2] = (m12*m23 - m13*m22) / det;
+	i[3] = (m23*m31 - m21*m33) / det;
+	i[4] = (m11*m33 - m13*m31) / det;
+	i[5] = (m13*m21 - m11*m23) / det;
+	i[6] = (m21*m32 - m22*m31) / det;
+	i[7] = (m12*m31 - m11*m32) / det;
+	i[8] = (m11*m22 - m12*m21) / det;
+
+}
+
+
+
+
+vect rotate_vector_using_matrix_9 (vect v, float *m) {
+    float m11, m12, m13, m21, m22, m23, m31, m32, m33;
+    m11  = m[0];
+    m12  = m[1];
+    m13  = m[2];
+    m21  = m[3];
+    m22  = m[4];
+    m23  = m[5];
+    m31  = m[6];
+    m32  = m[7];
+    m33  = m[8];
+    vect out;
+    out.x() = m11*v.x() + m12*v.y() + m13*v.z();
+    out.y() = m21*v.x() + m22*v.y() + m23*v.z();
+    out.z() = m31*v.x() + m32*v.y() + m33*v.z();
+    return out;
+}
+
+
+vect rotate_vector_using_matrix_16 (vect v, float *m) {
+    float m11, m12, m13, m21, m22, m23, m31, m32, m33, w, x, y, z;
+    m11  = m[0];
+    m12  = m[1];
+    m13  = m[2];
+    m21  = m[4];
+    m22  = m[5];
+    m23  = m[6];
+    m31  = m[7];
+    m32  = m[8];
+    m33  = m[9];
+    vect out;
+    out.x() = m11*v.x() + m12*v.y() + m13*v.z();
+    out.y() = m21*v.x() + m22*v.y() + m23*v.z();
+    out.z() = m31*v.x() + m32*v.y() + m33*v.z();
+    return out;
+}
+
+
+
+
 vect rotate_vector_using_quaternion (vect v, float *q) {
     float m11, m12, m13, m21, m22, m23, m31, m32, m33, w, x, y, z;
     w = q[0];

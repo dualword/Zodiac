@@ -146,9 +146,11 @@ GLUquadricObj *quadratic;
 
 
 DDWin::DDWin (QWidget *parent, Data *dat)
-   :    QMainWindow (parent)
+:    QMainWindow (parent), g_stencil_mask(0), g_stencil_mask_needs_redraw(false), g_stencil_mask_frame_counter(0),
+g_stereoMode(StereoMode_None)
 {
-        setAcceptDrops(true) ; 
+    setAcceptDrops(true) ; 
+	last_visited_dir = "";
 	edit_lock_counter = 0;
     setMinimumWidth (400);
     dat->set_ddwin (this);
@@ -172,11 +174,6 @@ DDWin::DDWin (QWidget *parent, Data *dat)
     undo_view = new QUndoView ();
     undo_view -> setStack (data -> undo_stack);
 
-
-
-
-
-	g_stereoAvailable = false;
 
         Molecule *all = new Molecule;
         assert (all);
@@ -234,6 +231,8 @@ void DDWin::raytraced_screenshot_slot () {
 }
 
 
+void DDWin::emit_targets_updated () {targets_updated ();}
+
 string DDWin::write_mol2_string (Molecule *mol) {
     return "not implemented";
 
@@ -272,15 +271,19 @@ void DDWin::open_file_slot () {
 
 
     QString mol_name = QFileDialog::getOpenFileName(this, 
-                    tr ("Open file"), "",tr("All Files (*)"));
-
-    load_file (mol_name.toStdString());
+                    tr ("Open file"), last_visited_dir, tr("All Files (*)"));
+	if (!mol_name.isEmpty ()) {
+		last_visited_dir = QDir (mol_name).path ();
+		load_file (mol_name.toStdString());
+	}
 }
 
 void DDWin::set_lists (Molecule *mol) {
     int bl1, bl2, ll, sl;
+	int zero = gl ->new_list (); 
+
     bl1 = gl->new_list ();
-    bl2 = gl->new_list ();
+	bl2 = gl->new_list ();
     ll = gl->new_list ();
     sl = gl->new_list ();
 
@@ -389,8 +392,7 @@ void DDWin::deselect () {
         cerr << "deselect2" << endl;
             target->removeItem (s-1-i);
             molecules.erase (molecules.begin ()+s-1-i);
-     //       gl->draw_molecule (sel);
-            delete sel; 
+     //       delete sel; cannot use this because OBMol distructor would delete all atoms in sel
 
 
         }
@@ -419,6 +421,7 @@ void DDWin::add_molecule (Molecule *mol) {
     set_lists (mol);
     molecules.push_back (mol);
     target->insertItem (1000, QString( mol->GetTitle ()));
+	targets_updated ();
 }
 
 
@@ -472,8 +475,11 @@ void DDWin::create_menu_actions () {
     connect (historyAct, SIGNAL (triggered ()), this, SLOT (history_slot ()));
 
 
+   wiimoteAct = new QAction (tr("Connect Wiimote for head tracking"), this);
+   connect (wiimoteAct, SIGNAL (triggered ()), this, SLOT (wiimote_slot ()));
 
-
+   wiimote2Act = new QAction (tr("Connect Wiimote for 3D input"), this);
+   connect (wiimote2Act, SIGNAL (triggered ()), this, SLOT (wiimote2_slot ()));
 
     hideHAct = new QAction (tr("Hide Hydrogens"), this);
     connect (hideHAct, SIGNAL (triggered ()), this, SLOT (hide_hydrogens_slot ()));
@@ -579,6 +585,9 @@ void DDWin::draw_menu (){
 
     edit -> addAction (historyAct);
 
+  //  edit -> addAction (wiimoteAct);
+  //  edit -> addAction (wiimote2Act);
+
     QMenu *show = new QMenu(tr("&Show"), this );
     Q_CHECK_PTR( show );
     show -> addAction (hideHAct);
@@ -637,6 +646,7 @@ void DDWin::draw_menu (){
     target->move (400,0);
     target->setMinimumWidth (400);
     target->insertItem(0, "All" );
+	targets_updated ();
 
     QToolBar *toolbar = new QToolBar ();
     addToolBar (toolbar);
@@ -661,6 +671,7 @@ void DDWin::delete_molecule (Molecule *mol) {
             target->removeItem (i);
             molecules.erase (molecules.begin ()+i);
             set_current_target (0);
+			targets_updated ();
             delete mol;
             gl->updateGL ();
             break;
@@ -1221,14 +1232,14 @@ void DDWin::dropEvent(QDropEvent *event)
 {
 // cout << "drop event" << endl;   
     if (event->mimeData()->hasUrls()) {
-		cerr << "text" << endl;
         QList<QUrl> urlList = event->mimeData ()->urls();
         for (int i = 0; i < urlList.size()/* && i < 32*/; ++i) {
-            QString url = urlList.at(i).path();
+            QString url = urlList.at(i).toLocalFile ();
+			last_visited_dir = QDir (url).path ();
             load_file (url.toStdString ());
         }
 	}
-	else cerr << "no text" << endl;
+
 
     event->acceptProposedAction(); 
 }
@@ -1261,6 +1272,17 @@ void DDWin::history_slot () {
 }
 
 
+void DDWin::wiimote_slot () {
+    HeadTrackingThread *thread = new HeadTrackingThread (0, this);
+    thread -> start ();	
+}
+
+void DDWin::wiimote2_slot () {
+    WiimoteTrackingThread *thread = new WiimoteTrackingThread (0, this);
+    thread -> start ();	
+}
+
+
 void DDWin::DD_settings_slot () {
     DDsettings_menu->show ();
     DDsettings_menu->raise ();
@@ -1276,9 +1298,9 @@ void DDWin::display_settings_slot () {
 void DDWin::about_slot ()
 {
     QMessageBox::about( this, "About Zodiac" ,
-			QString(("ZODIAC. Version "+VERSION+ "\n"
+			QString(("ZODIAC. I feel good! Version "+VERSION+ "\n"
 			"Code by Nicola Zonta. All rights reserved.\n"
-			"For bug reports, suggestions or any other feedback please email me at zontan@cf.ac.uk\n\n").c_str()) );
+			"For bug reports, suggestions or any other feedback please visit our website at www.zeden.org or email me at zontan@cf.ac.uk\n\n").c_str()) );
 }
 
 
@@ -1423,8 +1445,8 @@ MyGl::MyGl (DDWin *parent)
 }
 
 void MyGl::init_vars (){
-
-
+   
+    needs_GL_update = false;
     next_list = 0;
 
 
@@ -1466,6 +1488,9 @@ void MyGl::init_vars (){
     stereo_inter_eye_semi_distance = 0.2f;
 
 
+    head_tracking_x_position = 0.f;
+    head_tracking_y_position = 0.f;
+
     center_of_rotation = vect ();
     center_of_view = vect ();
 
@@ -1474,6 +1499,11 @@ void MyGl::init_vars (){
     tbeginy = 0.0f;
 
 
+	up_point = vect (0., 1., 0.);
+	down_point = vect (0., -1., 0.);
+	left_point = vect (-1., 0., 0.);
+	right_point = vect (1., 0., 0.);
+	
     zoom = false; translate = false; rotate = false; select = false; move = false; spin = false; selection_square = false; magic_pencil = false;
     clicked_atom = new Atom;
 
@@ -1485,9 +1515,20 @@ void MyGl::init_vars (){
     Transform.M[8] = 0.0f; Transform.M[9] = 0.0f; Transform.M[10] = 1.0f; Transform.M[11] = 0.0f;
     Transform.M[12] = 0.0f; Transform.M[13] = 0.0f; Transform.M[14] = 0.0f; Transform.M[15] = 1.0f;
 
+    Head_Tracking_Transf.M[0] = 1.0f; Head_Tracking_Transf.M[1] = 0.0f; Head_Tracking_Transf.M[2] = 0.0f; Head_Tracking_Transf.M[3] = 0.0f;
+    Head_Tracking_Transf.M[4] = 0.0f; Head_Tracking_Transf.M[5] = 1.0f; Head_Tracking_Transf.M[6] = 0.0f; Head_Tracking_Transf.M[7] = 0.0f;
+    Head_Tracking_Transf.M[8] = 0.0f; Head_Tracking_Transf.M[9] = 0.0f; Head_Tracking_Transf.M[10] = 1.0f; Head_Tracking_Transf.M[11] = 0.0f;
+    Head_Tracking_Transf.M[12] = 0.0f; Head_Tracking_Transf.M[13] = 0.0f; Head_Tracking_Transf.M[14] = 0.0f; Head_Tracking_Transf.M[15] = 1.0f;
+
     LastRot.M[0] = 1.0f; LastRot.M[1] = 0.0f; LastRot.M[2] = 0.0f;
     LastRot.M[3] = 0.0f; LastRot.M[4] = 1.0f; LastRot.M[5] = 0.0f;
     LastRot.M[6] = 0.0f; LastRot.M[7] = 0.0f; LastRot.M[8] = 1.0f;
+
+ //   Last_Head_Tracking_Rot.M[0] = 1.0f; Last_Head_Tracking_Rot.M[1] = 0.0f; Last_Head_Tracking_Rot.M[2] = 0.0f;
+ //   Last_Head_Tracking_Rot.M[3] = 0.0f; Last_Head_Tracking_Rot.M[4] = 1.0f; Last_Head_Tracking_Rot.M[5] = 0.0f;
+ //   Last_Head_Tracking_Rot.M[6] = 0.0f; Last_Head_Tracking_Rot.M[7] = 0.0f; Last_Head_Tracking_Rot.M[8] = 1.0f;
+
+
 
 
     ThisRot.M[0] = 1.0f; ThisRot.M[1] = 0.0f; ThisRot.M[2] = 0.0f;
@@ -1543,9 +1584,7 @@ void MyGl::move_molecule (Molecule *mol, float x, float y, float z, bool cut_boo
         }
     }
     FOR_ATOMS_OF_MOL(a, mol) {
-        vect& coor = (vect&) a -> GetVector ();
-        coor += v;
-        a -> SetVector (coor);
+        sum_to_coordinates(&*a, v);
     }
 }
 
@@ -1553,7 +1592,18 @@ void MyGl::initializeGL ()
 {
 	GLboolean stereo;
 	glGetBooleanv(GL_STEREO, &stereo);
-	ddwin -> g_stereoAvailable = stereo;
+
+    // IJG: Needs to be populated from a tick box in the GUI!!!
+    ddwin -> g_stereoMode = DDWin::StereoMode_None;
+
+    // Should we automatically select stereo mode if we discovery stereo
+    // is in use?
+#if 0
+    if (stereo)
+    {
+        ddwin->g_stereoMode = DDWin::StereoMode_ViaOpenGL;
+    }
+#endif
 
 
   //  glEnable( GL_CULL_FACE );
@@ -1565,8 +1615,8 @@ void MyGl::initializeGL ()
 	glClearDepth (1.0f);											// Depth Buffer Setup
 	glDepthFunc (GL_LEQUAL);										// The Type Of Depth Testing (Less || Equal)
 
-  //  g_stereoAvailable = GL_TRUE;    
-	if (ddwin ->g_stereoAvailable) {glEnable (GL_STEREO); cerr <<"stereo enabled"<<endl;}
+  //  g_openGlStereoAvailable = GL_TRUE;    
+    if (ddwin->g_stereoMode == DDWin::StereoMode_ViaOpenGL) {glEnable (GL_STEREO); cerr <<"stereo enabled"<<endl;}
 
 	glEnable (GL_DEPTH_TEST);										// Enable Depth Testing
 										// Select Flat Shading (Nice Definition Of Objects)
@@ -1583,8 +1633,8 @@ void MyGl::initializeGL ()
     glEnable(GL_POINT_SMOOTH);                                       //antialiasing
     glEnable(GL_LINE_SMOOTH);
 	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-    glEnable(GL_POLYGON_SMOOTH);                                      
-	glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+//    glEnable(GL_POLYGON_SMOOTH);                                      
+//	glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
 	
 	glShadeModel(GL_SMOOTH);	
     glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 100);
@@ -1603,7 +1653,6 @@ void MyGl::initializeGL ()
  //   glFogf(GL_FOG_START, fog_begin);			
  //   glFogf(GL_FOG_END, 10000.0f);				
    // glEnable(GL_FOG);				
-
 
 }
 /*
@@ -1675,12 +1724,22 @@ void MyGl::paintGL () {
     GLdouble farx, fary, farz;
     GLdouble nearx, neary, nearz;
     GLdouble frontx, fronty, frontz;
+	GLdouble rightx, righty, rightz, upx, upy, upz, downx, downy, downz, leftx, lefty, leftz;
     GLint viewport [4];
     GLdouble model [16];
     GLdouble proj [16]; 
     glGetIntegerv(GL_VIEWPORT, viewport);
     glGetDoublev(GL_MODELVIEW_MATRIX, model);
     glGetDoublev(GL_PROJECTION_MATRIX, proj);
+
+				
+    double centerz = 0.995;
+	
+
+    gluUnProject (viewport[2]/2, viewport[3], centerz, model, proj, viewport, &upx, &upy, &upz);
+    gluUnProject (viewport[2], viewport[3]/2, centerz, model, proj, viewport, &rightx, &righty, &rightz);
+    gluUnProject (viewport[2]/2, 0, centerz, model, proj, viewport, &downx, &downy, &downz);
+    gluUnProject (0, viewport[3]/2, centerz, model, proj, viewport, &leftx, &lefty, &leftz);
 
     gluUnProject (viewport[2]/2, viewport[3]/2, 1, model, proj, viewport, &farx, &fary, &farz);
     gluUnProject (viewport[2]/2, viewport[3]/2, 0, model, proj, viewport, &nearx, &neary, &nearz);
@@ -1690,11 +1749,16 @@ void MyGl::paintGL () {
     frontz = (nearz-farz)/modfront;
 
 
-
-
+	up_point = vect (upx, upy, upz);
+	down_point = vect (downx, downy, downz);
+	left_point = vect (leftx, lefty, leftz);
+	right_point = vect (rightx, righty, rightz);
+	
+	
+	
 	int numFrameBuffers = 1;
 
-	if (ddwin -> g_stereoAvailable)
+    if (ddwin->g_stereoMode != DDWin::StereoMode_None)
 	{
 		numFrameBuffers = 2;
 	}
@@ -1702,7 +1766,7 @@ void MyGl::paintGL () {
 
 	for (int frameBuffer = 0; frameBuffer < numFrameBuffers; frameBuffer++)
 	{
-		if (ddwin -> g_stereoAvailable)
+		if (ddwin->g_stereoMode == DDWin::StereoMode_ViaOpenGL)
 		{
 			if (frameBuffer == 0)
 			{
@@ -1717,8 +1781,56 @@ void MyGl::paintGL () {
 		{
 			glDrawBuffer(GL_BACK);
 		}
+
+        // IJG
+        if( ddwin->g_stereoMode == DDWin::StereoMode_VerticalInterlace ||
+            ddwin->g_stereoMode == DDWin::StereoMode_HorizontalInterlace ) 
+        {
+            ddwin->g_stencil_mask_frame_counter++;
+
+#if 0
+			// Occasionally force a redraw... we never know if (eg) someone else
+            // has nuked the stencil buffer...
+            if ((ddwin->g_stencil_mask_frame_counter % 20) == 0)
+            {
+                ddwin->g_stencil_mask_needs_redraw = true;
+            }
+#endif
+
+            if (ddwin->g_stencil_mask_needs_redraw)
+            {
+                ddwin->g_stencil_mask_needs_redraw = false;
+
+                glDrawPixels( ddwin->g_stencil_mask_width, ddwin->g_stencil_mask_height, 
+                              GL_STENCIL_INDEX, GL_UNSIGNED_BYTE, ddwin->g_stencil_mask );
+            }
+
+            // render only every second line
+            glEnable(GL_STENCIL_TEST);
+
+            if (frameBuffer == 0)
+            {
+                // Only screen clear prior to first render - we need to merge both images,
+                // so they're rendered to the same buffer.
+        		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
+
+                glStencilFunc(GL_EQUAL, 1, 1);
+            }
+            else
+            {
+                glStencilFunc(GL_NOTEQUAL, 1, 1);
+            }
+
+            glStencilOp(GL_KEEP,GL_KEEP,GL_KEEP);
+        }
+        else
+        {
+            glDisable(GL_STENCIL_TEST);
+
+            // Normal stereo mode or mono mode requires a screen clear before each render
+    		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
+        }
 	
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
 
 		glDisable (GL_LIGHTING);
 		glColor4f (0.5,0.,0.5, 1.);
@@ -1736,13 +1848,25 @@ void MyGl::paintGL () {
 								
         matrix_transformations (true, frameBuffer);
 
+        // IJG
+#if 0
+        if( mirror_in_y ) 
+        {
+            glScalef( 1, -1, 1 );
+            glFrontFace( GL_CW );
+        } 
+        else 
+        {
+            glFrontFace( GL_CCW );
+        }
+#endif // 0
 
 		for (unsigned int i =1; i<ddwin->molecules.size(); i++) {
 			if (!ddwin->molecules[i]->selection) {  //selections are not drawn
                 GLdouble cx, cy, cz;
 			    gluProject (ddwin -> molecules[i] -> center.x(), ddwin -> molecules[i] -> center.y(), ddwin -> molecules[i] -> center.z(),model, proj, viewport,&cx, &cy, &cz);
  
-                glFogf(GL_FOG_START, cz);			
+            //    glFogf(GL_FOG_START, cz);			
             //    glFogf(GL_FOG_END, cz+0.000002);
          //       GLfloat f;
           //      glGetFloatv (GL_FOG_START, &f);
@@ -1766,15 +1890,7 @@ void MyGl::paintGL () {
                     FOR_ATOMS_OF_MOL(at, ddwin -> molecules[i]) {
 						glColor4f (0.,0.,0.,1.);
 						stringstream ss, ss2;
-			//			ss<<at->MMFFtype;
-		//				ss2<<at->ID+1<<" "<<at->GetPartialCharge ();
-	/*
-						renderText(
-							at-> GetVector ().x()+frontx*0.5,
-							at-> GetVector ().y()+fronty*0.5,
-	//						at-> GetVector ().z()+frontz*0.5, 
-							at->MMFFstring+" "+ss.str()+" "+ss2.str());    
-	*/
+
 					}
 				}
 			}
@@ -1782,7 +1898,7 @@ void MyGl::paintGL () {
 
 		for (unsigned int i =0; i<ddwin->graphical_objects.size(); i++) {
 			if (ddwin->graphical_objects[i]->mesh) glDisable (GL_LIGHTING);
-			glCallList (ddwin->graphical_objects[i]->list);
+			glCallList (ddwin->graphical_objects[i]->lst);
 			glEnable(GL_LIGHTING);
 		}
 		// SELECTION SQUARE
@@ -1819,7 +1935,8 @@ void MyGl::paintGL () {
 			Atom *last = ddwin->builder->last_magic_pencil_atom;
 			glDisable (GL_LIGHTING);
 			GLdouble lx, ly, lz, lax, lay, laz, lxx, lyy, lzz;
-			gluProject (last-> GetVector ().x(), last-> GetVector ().y(), last-> GetVector ().z(),model, proj, viewport,&lax, &lay, &laz);
+			vect v = get_coordinates(last);
+			gluProject (v.x(), v.y(), v.z(),model, proj, viewport,&lax, &lay, &laz);
 			gluUnProject (lax, lay, 0, model, proj, viewport, &lxx, &lyy, &lzz);
 			gluUnProject (lastx, viewport[3]-lasty, 0, model, proj, viewport, &lx, &ly, &lz);
             set_color (select_color);
@@ -1839,12 +1956,67 @@ void MyGl::paintGL () {
 	}
 	glFlush ();				
 
+	needs_GL_update = false;
+}
 
+void MyGl::refreshStencilBuffer()
+{
+    // IJG
+    if ( (ddwin->g_stereoMode == DDWin::StereoMode_HorizontalInterlace) 
+        || (ddwin->g_stereoMode == DDWin::StereoMode_VerticalInterlace) ) //this line read horizontal as well 
+    {
+        // build up stencil buffer
+        int wp2 = width();
+        // width needs to be a power of 2 because of how glDrawPixels work.
+        // The extra values will be ignored.
+        wp2 += 4 - (width() % 4);
+        int h = height();
+
+        // Only release the memory if it needs to be reallocated...
+        if ( (ddwin->g_stencil_mask_width != wp2)
+            || (ddwin->g_stencil_mask_height != h) )
+        {
+            if ( ddwin -> g_stencil_mask ) 
+            {
+                free( ddwin -> g_stencil_mask );
+            }
+
+            ddwin -> g_stencil_mask = (unsigned char *) malloc( wp2*h );
+            ddwin -> g_stencil_mask_width = wp2;
+            ddwin -> g_stencil_mask_height = h;
+        }
+
+        // Always redraw the stencil contents just in case...
+        // we may be the same size window, but could be a different
+        // interlace from before.
+        if ( ddwin -> g_stereoMode == DDWin::StereoMode_HorizontalInterlace ) 
+        {
+            for( int i = 0; i < h; i++ )
+                for( int j = 0; j < wp2; j++ )
+                    ddwin -> g_stencil_mask[i*wp2+j]=(i+1)%2;
+        } 
+        else if ( ddwin -> g_stereoMode == DDWin::StereoMode_VerticalInterlace ) 
+        {
+            for( int i = 0; i < h; i++ )
+                for( int j = 0; j < wp2; j++ )
+                    ddwin -> g_stencil_mask[i*wp2+j]=(j+1)%2;
+        }
+
+        ddwin->g_stencil_mask_needs_redraw = true;
+    }
+    else
+    {
+        // Don't need a stencil, so release the memory
+        if( ddwin -> g_stencil_mask )
+		{
+			free( ddwin -> g_stencil_mask );
+			ddwin -> g_stencil_mask = 0;
+		}
+    }
 }
 
 void MyGl::resizeGL( int width, int height )
 {
-
     GLfloat w = (float) width / (float) height;
 
   //  cout<<"Viewport resized to "<<width<<" "<<height<<endl;
@@ -1856,68 +2028,62 @@ void MyGl::resizeGL( int width, int height )
 //    glFrustum( -w, w, -h, h, 1.0, 10000.0 );
     ArcBall.setBounds(width, height);
 
+    refreshStencilBuffer();
 }
-
-
-
-
 
 void MyGl::matrix_transformations (bool stereo, int frameBuffer) {
 
 
-
-
-    GLdouble model [16]; 
-    glGetDoublev(GL_MODELVIEW_MATRIX, model);
-
-  //  float xx, yy, zz;
-  //  xx = center_of_view.x() - center_of_rotation.x();
- //   yy = center_of_view.y() - center_of_rotation.y();
-//    zz = center_of_view.z() - center_of_rotation.z();
-
- //   float rx = xx*model[0] + yy*model[4] + zz*model[8] + model[12];
- //   float ry = xx*model[1] + yy*model[5] + zz*model[9] + model[13];
-//    float rz = xx*model[2] + yy*model[6] + zz*model[10] + model[14];
-
-	    	
-//		glTranslatef(center_of_view.x(), center_of_view.y(), center_of_view.z() - 15);	
-//		glTranslatef(center_of_rotation.x(), center_of_rotation.y(), center_of_rotation.z());
-
-//glTranslatef(rx, ry, rz);
-
-		if (ddwin -> g_stereoAvailable && stereo)
+    if ((ddwin->g_stereoMode != DDWin::StereoMode_None) && stereo)
+	{
+		if (frameBuffer == 0)
 		{
-			if (frameBuffer == 0)
-			{
-                glRotatef (+stereo_toe_in_angle, 0.f, 1.f, 0.f); 
-				glTranslatef(-stereo_inter_eye_semi_distance, 0.0f, 0.0f);
-			}
-			else
-			{
-                glRotatef (-stereo_toe_in_angle, 0.f, 1.f, 0.f);
-				glTranslatef(+stereo_inter_eye_semi_distance, 0.0f, 0.0f);
-			}
+            glRotatef (+stereo_toe_in_angle, 0.f, 1.f, 0.f); 
+			glTranslatef(-stereo_inter_eye_semi_distance, 0.0f, 0.0f);
 		}
+		else
+		{
+            glRotatef (-stereo_toe_in_angle, 0.f, 1.f, 0.f);
+			glTranslatef(+stereo_inter_eye_semi_distance, 0.0f, 0.0f);
+		}
+	}
 
- /*   float xx = center_of_view.x() - center_of_rotation.x();
-    float yy = center_of_view.y() - center_of_rotation.y();
-    float zz = center_of_view.z() - center_of_rotation.z();
 
-    float rx = xx*model[0] + yy*model[4] + zz*model[8] + model[12];
-    float ry = xx*model[1] + yy*model[5] + zz*model[9] + model[13];
-    float rz = xx*model[2] + yy*model[6] + zz*model[10] + model[14];
-*/
+
+	glMultMatrixf(Head_Tracking_Transf.M);
+        glTranslatef (head_tracking_x_position, -head_tracking_y_position, 0.f);
+
+
+
 
         Transform.M[12] = center_of_view.x() -center_of_rotation.x();
         Transform.M[13] = center_of_view.y()-center_of_rotation.y();
         Transform.M[14] = center_of_view.z()-15-center_of_rotation.z();
 
-		glMultMatrixf(Transform.M);
+	glMultMatrixf(Transform.M);
 
+
+    GLint viewport [4];
+    GLdouble model [16];
+    GLdouble proj [16]; 
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    glGetDoublev(GL_MODELVIEW_MATRIX, model);
+    glGetDoublev(GL_PROJECTION_MATRIX, proj);
+    GLdouble xxu, yyu, zzu, xxc, yyc, zzc, xxr, yyr, zzr;
+    gluUnProject (viewport[2]/2, viewport[3], 0, model, proj, viewport, &xxu, &yyu, &zzu);
+    gluUnProject (viewport[2]/2, viewport[3]/2, 0, model, proj, viewport, &xxc, &yyc, &zzc);
+    gluUnProject (viewport[2], viewport[3]/2, 0, model, proj, viewport, &xxr, &yyr, &zzr);
+
+
+    float newyx = xxu - xxc; 
+    float newyy = yyu - yyc;
+    float newyz = zzu - zzc;
+
+    float newxx = xxr - xxc; 
+    float newxy = yyr - yyc;
+    float newxz = zzr - zzc;
 
 		glTranslatef(-center_of_rotation.x(),-center_of_rotation.y(),-center_of_rotation.z());
-
-
 
 
 }
@@ -2114,7 +2280,8 @@ void MyGl::end_magic_pencil (float x, float y) {
                 if (ddwin->builder->last_magic_pencil_atom) {
                     GLdouble lx, ly, lz;
                     Atom *last = ddwin->builder->last_magic_pencil_atom;
-                    gluProject (last-> GetVector ().x(), last-> GetVector ().y(), last-> GetVector ().z(),model, proj, viewport,&lx, &ly, &lz);
+					vect v = get_coordinates(last);
+                    gluProject (v.x(), v.y(), v.z(),model, proj, viewport,&lx, &ly, &lz);
                     gluUnProject (x, viewport[3]-y, lz, model, proj, viewport, &xx, &yy, &zz);
                     Atom *at;
                     vect coord (xx, yy, zz);
@@ -2357,7 +2524,7 @@ void MyGl::continue_spin (float x, float y )
     vect axis (axisx, axisy, axisz);
 
     FOR_ATOMS_OF_MOL(a, ddwin -> target_molecule) {
-        vect &v = (vect &) a -> GetVector ();
+        vect v = get_coordinates (&*a);
         rotate_around_vector (v, axis, ddwin->target_molecule->center, spin);
     }
     draw_molecule (ddwin->target_molecule);
@@ -2455,7 +2622,8 @@ void MyGl::select_square () {
         cerr << hits << endl;
         Selection *sel = new Selection ();
         ddwin->molecules.push_back (sel);
-        ddwin->target->insertItem (1000, QString(sel -> GetTitle ()));    
+        ddwin->target->insertItem (1000, QString(sel -> GetTitle ())); 
+		ddwin-> emit_targets_updated ();   
         ddwin->set_current_target (-1);
         for (unsigned int i=0; i<hits; i++) {
             Atom * at = mol -> GetAtom (buffer[i*4+3]); 
@@ -2473,7 +2641,7 @@ void MyGl::select_square () {
 
     }
     cerr << "draw mol "<< mol -> GetTitle ()<<endl;
-//    draw_molecule (mol);
+    draw_molecule (mol);
     cerr << "finished draw mol "<< mol -> GetTitle ()<<endl;
     cerr << "select 3"<<endl;
     delete[] buffer;
@@ -2773,22 +2941,31 @@ void MyGl::draw_ring_stick (Ring* ring) {
 void MyGl::draw_bond_line (Bond* bond)
 {
     glBegin(GL_LINES);
-    setAtomColor(bond->GetBeginAtom ());
-    glVertex3d(bond->GetBeginAtom ()-> GetVector ().x(), bond->GetBeginAtom ()-> GetVector ().y(), bond->GetBeginAtom ()-> GetVector ().z());
-    setAtomColor(bond->GetEndAtom ());
-    glVertex3d(bond->GetEndAtom ()-> GetVector ().x(), bond->GetEndAtom ()-> GetVector ().y() ,bond->GetEndAtom ()-> GetVector ().z());
+	Atom *at1 = bond->GetBeginAtom ();
+	Atom *at2 = bond ->GetEndAtom ();
+	vect v1 = get_coordinates (at1);
+	vect v2 = get_coordinates (at2);
+    setAtomColor(at1);
+    glVertex3d(v1.x(), v1.y(), v1.z());
+    setAtomColor(at2);
+    glVertex3d(v2.x(), v2.y(), v2.z());
     glEnd();
 }
 
 void MyGl::draw_aromatic_bond_line (Bond* bond) {
     float d=0.08f;
     glBegin(GL_LINES);
-    setAtomColor(bond->GetBeginAtom ());
-    glVertex3f(bond->GetBeginAtom ()-> GetVector ().x(), bond->GetBeginAtom ()-> GetVector ().y(), bond->GetBeginAtom ()-> GetVector ().z());
-    setAtomColor(bond->GetEndAtom ());
-    glVertex3f(bond->GetEndAtom ()-> GetVector ().x(), bond->GetEndAtom ()-> GetVector ().y(), bond->GetEndAtom ()-> GetVector ().z());
+	Atom *at1 = bond->GetBeginAtom ();
+	Atom *at2 = bond ->GetEndAtom ();
+	vect v1 = get_coordinates (at1);
+	vect v2 = get_coordinates (at2);
+    setAtomColor(at1);
+    glVertex3d(v1.x(), v1.y(), v1.z());
+    setAtomColor(at2);
+    glVertex3d(v2.x(), v2.y(), v2.z());
     glEnd();
-
+	
+	
 /*    if (bond->hasCoplanar0) {
         Atom *at0 = bond-> GetBeginAtom ();
         Atom *co0 =bond->coplanarAtom0;
@@ -2945,8 +3122,8 @@ void MyGl::draw_bond_stick(Bond* bond)
     float angle, height, mod_of_vector;
     Atom *at1 = bond -> GetBeginAtom ();
     Atom *at2 = bond -> GetEndAtom ();
-    vect at1c = (vect&) at1 -> GetVector ();
-    vect at2c = (vect&) at2 -> GetVector ();
+    vect at1c = get_coordinates(at1);
+    vect at2c = get_coordinates (at2);
 
 
 
@@ -3186,10 +3363,10 @@ void MyGl::draw_aromatic_bond_stick (Bond* bond) {
 void MyGl::draw_atom_sphere(Atom* atom) {
 
     glColorMaterial (GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-  
+	vect v = get_coordinates(atom);
     setAtomColor(atom);
     glPushMatrix ();
-    glTranslatef (atom-> GetVector ().x(), atom-> GetVector ().y(), atom-> GetVector ().z());
+    glTranslatef (v.x(), v.y(), v.z());
   //  my_sphere (sphere_radius,2*sphere_precision,sphere_precision, atom);
     gluSphere (quadratic,sphere_radius,sphere_precision,sphere_precision);
     glPopMatrix ();
@@ -3197,12 +3374,12 @@ void MyGl::draw_atom_sphere(Atom* atom) {
 }
 
 void MyGl::draw_atom_sel_sphere(Atom* atom) {
-
+	vect v = get_coordinates(atom);
  //   glColorMaterial (GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
   
  //   setAtomColor(atom);
     glPushMatrix ();
-    glTranslatef (atom-> GetVector ().x(), atom-> GetVector ().y(), atom-> GetVector ().z());
+    glTranslatef (v.x(), v.y(), v.z());
     gluSphere (quadratic,sphere_radius,6,6);
     glPopMatrix ();
 
@@ -3210,12 +3387,12 @@ void MyGl::draw_atom_sel_sphere(Atom* atom) {
 
 
 void MyGl::draw_atom_vdw_sphere(Atom* atom) {
-
+	vect v = get_coordinates(atom);
     glColorMaterial (GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
   
     setAtomColor(atom);
     glPushMatrix ();
-    glTranslatef (atom-> GetVector ().x(), atom-> GetVector ().y(), atom-> GetVector ().z());
+    glTranslatef (v.x(), v.y(), v.z());
     double vdw = etab.GetVdwRad (atom -> GetAtomicNum ());
     gluSphere (quadratic, vdw, vdw_precision, vdw_precision);
     glPopMatrix ();
@@ -3223,12 +3400,12 @@ void MyGl::draw_atom_vdw_sphere(Atom* atom) {
 }
 
 void MyGl::draw_atom_scaled_vdw_sphere(Atom* atom) {
-
+	vect v = get_coordinates(atom);
     glColorMaterial (GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
   
     setAtomColor(atom);
     glPushMatrix ();
-    glTranslatef (atom-> GetVector ().x(), atom-> GetVector ().y(), atom-> GetVector ().z());
+    glTranslatef (v.x(), v.y(), v.z());
    // my_sphere (atom->vdw*vdw_scale,sphere_precision,sphere_precision, atom);
     double vdw = etab.GetVdwRad (atom -> GetAtomicNum ());
     gluSphere (quadratic, vdw*vdw_scale,sphere_precision,sphere_precision);
@@ -3341,6 +3518,19 @@ void MyGl::draw_list (Selection* sel) {
     for (unsigned int i=0; i < sel->molecules.size (); i++) {
         draw_list (sel->molecules[i]);
     }
+}
+
+void MyGl::draw_backbone_list (Molecule *mol) {
+	glNewList(mol->backbone_list1,GL_COMPILE);
+	FOR_RESIDUES_OF_MOL (r, mol) {
+		draw_backbone_line (&*r);
+	}
+	glEndList ();
+	glNewList(mol->backbone_list2,GL_COMPILE);
+	FOR_RESIDUES_OF_MOL (r, mol) {
+		if (0) draw_backbone_stick(&*r);
+	}
+	glEndList ();
 }
 
 void MyGl::draw_list (Molecule* mol) {
@@ -3491,7 +3681,7 @@ void MyGl::draw_list (Molecule* mol) {
 */
     glEndList ();
 
-//    cout << "drawn "<<endl;
+	draw_backbone_list (mol);
 
 }
 
@@ -3508,6 +3698,15 @@ void MyGl::draw_atoms_for_selection (Molecule *mol){    //only works in rendermo
  //   glEndList ();
 }
 
+
+void MyGl::openGLSetColor (color col) {
+    float r, g, b, a;
+	r= col.redF ();
+	g= col.greenF ();
+	b= col.blueF ();
+	a= col.alphaF (); 
+	glColor4f (r, g, b, a);
+}
 
 
 void MyGl::setAtomColor(Atom* atom)
@@ -3906,58 +4105,65 @@ void MyGl::set_ballandstick (){
 }
 
 
-//void MyGl::set_clicked_atom_as_center_of_view (){
+void MyGl::head_tracking_update (int x, int y) {
+	float scale = 0.1f;
+	float xf = x;
+	float yf = y;
+	xf *= scale;
+	yf *= scale;
+	float dist = 300.f;
+    	head_tracking_x_position = xf;
+    	head_tracking_y_position = yf;
+	vect new_vec (xf, yf, dist);
+	new_vec.normalise ();
+	Quat4fT Quat;
+	Vector3fT vec1, vec2;
+	vec1.s.X = -new_vec.x ();
+	vec1.s.Y = new_vec.y ();
+	vec1.s.Z = new_vec.z ();
 
-//    set_center_of_view (clicked_atom-> GetVector ().x(),clicked_atom-> GetVector ().y(),clicked_atom-> GetVector ().z());
-//}
+	vec2.s.X = 0.;
+	vec2.s.Y = 0.;
+	vec2.s.Z = 1.;
+	ArcBall.map_vector_on_vector (vec1, vec2, &Quat);
 
-/*
-void MyGl::dragEnterEvent( QDragEnterEvent * event) {
-//    cout << "drag enter event"<<endl ;
+	Matrix3fSetRotationFromQuat4f(&ThisRot, &Quat);		// Convert Quaternion Into Matrix3fT
+//	Matrix3fMulMatrix3f(&ThisRot, &Last_Head_Tracking_Rot);				// Accumulate Last Rotation Into This One
+	Matrix4fSetRotationFromMatrix3f(&Head_Tracking_Transf, &ThisRot);
 
-     if (event->mimeData()->hasText())
-         event->acceptProposedAction();
-
+	updateGL ();
 }
 
-
-
-void MyGl::dropEvent(QDropEvent *event)
-{
- cout << "drop event" << endl;   
-    if (event->mimeData()->hasText()) {
-        QList<QUrl> urlList = event->mimeData ()->urls();
-        for (int i = 0; i < urlList.size(); ++i) {
-            QString url = urlList.at(i).path();
-            ddwin -> load_file (url.toStdString ());
-        }
-    }
-    event->acceptProposedAction(); 
+void MyGl::move_camera (float x, float y, float z) {
+    center_of_view.x() += x;
+    center_of_view.y() += y;
+    center_of_view.z() += z;
+    updateGL ();
 }
-
-*/
-
-
 ////////////////////////////////////UTILITIES///////////////////////////////////////////////////////////////
 
 
 void MyGl::haptic_to_world_coordinates (vect &haptic_p, vect &world_p, float minx, float maxx, float miny, float maxy, float minz, float maxz) {
-    GLdouble rightx, righty, rightz, upx, upy, upz, downx, downy, downz, leftx, lefty, leftz;
-    GLint viewport [4];
-    GLdouble model [16];
-    GLdouble proj [16]; 
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    glGetDoublev(GL_MODELVIEW_MATRIX, model);
-    glGetDoublev(GL_PROJECTION_MATRIX, proj);
 
-    float centerz = 0.99f;
-  //  gluProject (0, 0,0,model, proj, viewport,&centx, &centy, &centz);
-   // cout <<centz;
-    gluUnProject (viewport[2]/2, viewport[3], centerz, model, proj, viewport, &upx, &upy, &upz);
-    gluUnProject (viewport[2], viewport[3]/2, centerz, model, proj, viewport, &rightx, &righty, &rightz);
-    gluUnProject (viewport[2]/2, 0, centerz, model, proj, viewport, &downx, &downy, &downz);
-    gluUnProject (0, viewport[3]/2, centerz, model, proj, viewport, &leftx, &lefty, &leftz);
+	vect upv, downv, leftv, rightv;
+	get_viewport_points (upv, downv, leftv, rightv);
+	float leftx = leftv.x ();
+	float lefty = leftv.y ();
+	float leftz = leftv.z ();
 
+	float rightx = rightv.x ();
+	float righty = rightv.y ();
+	float rightz = rightv.z ();
+
+	float upx = upv.x ();
+	float upy = upv.y ();
+	float upz = upv.z ();
+
+	float downx = downv.x ();
+	float downy = downv.y ();
+	float downz = downv.z ();
+
+	
     vect up (upx-downx, upy-downy, upz-downz);
     float modup = up.module ();
     up.multiply (1.f/modup);
@@ -3975,6 +4181,8 @@ void MyGl::haptic_to_world_coordinates (vect &haptic_p, vect &world_p, float min
 
 
     vect central_point;
+
+
 
     central_point.x() = leftx + (right.x() * modright)/2;
     central_point.y() = lefty + (right.y() * modright)/2;
@@ -3994,25 +4202,43 @@ void MyGl::haptic_to_world_coordinates (vect &haptic_p, vect &world_p, float min
 
 
 
-
 void MyGl::world_to_haptic_coordinates (vect &world_p, vect &haptic_p, float minx, float maxx, float miny, float maxy, float minz, float maxz) {
-    GLdouble rightx, righty, rightz, upx, upy, upz, downx, downy, downz, leftx, lefty, leftz;
-    GLint viewport [4];
-    GLdouble model [16];
-    GLdouble proj [16]; 
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    glGetDoublev(GL_MODELVIEW_MATRIX, model);
-    glGetDoublev(GL_PROJECTION_MATRIX, proj);
 
-    float centerz = 0.99f;
-  //  gluProject (0, 0,0,model, proj, viewport,&centx, &centy, &centz);
-   // cout <<centz;
-    gluUnProject (viewport[2]/2, viewport[3], centerz, model, proj, viewport, &upx, &upy, &upz);
-    gluUnProject (viewport[2], viewport[3]/2, centerz, model, proj, viewport, &rightx, &righty, &rightz);
-    gluUnProject (viewport[2]/2, 0, centerz, model, proj, viewport, &downx, &downy, &downz);
-    gluUnProject (0, viewport[3]/2, centerz, model, proj, viewport, &leftx, &lefty, &leftz);
+	float rot [9], inv [9];
+	rot [0] = Transform.M [0];
+	rot [1] = Transform.M [1];
+	rot [2] = Transform.M [2];
+	rot [3] = Transform.M [4];
+	rot [4] = Transform.M [5];
+	rot [5] = Transform.M [6];
+	rot [6] = Transform.M [8];
+	rot [7] = Transform.M [9];
+	rot [8] = Transform.M [10];
+	invert_matrix_9 (rot, inv);
+	world_p = rotate_vector_using_matrix_9 (world_p, inv);
 
-    vect up (upx-downx, upy-downy, upz-downz);
+/*
+	vect upv, downv, leftv, rightv;
+	get_viewport_points (upv, downv, leftv, rightv);
+
+	float leftx = leftv.x ();
+	float lefty = leftv.y ();
+	float leftz = leftv.z ();
+
+	float rightx = rightv.x ();
+	float righty = rightv.y ();
+	float rightz = rightv.z ();
+
+	float upx = upv.x ();
+	float upy = upv.y ();
+	float upz = upv.z ();
+
+	float downx = downv.x ();
+	float downy = downv.y ();
+	float downz = downv.z ();
+
+
+    vect up = upv - downv;
     float modup = up.module ();
     up.multiply (1.f/modup);
 
@@ -4040,7 +4266,7 @@ void MyGl::world_to_haptic_coordinates (vect &world_p, vect &haptic_p, float min
     haptic_p.x() = right_world.module ();
     haptic_p.y() = up_world.module ();
     haptic_p.z() = out_world.module ();
-
+*/
 
 }
 
@@ -4050,77 +4276,131 @@ void MyGl::world_to_haptic_coordinates (vect &world_p, vect &haptic_p, float min
 
 
 
+vector <vect> MyGl::get_backbone_points (Resid *res) {
+	bool prec = false, fol = false;
+	vect prec_vect = vect (0, 0,0);
+	vect fol_vect = vect (0, 0,0);
+	vector <vect> out;
+	Molecule *mol = NULL;
+	FOR_ATOMS_OF_RESIDUE (a, res) {
+		mol = (Molecule *) &*a -> GetParent ();
+	}
+	int indx =  res -> GetIdx ();
+	if (indx > 0) {
+		Resid *prec_res = mol -> GetResidue (indx - 1);
+		if (res ->GetChainNum () == prec_res ->GetChainNum ()) {
+			
+			FOR_ATOMS_OF_RESIDUE(a, prec_res) {
+				QString atomID = QString(prec_res->GetAtomID(&*a).c_str());
+				atomID.trimmed();
+				if (atomID == "C") {
+					prec = true;
+					prec_vect = get_coordinates(&*a);
+				}
+			}		}		
+	}
+	if (indx < mol -> NumResidues()-1) {
+		Resid *fol_res = mol -> GetResidue (indx +1);
+		if (res ->GetChainNum () == fol_res ->GetChainNum ()) {
+			
+			FOR_ATOMS_OF_RESIDUE(a, fol_res) {
+				QString atomID = QString(fol_res->GetAtomID(&*a).c_str());
+				atomID.trimmed();
+				if (atomID == "N") {
+					fol = true;
+					fol_vect = get_coordinates(&*a);
+				}
+			}	
+		}		
+	}
+	
+	FOR_ATOMS_OF_RESIDUE(a, res) {
+		QString atomID = QString(res->GetAtomID(&*a).c_str());
+		atomID.trimmed();
+		if (atomID == "N") {
+			if (prec) {
+				out.push_back(mean (prec_vect, get_coordinates(&*a)));
+			}
+			out.push_back(get_coordinates(&*a));
+		}
+	}
+	FOR_ATOMS_OF_RESIDUE(a, res) {
+		QString atomID = QString(res->GetAtomID(&*a).c_str());
+		atomID.trimmed();
+		if (atomID == "CA") {
+			out.push_back(get_coordinates(&*a));
+		}
+	}
+	FOR_ATOMS_OF_RESIDUE(a, res) {
+		QString atomID = QString(res->GetAtomID(&*a).c_str());
+		atomID.trimmed();
+		if (atomID == "C") {
+			out.push_back(get_coordinates(&*a));
+			if (fol) {
+				out.push_back(mean (fol_vect, get_coordinates(&*a)));
+			}
+		}
+	}
+	
+	out = smooth_list (out);
+	out = smooth_list (out);
+	out = smooth_list (out);
+	out = smooth_list (out);
+	out = smooth_list (out);
+	
+	
+	return out;
+}
 
 
 
 
+vector <vect> MyGl::smooth_list (vector <vect> lis){
+	vector <vect> out;
+	if (lis.size () > 1) {
+		vect beg = lis[0];
+		vect end = lis[lis.size ()-1];
+		out.push_back(beg);
+		for (unsigned int i = 1; i<lis.size (); i++) {
+			out.push_back (mean (lis [i], lis [i-1]));
+		}
+		out.push_back (end);
+	}
+	return out;
+}
+						   
 
+void MyGl::draw_backbone_stick (Resid *res) {
+	vector <vect> points = get_backbone_points (res);
+	color c1 = color (0.f, 1.f, 0.f);
+	color c2 = color (0.f, 1.f, 0.f);
+	float rad1 = 0.2;
+	float rad2 = 0.2;
+	if (points.size () > 1) {
+		for (unsigned int i = 1; i < points.size (); i++) {
+			my_cylinder (points[i-1], points [i], rad1, rad2, c1, c2, stick_precision);
+		} 
+	}
 
-void MyGl::backbone_cylinder (Resid *res){
-/*    if (res->backbone_list.size () > 1) {
-        for (unsigned int p=0; p<res->backbone_list.size ()-1; p++) {
-            float angle, angle2, height, mod_of_vector, mod_of_vector2;
-            vect vector, vector2;
-            vect a = res->backbone_list[p];
-            vect b = res->backbone_list[p+1];
-            vector = subtract (b, a);
-            vector.normalise (); 
-            height = vector.module ();
-            angle = acos (vector.z()) * 180.0 / PI;
-            glColorMaterial (GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+}
 
-
-
-
-            float slices = 5;
-            float radone = stick_rad;
-   //         float rad2 = stick_rad;
-            float angl = 0.0;
-            float da = 2*PI/slices;
-            if (p<res->backbone_list.size ()-2) {
-                vect c = res->backbone_list[p+2];
-                vector2 = subtract (c, b);
-                vector2.normalise ();
-                angle2 = acos (vector2.z()) * 180.0 / PI; 
-            
-            }
-            else {
-                vector2 = vector;
-                angle2 = angle;
-            }
-            glPushMatrix ();
-            glTranslatef (a.x(), a.y(), a.z());
-            glRotatef (180.0, 0.0, 0.0, 1.0);
-            glRotatef (angle, vector.y(), -1.0 * vector.x(), 0.0);
-             
-            glBegin (GL_LINE_STRIP);
-            for (unsigned int n=0; n<slices+1; n++){
-                angl = n*da;
-                set_color (res -> backbone_color);
-
-                glNormal3f (sin (angl), cos (angl), 0);
-                glVertex3f (sin (angl)*radone, cos (angl)*radone, 0);
-
-          //      glTranslatef (b.x(), b.y(), b.z());
-        //        glRotatef (180.0, 0.0, 0.0, 1.0);
-      //          glRotatef (angle2, vector2[1], -1.0 * vector2[0], 0.0);
-
-       //         glNormal3f (sin (angl), cos (angl), 0);       
-       //         glVertex3f (sin (angl)*rad2, cos (angl)*rad2, 0);
-
-                
-            }
-
-            glEnd ();       
-            glPopMatrix ();
-
-        }
-    }
-*/
+void MyGl::draw_backbone_line (Resid *res) {
+	vector <vect> points = get_backbone_points (res);
+	color c1 = color (0.f, 1.f, 0.f);
+	color c2 = color (0.f, 1.f, 0.f);
+	float rad1 = 0.2;
+	float rad2 = 0.2;
+	if (points.size () > 1) {
+		for (unsigned int i = 1; i < points.size (); i++) {
+			my_line (points[i-1], points [i], c1, c2);
+		} 
+	}
+	
 }
 
 
 void MyGl::my_cylinder (float radone, float radtwo, float lenght,unsigned int slices, Atom* at1, Atom*at2){
+	
     glBegin (GL_QUAD_STRIP);
     float angle = 0.0;
     float da = 2*PI/slices;
@@ -4137,6 +4417,63 @@ void MyGl::my_cylinder (float radone, float radtwo, float lenght,unsigned int sl
     }
     glEnd ();    
 }
+
+void MyGl::my_line (vect v1, vect v2, color c1, color c2) {
+	glBegin(GL_LINES);
+		openGLSetColor(c1);
+        glVertex3f (v1.x(), v1.y(), v1.z());
+		
+		openGLSetColor(c2);
+        glVertex3f (v2.x(), v2.y(), v2.z());
+	glEnd();
+}
+
+
+void MyGl::my_cylinder (vect v1, vect v2, float radone, float radtwo, color c1, color c2, unsigned int slices) {
+    float angle_dir, height, mod_of_vector;
+    vect at1c = v1;
+    vect at2c = v2;
+	
+    vect vector = subtract (at2c, at1c);
+    mod_of_vector = vector.module ();
+	
+    vector *= 1/mod_of_vector;
+    height = mod_of_vector;
+	
+    angle_dir = acos (vector.z ()) * 180.0 / PI;
+    glColorMaterial (GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+	
+	//    setAtomColor(bond->GetBeginAtom ());
+	
+
+    glPushMatrix ();
+	
+	
+	
+    glTranslated (at1c.x (), at1c.y(), at1c.z());
+    glRotated (180.0, 0.0, 0.0, 1.0);
+    glRotated (angle_dir, vector.y (), -1.0 * vector.x (), 0.0);
+	
+
+	glBegin (GL_QUAD_STRIP);
+    float angle = 0.0;
+    float da = 2*PI/slices;
+	
+    for (unsigned int n=0; n<slices+1; n++){
+        angle = n*da;
+        openGLSetColor(c1);
+        glNormal3f (sin (angle), cos (angle), 0);
+        glVertex3f (sin (angle)*radone, cos (angle)*radone, 0);
+		
+        openGLSetColor(c2); 
+        glNormal3f (sin (angle), cos (angle), 0);       
+        glVertex3f (sin (angle)*radtwo, cos (angle)*radtwo, height);
+    }
+    glEnd ();
+    glPopMatrix ();
+	
+}
+
 
 
 void MyGl::my_sphere (float rad, unsigned int slices, unsigned int stacks, Atom* at){
@@ -4275,8 +4612,8 @@ void MyGl::compute_double_bond_vertexes (Bond *bond, float out [4][3], float d) 
     if (!d) d = double_bond_inter_distance/2;
     Atom *at0 = bond -> GetBeginAtom ();
     Atom *at1 = bond -> GetEndAtom ();
-    vect c0 = (vect&) at0 -> GetVector ();
-    vect c1 = (vect&) at1 -> GetVector ();
+    vect c0 = get_coordinates(at0);
+    vect c1 = get_coordinates(at1);
 
     vect v01 = subtract (c1, c0);
     vect v10 = subtract (c0, c1);
@@ -4308,8 +4645,8 @@ void MyGl::compute_double_bond_vertexes (Bond *bond, float out [4][3], float d) 
             }
             assert (b0);
             assert (b1);
-            vect veccb0 = (vect&) b0 -> GetVector ();
-            vect veccb1 = (vect&) b1 -> GetVector ();
+            vect veccb0 = get_coordinates (b0);
+            vect veccb1 = get_coordinates (b1);
         //    cerr << "cb0 "<<cb0.x()<<" "<<cb0.y()<<" "<<cb0.z()<<endl;
             v0a = subtract (veccb0, c0);  //some form of checking which side of the axis we are is needed to avoid crossing double bonds
        //     cerr << "v0a "<<v0a.x()<<" "<<v0a.y()<<" "<<v0a.z()<<endl;
@@ -4340,8 +4677,8 @@ void MyGl::compute_double_bond_vertexes (Bond *bond, float out [4][3], float d) 
             }
             assert (b0);
             assert (b1);
-            vect cb0 = (vect&) b0 -> GetVector ();
-            vect cb1 = (vect&) b1 -> GetVector ();
+            vect cb0 = get_coordinates(b0);
+            vect cb1 = get_coordinates (b1);
         //    cerr << cb0.x()<<" "<< cb0.y()<<" "<< cb0.z()<<" "<< cb1.x()<<" "<< cb1.y()<<" "<< cb1.z()<<endl;
             v1a = subtract (cb0, c1);  //some form of checking which side of the axis we are is needed to avoid crossing double bonds
             v1b = subtract (cb1, c1);
@@ -4404,6 +4741,16 @@ void MyGl::compute_double_bond_vertexes (Bond *bond, float out [4][3], float d) 
     v1b.multiply (d/normal.module ());
 
     assert (!isnan (v0a.x ()));
+
+    float dist1 = dist (v0a, v1a);
+    float dist2 = dist (v0a, v1b);
+    if (dist2 < dist1) {
+	vect swap = v1a;
+	v1a = v1b;
+	v1b = swap;
+    }
+
+
     vect o0, o1, o2, o3;
     o0 = sum (c0, v0a);
     o1 = sum (c0, v0b);

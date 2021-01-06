@@ -53,14 +53,12 @@ float counter;
 float step;
 
 Molecule *minimising_molecule;
-//Molecule *minimise_reference_molecule;
 Molecule *haptic_molecule;
 
 ForceField *internal_ff;
 ForceField *interaction_ff;
 Minimize (Data *dat);
 
-//vect haptic_pointer;
 
 bool automove;
 bool color_by_score;
@@ -78,6 +76,7 @@ void initialize_6 (Molecule *mol);
 void minimize_energy_step ();
 float compute_energy ();
 void apply_forces (Molecule *mol, float trunc = 0.f);
+void apply_force_to_atom (Atom *a, float trunc = 0.f);
 
 
 //void initialise_minimisation ();
@@ -87,6 +86,7 @@ void deinitialise_minimisation ();
 void clear ();
 void clear_fragments ();
 int haptic_dof_mode;
+int haptic_number_of_threads;
 vector <pFragment> fragments;
 HapticThread *haptic_thread;
 
@@ -94,15 +94,14 @@ void update_fragment_position (pFragment&);
 private:
 int forcefields_sanity_check ();
 
-
-#ifdef HAPTICS
-void update_molecule_position_with_haptic_pointer (Molecule *min_mol);
-#endif //HAPTICS
-
 int iterations;
 float last_E;
 Data *data;
 
+
+#ifdef HAPTICS
+public: void update_molecule_position_with_haptic_pointer (Molecule *min_mol);
+#endif //HAPTICS
 
 };
 

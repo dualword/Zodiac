@@ -18,6 +18,7 @@
 #ifndef THREAD_H
 #define THREAD_H
 
+#include <QMutex>
 #include <QThread>
 #include "graphical_object.h"
 #include "minimize.h"
@@ -25,12 +26,18 @@
 #include <openbabel/forcefield.h>
 
 
+
+
+#include "wiimote.h"
+
+
 class DDWin; class Minimize;
 class Thread : public QThread   {
     Q_OBJECT
     public:
     Thread (QObject *parent);
-
+    bool is_running;
+	virtual void stop ();
   //  protected:
 //      void run();
 };
@@ -84,21 +91,29 @@ class DatabaseMinimiseThread : public Thread {
 	void run ();	
 	};
 
- 
+class HapticWorkerThread;
 
 class HapticThread : public Thread {
     Q_OBJECT
     public:
     HapticThread (QObject *parent, DDWin *ddw);
+	void stop ();
     Molecule *molecule;
     DDWin *ddwin;
-
-    void inline set_molecule (Molecule *mol) {molecule = mol;};
-    bool is_running;
+	Minimize *minimise;
+    void inline set_molecule (Molecule *mol) {cerr <<" setting mol "<< endl; molecule = mol;};
     int haptic_dof_mode;
     bool automove, color_by_score;
     void initialise (Minimize * min);
-    void stop ();
+
+	int next_atom_to_check, internal_interaction_counter, number_of_atoms;
+	vector <Atom *> atoms;
+	vect last_center;
+	//vector <vect> forces;
+	//vector <double> scores; 
+	
+	
+	QMutex atoms_mutex, internal_interactions_mutex, nonbonded_interactions_mutex;
 
     signals:
     void ask_redraw (Molecule *mol);
@@ -107,6 +122,38 @@ class HapticThread : public Thread {
 
     protected:
     void run ();
+	
+	private:
+	int number_of_threads;
+	vector <HapticWorkerThread *> worker_threads;
+	vector <ForceFieldInteraction *> internal_interactions;
+	queue <ForceFieldInteraction *> nonbonded_interactions;
+
+	
+	public:
+		bool have_to_work_on_internal_interactions ();
+		bool have_to_work_on_nonbonded_interactions ();
+		bool are_atoms_finished ();
+		bool are_internal_interactions_finished ();
+		bool is_end_of_cycle ();
+		void compute_one_internal_interaction ();	
+		void compute_one_nonbonded_interaction ();
+		void load_internal_interactions ();
+		void load_interactions_for_new_atom ();
+		void end_of_calculation_for_atom (Atom *at);
+		void end_of_cycle ();
+};
+
+
+class HapticWorkerThread : public Thread {
+    public:
+		HapticWorkerThread (HapticThread *ht, int i);
+    protected:
+		void run ();
+	private:
+		HapticThread *master;
+		 int number;
+
 };
 
 
@@ -128,6 +175,56 @@ class GridThread : public Thread {
     void run ();
 
 };
+
+
+class HeadTrackingThread : public Thread {
+    Q_OBJECT
+    public:
+    HeadTrackingThread (QObject *parent, DDWin *ddw);
+    DDWin *ddwin;
+  //  cwiid_wiimote_t *wiimote;	/* wiimote handle */
+
+
+//    signals:
+//    void ask_redraw (Molecule *mol);
+//    void ask_color_by_score (Molecule *mol);
+
+    cwiid_wiimote_t *wiimote;
+
+    protected:
+    void run ();
+//    int lastx, lasty;
+    signals:
+	void head_moved (int x, int y);	
+
+};
+
+
+
+class WiimoteTrackingThread : public Thread {
+    Q_OBJECT
+    public:
+    WiimoteTrackingThread (QObject *parent, DDWin *ddw);
+    DDWin *ddwin;
+  //  cwiid_wiimote_t *wiimote;	/* wiimote handle */
+
+
+//    signals:
+//    void ask_redraw (Molecule *mol);
+//    void ask_color_by_score (Molecule *mol);
+
+    cwiid_wiimote_t *wiimote;
+
+    protected:
+    bool is_moving;
+    void run ();
+    float lastx, lasty, lastd;
+    signals:
+	void move_camera (float x, float y, float z);	
+
+};
+
+
 
 
 #endif //THREAD_H

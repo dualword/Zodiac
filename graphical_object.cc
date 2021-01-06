@@ -22,14 +22,7 @@
 #include <math.h>
 #include "ddwin.h"
 
-
-
-
 using namespace std;
-
-
-
-
 
 GraphicalObject::GraphicalObject () {
     mesh = false;
@@ -51,26 +44,44 @@ bool GraphicalObject::is_grid () {
 
 Surface::Surface () {
     mesh = false;
+	near_to_dist = 4.f;
+	near_to = 0;
+	molecule = 0;
 }
 
 bool Surface::is_surface () {
     return true;
 }
 
-void Surface::set_molecule (Molecule *mo) {
+void Surface::set_molecule (Molecule *mo, Molecule *near_t) {
     molecule = mo;   
     vector <Atom *> atoms;
     FOR_ATOMS_OF_MOL (a, mo) {
-        Atom * at = &*a;
-        atoms.push_back (at);
+		if (CountBonds (&*a) < 4)   //to speed things up atoms at center of tetrhaedrons octaedrons and so on are not considered
+            atoms.push_back (&*a);
     }        
+	
+    grid = new cutoffGrid<Atom*>(atoms, 4);
+	
+	if (near_t) {
+		near_to = near_t;   
+		vector <Atom *> atoms2;
+		FOR_ATOMS_OF_MOL (a, near_t) {
+			if (CountBonds (&*a) < 4)   //to speed things up atoms at center of tetrhaedrons octaedrons and so on are not considered
+				atoms2.push_back (&*a);
+		}        
+		
+    near_to_grid = new cutoffGrid<Atom*>(atoms2, near_to_dist);
+	
+	}
+}
 
-    grid = new cutoffGrid<Atom*>(atoms, 4);};
+
 
 
 void Surface::render_as_surface () {
 
-    glNewList(list,GL_COMPILE);
+    glNewList(lst,GL_COMPILE);
     for (unsigned int i=0; i<faces.size (); i++) {
         glBegin (GL_TRIANGLES);
         SurfVertex *v1 = faces[i]->v1;
@@ -98,7 +109,7 @@ void Surface::render () {
 }
 
 void Surface::render_as_mesh () {
-    glNewList(list,GL_COMPILE);
+    glNewList(lst,GL_COMPILE);
     for (unsigned int i=0; i<faces.size (); i++) {
         glBegin (GL_LINES);
         SurfVertex *v1 = faces[i]->v1;
@@ -212,7 +223,7 @@ void Sphere::render () {
 }
 
 void Sphere::render_as_surface () {
-    glNewList(list,GL_COMPILE);
+    glNewList(lst,GL_COMPILE);
     glPushMatrix ();
     glTranslatef (center.x(), center.y(), center.z());
     glColor4f (col.redF (), col.greenF(), col.blueF(), col.alphaF());
@@ -251,7 +262,7 @@ void Grid::init_ff () {
     at -> SetPartialCharge (0);
  //   at -> MMFFstring = "CR";
  //   at -> MMFFtype = 1;
-    probe -> AddAtom (*at);
+    probe->ZNAddAtom (at);
     ff -> clear_nonbonded_interactions ();
     ff -> initialize_interaction (probe, env);  
 }

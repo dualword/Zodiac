@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual C++ Express 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Zodiac-win32-vc2008", "Zodiac-win32-vc2008.vcproj", "{0AFFACFC-035D-4142-A11E-9B23B9A0CD7D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2E80B81E-653B-4CD1-BAEC-0226EF50A40B} = {2E80B81E-653B-4CD1-BAEC-0226EF50A40B}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OpenBabelLib-vc2008", "..\..\openbabel-2.1.1\windows-vc2008\OpenBabelLib-vc2008\OpenBabelLib-vc2008.vcproj", "{2E80B81E-653B-4CD1-BAEC-0226EF50A40B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0AFFACFC-035D-4142-A11E-9B23B9A0CD7D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0AFFACFC-035D-4142-A11E-9B23B9A0CD7D}.Debug|Win32.Build.0 = Debug|Win32
+		{0AFFACFC-035D-4142-A11E-9B23B9A0CD7D}.Release|Win32.ActiveCfg = Release|Win32
+		{0AFFACFC-035D-4142-A11E-9B23B9A0CD7D}.Release|Win32.Build.0 = Release|Win32
+		{2E80B81E-653B-4CD1-BAEC-0226EF50A40B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{2E80B81E-653B-4CD1-BAEC-0226EF50A40B}.Debug|Win32.Build.0 = Debug|Win32
+		{2E80B81E-653B-4CD1-BAEC-0226EF50A40B}.Release|Win32.ActiveCfg = Release|Win32
+		{2E80B81E-653B-4CD1-BAEC-0226EF50A40B}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

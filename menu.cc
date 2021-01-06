@@ -195,8 +195,12 @@ void SurfaceMenu::draw_surface () {
         mesh = (gtype->currentIndex ()==1);
         float a = alpha/100;
         surface = new Surface ();
-        surface -> set_molecule (mol);
-        surface -> list = data -> ddwin -> gl -> new_list ();
+		surface -> near_to_dist = near_to_f;
+		Molecule *neartm = NULL;
+		if (near_to ->currentIndex ()!= 0) neartm = data ->ddwin ->molecules[near_to ->currentIndex ()];
+		else neartm = 0;
+        surface -> set_molecule (mol, neartm);
+        surface -> lst = data -> ddwin -> gl -> new_list ();
         surface -> name = string ("Surface ") + mol -> GetTitle ();
         surface -> mesh = mesh;
 
@@ -223,16 +227,17 @@ void SurfaceMenu::add_surface () {
 SurfaceMenu::SurfaceMenu (QWidget *parent, Data *dat )
    :    QWidget(parent)
 {
+	near_to_f = 4.f;
     data = dat;
   //  molecule = mol;
     res = data->ddwin->gl->surface_resolution;
 
 
     QVBoxLayout *vbox = new QVBoxLayout (this);
-    this->setMinimumSize (500, 250);   
-    this->setMaximumSize (500, 250);
-    this->setMinimumSize (500, 250);   
-    this->setMaximumSize (500, 250);
+  //  this->setMinimumSize (500, 250);   
+ //   this->setMaximumSize (500, 250);
+ //   this->setMinimumSize (500, 250);   
+ //   this->setMaximumSize (500, 250);
     this->setWindowTitle("Surfaces");
 
     resolution = new MyFloatEditLine (vbox, "Resolution", res);
@@ -247,6 +252,10 @@ SurfaceMenu::SurfaceMenu (QWidget *parent, Data *dat )
     vbox -> addWidget (gtype);
     gtype->insertItem(0, "Surface" );
     gtype->insertItem(1, "Mesh" );
+	
+	near_to_dle = new MyFloatEditLine (vbox, "Near to", near_to_f);
+	near_to = new QComboBox ();
+	vbox -> addWidget (near_to);
 
 //    QSlider *slider = new QSlider( Horizontal, this, "slider" );
  //   alpha_p = new MyFloatEditLine (vbox, "Opacity", alpha);
@@ -257,8 +266,16 @@ SurfaceMenu::SurfaceMenu (QWidget *parent, Data *dat )
     QPushButton *ok = new QPushButton ("Ok");
     vbox -> addWidget (ok);
     connect (ok, SIGNAL (clicked ()) ,SLOT (draw_surface ()));
+	connect (data -> ddwin, SIGNAL (targets_updated ()), this, SLOT (update_near_to ()));
+	//update_near_to ();
 
+}
 
+void SurfaceMenu::update_near_to () {
+	near_to ->clear ();
+	for (unsigned int i = 0; i < data -> ddwin -> target ->count (); i++) {
+		near_to ->insertItem (i, data -> ddwin -> target ->itemText (i));
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -296,7 +313,7 @@ void SphereMenu::draw_sphere () {
     float a = alpha/100;
     col.setAlphaF (a);
     Sphere *sphere = new Sphere ();
-    sphere -> list = data -> ddwin -> gl -> new_list ();
+    sphere -> lst = data -> ddwin -> gl -> new_list ();
     sphere -> name = string ("Sphere");
     sphere -> set_center (center);
     sphere -> set_radius (radius);
@@ -487,6 +504,7 @@ SphereMenu::SphereMenu (QWidget *parent, const char *name, Data *dat)
 HapticMenu::HapticMenu (QWidget *parent, Minimize *min )
    :    QTabWidget (parent)
 {
+
     minimize = min;
     this->setWindowTitle("Haptic");
 
@@ -506,6 +524,7 @@ HapticMenu::HapticMenu (QWidget *parent, Minimize *min )
     setmainlayout -> addWidget (interff);
     MyCheckBox *automove = new MyCheckBox (setmainlayout, minimize -> haptic_thread -> automove, "automove");
     MyCheckBox *color_by_scor = new MyCheckBox (setmainlayout, minimize -> haptic_thread -> color_by_score, "color by score");
+//	MyIntegerEditLine *number_of_threads_edit_line = new MyIntegerEditLine (setmainlayout, "number of threads", minimize ->haptic_number_of_threads);
 
     QHBoxLayout *button_lay = new QHBoxLayout;
     setmainlayout -> addLayout (button_lay);
@@ -540,8 +559,8 @@ void HapticMenu::Ok () {
 		delete minimize->interaction_ff;
 		string iff = interff->currentText ().toStdString ();
 		if (iff == "MMFF") minimize->interaction_ff = new MMFF ();
-		else if (iff == "PLP") minimize->interaction_ff = new PLP ();
-		else if (iff == "Chemscore") minimize->interaction_ff = new Chemscore ();
+	//	else if (iff == "PLP") minimize->interaction_ff = new PLP ();
+	//	else if (iff == "Chemscore") minimize->interaction_ff = new Chemscore ();
 		else minimize->interaction_ff = new MMFF ();
 
 		string dofm =dofmode->currentText ().toStdString ();
@@ -616,11 +635,13 @@ Clicked_atomMenu::Clicked_atomMenu (QWidget *parent, DDWin* ddw)
 
     Q3VBox *resv = new Q3VBox (this);
     Q3Grid *resgrd = new Q3Grid (5,resv);
-    (void) new QLabel("Residue Name", resgrd );
+    (void) new QLabel("Residue Type", resgrd );
     resna = new QLabel("", resgrd );
     (void) new QLabel("      ", resgrd );
     (void) new QLabel("Residue Number", resgrd );
     resnu = new QLabel("", resgrd );
+	(void) new QLabel("Atom role in residue", resgrd );
+	aptype = new QLabel("", resgrd );
     resna->setFrameStyle( Q3Frame::Panel | Q3Frame::Sunken );
     resnu->setFrameStyle( Q3Frame::Panel | Q3Frame::Sunken );
     addTab( resv, "Residue" );
@@ -646,11 +667,17 @@ void Clicked_atomMenu::update (){
     set_value (aplat, string (etab.GetSymbol (at -> GetAtomicNum ())));
     set_value (aplq, at -> GetPartialCharge ());
     set_value (aplfc, at-> GetFormalCharge ());
-    set_value (aplx, at-> GetVector ().x());
-    set_value (aply, at-> GetVector ().y());
-    set_value (aplz, at-> GetVector ().z());
-  //  set_value (resna, at->residue->name);
-  //  set_value (resnu, at->residue->number);
+    set_value (aplx, get_coordinates (at).x());
+    set_value (aply, get_coordinates (at).y());
+    set_value (aplz, get_coordinates (at).z());
+	set_value (resnu, at->GetResidue ()->GetNum ());
+	int prop = 0;
+	bool a = at -> GetResidue ()-> GetAtomProperty (at, prop);
+//	cerr << a << endl;
+	set_value (aptype, prop);
+	int n = at->GetResidue ()->GetResKey ();
+//	set_value (resna, Residue[n]);
+	set_value (resna, at->GetResidue ()->GetName ());
 }
 
 void Clicked_atomMenu::set (Atom *at){
@@ -679,12 +706,12 @@ void Clicked_atomMenu::set_value (QLineEdit *lab, float val) {
 
 void Clicked_atomMenu::set_clicked_atom_as_center_of_view (){
 
-    ddwin->gl->set_center_of_view ((vect&) clicked_atom-> GetVector ());
+    ddwin->gl->set_center_of_view (get_coordinates (clicked_atom));
 }
 
 void Clicked_atomMenu::set_clicked_atom_as_center_of_rotation () {
 
-    ddwin->gl->set_center_of_rotation ((vect&) clicked_atom-> GetVector ());
+    ddwin->gl->set_center_of_rotation (get_coordinates (clicked_atom));
  //   set_center_of_view (clicked_atom-> GetVector ()[0],clicked_atom-> GetVector ()[1],clicked_atom-> GetVector ()[2]);
 }
 
@@ -1148,7 +1175,18 @@ DDSettingsMenu::DDSettingsMenu (QWidget *parent, DDWin *ddw)
 
     inter_eye_distance = new MyFloatEditLine (layout, "inter-eye semi distance", ddwin->gl->stereo_inter_eye_semi_distance);
     focal_point_distance = new MyFloatEditLine (layout, "focal point distance", focal_d);
-    MyCheckBox *stereo = new MyCheckBox (layout, ddwin ->g_stereoAvailable, "enable stereo");
+
+    dd_cb = new QComboBox ();
+    layout -> addWidget (dd_cb);
+    dd_cb ->insertItem(0, "No Stereo" );
+    dd_cb ->insertItem(1, "Quad Buffering" );
+    dd_cb ->insertItem(2, "Vertical Interlace" );
+    dd_cb ->insertItem(3, "Horizontal Interlace" );
+
+    // IJG
+    // Need a full set of radio buttons: Use OpenGL, horizontal interlace, vertical interlace, none
+    // See DDWin::StereoMode and DDWin::g_stereoMode
+
 
     QPushButton *ok = new QPushButton ("Ok");
     layout -> addWidget (ok);
@@ -1161,9 +1199,43 @@ void DDSettingsMenu::ok_slot () {
     inter_eye_distance -> set ();
     focal_point_distance -> set ();
     ddwin -> gl -> stereo_toe_in_angle = 90.f - atan (focal_d / ddwin -> gl -> stereo_inter_eye_semi_distance) * 180 / PI;
-    cerr << ddwin -> gl -> stereo_toe_in_angle << " "<<ddwin -> gl -> stereo_inter_eye_semi_distance<< endl;
+	switch (dd_cb ->currentIndex ()) {
+		case 0:
+			ddwin->g_stereoMode = DDWin::StereoMode_None;
+			ddwin->g_stencil_mask_needs_redraw = false;
+			break;
+		case 1:
+			ddwin->g_stereoMode = DDWin::StereoMode_ViaOpenGL;
+			ddwin->g_stencil_mask_needs_redraw = false;
+			break;
+		case 2:
+//<<<<<<< menu.cc
+			ddwin->g_stereoMode = DDWin::StereoMode_HorizontalInterlace;
+			ddwin->g_stencil_mask_needs_redraw = true;
+//=======
+			ddwin->g_stereoMode = DDWin::StereoMode_VerticalInterlace;
+//>>>>>>> 1.7
+			break;
+		case 3:
+//<<<<<<< menu.cc
+			ddwin->g_stereoMode = DDWin::StereoMode_VerticalInterlace;
+			ddwin->g_stencil_mask_needs_redraw = true;
+//=======
+			ddwin->g_stereoMode = DDWin::StereoMode_HorizontalInterlace;
+//>>>>>>> 1.7
+			break;
+		default:
+			ddwin->g_stereoMode = DDWin::StereoMode_None;
+			ddwin->g_stencil_mask_needs_redraw = false;
+			break;
+	}
 
+    // Also need to update ddwin - so it sets up the stencil buffer.
+    ddwin -> gl ->refreshStencilBuffer();
+
+    // Original code... still need to redraw screen!
     ddwin -> gl -> updateGL ();
+
 }
 
 
@@ -1217,6 +1289,7 @@ MyFloatEditLine::MyFloatEditLine (QLayout *parent, const char *name, double& var
 
 
 
+
 void MyFloatEditLine::set (const QString &st) {
     istringstream iss (st.toStdString());
     float f;
@@ -1238,6 +1311,51 @@ void MyFloatEditLine::set_value (int v) {
     linedit->setText (QString(s.str().c_str())); 
     set ();    
 }
+
+
+
+MyIntegerEditLine::MyIntegerEditLine (QLayout *parent, const char *name, int& var)
+    : QWidget(){
+    parent -> addWidget (this); 
+    QHBoxLayout *layout = new QHBoxLayout ();
+    setLayout (layout);
+    variable = &var;
+    QLabel *label = new QLabel( name);
+    layout -> addWidget (label); 
+    label->setMaximumWidth( 200 );
+    label->setMinimumWidth( 200 );
+    linedit = new QLineEdit();
+    layout -> addWidget (linedit);
+    stringstream s;
+    s << *variable;
+    linedit->setText (QString(s.str().c_str()));
+    connect (linedit, SIGNAL (textChanged ( const QString & )), this, SLOT (set (const QString &)));
+}
+
+void MyIntegerEditLine::set (const QString &st) {
+    istringstream iss (st.toStdString());
+    int i;
+    iss >> i;
+    *variable = i;   
+}
+
+void  MyIntegerEditLine::set ()
+{
+    istringstream iss (linedit->text().toStdString());
+    int i;
+    iss >> i;
+    *variable = i;   
+}
+
+void MyIntegerEditLine::set_value (int v) {
+    stringstream s ;
+    s<<v;
+    linedit->setText (QString(s.str().c_str())); 
+    set ();    
+}
+
+
+
 
 
 MyLabelf::MyLabelf (QWidget *parent, const char *name, float* var)  

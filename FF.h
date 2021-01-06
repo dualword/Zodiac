@@ -64,7 +64,8 @@ public:
 
     virtual void clear_nonbonded_interactions ()=0;
     virtual void load_nonbonded_interactions ()=0;
-    virtual void load_internal_interactions ()=0;
+	virtual void load_nonbonded_interactions_for_atom (Atom *at, queue <ForceFieldInteraction*> *q)=0;
+    virtual void load_internal_interactions (vector <ForceFieldInteraction*> *v)=0;
 
 
     Molecule *target_mol;

@@ -58,13 +58,16 @@ void Actions::minimise (Molecule *mol) {
     data -> undo_stack -> beginMacro ("Energy Minimisation");
     MoveAtomsCommand *command = new MoveAtomsCommand (data -> ddwin -> gl, 1);
     FOR_ATOMS_OF_MOL(a, mol) {
-        command -> add (&*a, (vect &) a -> GetVector ());
+        command -> add (&*a, get_coordinates(&*a));
     }
     data -> ddwin -> execute (command);
 	
+//	cerr << "create" << endl;
     MinimiseThread *thread = new MinimiseThread (0, data -> ddwin);
+//	cerr << "set" << endl;
     thread -> set_molecule (mol);
-    thread -> start ();
+//	cerr << "go" << endl;
+	    thread -> start ();
     data -> ddwin -> connect (thread, SIGNAL (finished ()), data -> ddwin, SLOT (end_minimisation ()));
 }
 
@@ -175,8 +178,10 @@ void Actions::save_as (Molecule *mol, string filename) {
 	OBConversion conv;
 	conv.SetOutStream(&ofs);
 	OBFormat* outFormat = conv.FormatFromExt(filename.c_str ());
-	conv.SetOutFormat (outFormat);
-	conv.Write (mol);
+	if (outFormat) {
+		conv.SetOutFormat (outFormat);
+		conv.Write (mol);
+	}
 	
 }
 

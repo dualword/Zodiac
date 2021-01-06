@@ -67,25 +67,27 @@ public:
     Data *data;
     Surface *surface;
 
-private slots:
-    void add_surface ();
 
 private:
 //    Molecule *molecule;
     QComboBox *stype;
     QComboBox *gtype;
+	
+	QComboBox *near_to;
     MyFloatEditLine *resolution;
-    MyFloatEditLine *alpha_p;
+    MyFloatEditLine *alpha_p, *near_to_dle;
     MySlider *alpha_s;
     float res;
     float color [4];
     float alpha;
     int type;
     bool mesh;
-
+	float near_to_f;
 
 private slots:
+    void add_surface ();
     void draw_surface ();
+	void update_near_to ();
 
 };
 
@@ -166,8 +168,11 @@ public:
 
     MyLabelf *total_E, *internal_E, *interaction_E;
     void update ();
+	
+
 
 private slots:
+
     void Ok ();
     void end ();
 
@@ -216,7 +221,7 @@ public:
         Q3Frame *atomselpopup;
         QLabel *aplid, *aplat, *aplq;
         QLineEdit *aplfc, *aplx, *aply, *aplz;
-        QLabel *resna, *resnu;
+        QLabel *resna, *resnu, *aptype;
 
         Atom *clicked_atom;
 
@@ -272,6 +277,7 @@ public:
 
 private:
     MyFloatEditLine *inter_eye_distance, *focal_point_distance;
+	QComboBox *dd_cb;
 
 private slots:
     void ok_slot ();
@@ -423,6 +429,24 @@ public slots:
     void set (const QString &);
 
 };
+
+
+class MyIntegerEditLine : public QWidget
+{
+    Q_OBJECT
+
+public:
+    MyIntegerEditLine (QLayout *parent, const char *name, int& var);
+
+    void set ();
+    QLineEdit *linedit;
+    int* variable;
+public slots:
+    void set_value (int val);
+    void set (const QString &);
+
+};
+
 
 
 class MyCompleteColorSettings : public QWidget {

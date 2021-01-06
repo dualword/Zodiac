@@ -31,6 +31,7 @@ Minimize::Minimize (Data *dat) {
 	internal_ff = new MMFF ();
 	interaction_ff = new MMFF ();
 	haptic_dof_mode = 2;
+	haptic_number_of_threads = 1;
 	total_E = 0.f;
 	total_internal_E = 0.f;
 	total_interaction_E = 0.f;
@@ -110,7 +111,7 @@ void Minimize::start_haptic_mode () {
         data -> undo_stack -> beginMacro ("Haptic Simulation");
         MoveAtomsCommand *command = new MoveAtomsCommand (data -> ddwin -> gl, 1);
         FOR_ATOMS_OF_MOL(a, haptic_molecule) {
-            command -> add (&*a, (vect &) a -> GetVector ());
+            command -> add (&*a, get_coordinates (&*a));
         }
 //        command -> name ("haptic simulation");
         data -> ddwin -> execute (command);
@@ -126,7 +127,7 @@ void Minimize::stop_haptic_mode () {
 		haptic_thread -> wait ();
 		MoveAtomsCommand *command = new MoveAtomsCommand (data -> ddwin -> gl, 0);
 		FOR_ATOMS_OF_MOL(a, haptic_molecule) {
-			command -> add (&*a, a -> GetVector ());
+			command -> add (&*a, get_coordinates (&*a));
 		}
   //  command -> name ("haptic simulation");
 		data -> ddwin -> execute (command);	
@@ -160,7 +161,7 @@ void Minimize::initialize_6 (Molecule *mol) {
 
         FOR_ATOMS_OF_MOL(a, mol) {
 		Fragment_Atom fa;
-        fa.coordinates = subtract (a -> GetVector (), mol -> center);
+        fa.coordinates = subtract (get_coordinates (&*a), mol -> center);
 		fa.atom = &*a;
 		frag.atoms.push_back (fa);
 	}
@@ -337,8 +338,10 @@ void Minimize::update_molecule_position_with_haptic_pointer (Molecule *min_mol) 
 	data->ddwin->gl->haptic_to_world_coordinates (haptic_coords, new_coords, minx, maxx, miny, maxy, minz, maxz);
 
     FOR_ATOMS_OF_MOL(a, min_mol) {
-        a -> GetVector () += new_coords;
-        a -> GetVector () -= center;
+		vect v = get_coordinates(&*a);
+        v += new_coords;
+        v -= min_mol ->center;
+		set_coordinates (&*a, v);
 	}
 
     min_mol -> center = new_coords;
@@ -351,15 +354,13 @@ void Minimize::update_fragment_position (pFragment& frag) {
 	for (unsigned int i=0; i<frag.atoms.size (); i++) {
 		vect rotated_coords;
 		rotated_coords = rotate_vector_using_quaternion (frag.atoms[i].coordinates, frag.rotation_quat);
-		frag.atoms[i].atom-> GetVector () = sum (rotated_coords, frag.translation);
+//		frag.atoms[i].atom-> GetVector () = sum (rotated_coords, frag.translation);
 	}
 }
 
 
-void Minimize::apply_forces (Molecule *mol, float trunc) {
-  //  assert (mol -> atoms.size ());
-	FOR_ATOMS_OF_MOL(a, mol) {
-        vect force = get_force (&*a);
+void Minimize::apply_force_to_atom (Atom *a, float trunc) {
+        vect force = get_force (a);
 	//	cerr << force << "force"<<endl;
         assert (!isnan (force.x()));
         assert (!isnan (force.y()));
@@ -370,21 +371,30 @@ void Minimize::apply_forces (Molecule *mol, float trunc) {
         assert (!isnan (force.x()));
         assert (!isnan (force.y()));
         assert (!isnan (force.z()));
-		vect coord = (vect &) a -> GetVector ();
-		a -> SetVector (coord + force);
+		sum_to_coordinates(&*a, force);
+}
+
+
+void Minimize::apply_forces (Molecule *mol, float trunc) {
+  //  assert (mol -> atoms.size ());
+	FOR_ATOMS_OF_MOL(a, mol) {
+		apply_force_to_atom (&*a, trunc);
     }
 }
 
 
 void Minimize::minimize_energy_step () { 
 	bool converged = false;
-    FOR_ATOMS_OF_MOL(a, data->mmff->target_mol) {
-        vect *force = (vect *) a -> GetData ("force");
-		force -> null ();
-	}
+ //   FOR_ATOMS_OF_MOL(a, data->mmff->target_mol) {
+//        vect *force = (vect *) a -> GetData ("force");
+//		force -> null ();
+//	}
 	iterations ++;
 	data -> mmff -> update ();
 	data -> mmff -> compute_forces ();
+	FOR_ATOMS_OF_MOL(a, data->mmff->target_mol) {
+		flush_forces (&*a);
+	}
     apply_forces (data -> mmff -> target_mol, 500.f);
 
 	float this_E = compute_energy ();

@@ -128,10 +128,12 @@ void Builder::mutate_atom_to (Atom *at, unsigned int atomnum) {
 
 
 Atom *Builder::add_atom_bonded_to (vect coord, int atmnum, Atom *at) {
-    cerr << "add" << endl;
+ //   cerr << "add" << endl;
     Atom *new_at = new Atom ();
     new_at -> SetAtomicNum (atmnum);
-    new_at -> SetVector (coord.x (), coord.y (), coord.z ());  
+	Molecule *mol = (Molecule *) at -> GetParent ();
+	mol->ZNinit_atom (new_at);
+    set_coordinates (new_at, coord);  
     Bond *bo = new Bond ();
     AddAtomCommand *command = new AddAtomCommand (new_at, bo, at, ddwin);
     ddwin -> execute (command);
@@ -148,7 +150,7 @@ Atom *Builder::add_atom_bonded_to (vect coord, int atmnum, Atom *at) {
 Atom *Builder::new_atom (vect coord, int atomnum) {
     Atom *at = new Atom ();
     at->SetAtomicNum (atomnum);
-    at-> SetVector (coord.x (), coord.y (), coord.z ());
+
 
     Molecule *mol = new Molecule ();
    // mol -> ZNinit_atom (at);
@@ -164,6 +166,7 @@ Atom *Builder::new_atom (vect coord, int atomnum) {
     mol -> SetTitle (s);
     mcounter++;
     mol -> ZNAddAtom (at);
+	set_coordinates (at, coord);
     mol -> ZNSetConformers (); 
     mol -> ZNinit ();
     mol -> ZNAddHydrogens (at);
@@ -291,9 +294,9 @@ void Builder::add_H (Atom *at, vector <Atom *> &atoms, vector <Bond *> &bonds) {
         int nbrs = at -> GetValence ();
         if (ntoadd == 4) {
             Atom *dummy = new Atom;
-            vect c = (vect &) at -> GetVector ();
+            vect c = get_coordinates (at);
             c.x () -= 1.5;
-            dummy -> SetVector (c);
+            set_coordinates (dummy, c);
 
             vect coord2, coord3, coord4;
             four_coordinates (dummy, at, coord2, coord3, coord4);
@@ -308,9 +311,9 @@ void Builder::add_H (Atom *at, vector <Atom *> &atoms, vector <Bond *> &bonds) {
         else if (ntoadd == 3) {
             if (!nbrs) {
                 Atom *dummy = new Atom;
-                vect c = (vect &) dummy -> GetVector ();
+                vect c = get_coordinates (dummy);
                 c.x() -= 1.5;
-                dummy -> SetVector (c);
+                set_coordinates (dummy, c);
                 vect coord2, coord3, coord4;
                 four_coordinates (dummy, at, coord2, coord3, coord4);
 
@@ -365,7 +368,7 @@ void Builder::add_H (Atom *at, vector <Atom *> &atoms, vector <Bond *> &bonds) {
             else if (!CountBonds (at)) {
                 Atom *dummy = new Atom;
                 vect v (-1.5, 0, 0);
-                dummy -> SetVector (v);
+                set_coordinates (dummy, v);
                 vect coord1, coord2, coord3;
                 four_coordinates (dummy, at, coord1, coord2, coord3);
 
@@ -395,7 +398,7 @@ void Builder::add_H (Atom *at, vector <Atom *> &atoms, vector <Bond *> &bonds) {
             }
                 else if (!nbrs) {
                 vect coord;
-                coord = at -> GetVector ();
+                coord = get_coordinates (at);
                 coord.x() -= 1.5;
 
                mol->add_atom_bonded_to (coord, 1, at);
@@ -509,10 +512,10 @@ void Builder::one_H (Atom *center, vect &coord) {
         coord.null ();
         
         FOR_NBORS_OF_ATOM (n, center) {
-            coord = sum (coord, (vect &) n -> GetVector ());   
+            coord = sum (coord, get_coordinates (&*n));   
         }
         coord.multiply (1.f/(float) CountBonds (center));
-        vect cv = (vect &) center -> GetVector ();
+        vect cv = get_coordinates(center);
         vect sumv = cv;
         sumv.multiply (2);
         coord = subtract (sumv, coord);
@@ -524,7 +527,7 @@ void Builder::one_H (Atom *center, vect &coord) {
         
     }
     else {
-        coord = (vect &) center -> GetVector ();
+        coord = get_coordinates(center);
         coord.x() += 1.5f;
     }
 }
@@ -534,9 +537,9 @@ void Builder::one_H (Atom *center, vect &coord) {
 void Builder::two_tetrahedral_coordinates (Atom *root1, Atom *root2, Atom *center, vect &coord2, vect &coord3) {
     float dis = 1.5f;
     vect r1c, r2c, cc;
-    r1c = (vect &) root1  -> GetVector ();
-    r2c = (vect &) root2  -> GetVector ();
-    cc  = (vect &) center -> GetVector ();
+    r1c = get_coordinates(root1);
+    r2c = get_coordinates(root2);
+    cc  = get_coordinates(center);
     vect middle_point = mean (r1c, r2c);
     coord2 = middle_point;
     coord3 = middle_point;
@@ -561,12 +564,12 @@ void Builder::two_tetrahedral_coordinates (Atom *root1, Atom *root2, Atom *cente
 void Builder::three_coordinates (Atom* root, Atom *center, vect &coord2, vect &coord3) {
     float d = 1.5f;
     vect root_bond, rotation_axis, plane_bond, reference, rv, cv;
-    rv = (vect &) root   -> GetVector ();
-    cv = (vect &) center -> GetVector ();
+    rv = get_coordinates(root);
+    cv = get_coordinates(center);
     if (CountBonds (root)) {
         OBBondIterator i;
         Atom *neigh1 = root -> BeginNbrAtom (i);
-        reference = (vect &) neigh1 -> GetVector ();
+        reference = get_coordinates(neigh1);
     }        
     else {
         reference = subtract (rv, vect (1., 1., 1.));
@@ -604,8 +607,8 @@ void Builder::set_magic_pencil_atomic_number (int atomn) {
 
 void Builder::four_coordinates (Atom* root, Atom *center, vect &coord2, vect &coord3, vect &coord4) {
     vect root_bond, rotation_axis, plane_bond, reference, rv, cv;
-    rv = (vect &) root -> GetVector ();
-    cv = (vect &) center -> GetVector ();
+    rv = get_coordinates(root);
+    cv = get_coordinates(center);
     float dist = 1.5f;
 //    if (root -> NumAtoms ()) {
  //       reference = root -> BeginAtom () -> GetVector ();

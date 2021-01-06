@@ -27,7 +27,20 @@
 #include "constants.h"
 #include <openbabel/mol.h>
 #include <openbabel/generic.h>
+#include <QMutex>
 using namespace std;
+
+class SurfVertex
+	{
+    public:
+		//  SurfVertex ();
+		inline vect& GetVector () {return coordinates;};
+		vect coordinates;
+		color col;
+		vect normal;
+		int n;
+	}; 
+
 
 
 class Database; class Fragment; class vect; class Molecule;
@@ -39,11 +52,19 @@ typedef OpenBabel::OBBond Bond;
 typedef OpenBabel::OBRing Ring;
 typedef OpenBabel::OBResidue Resid;
 
-typedef OpenBabel::OBPairTemplate< double > DoubleData;
-typedef OpenBabel::OBPairTemplate< bool > BoolData;
-typedef OpenBabel::OBPairTemplate< int > IntData;
-typedef OpenBabel::OBPairTemplate< color > ColorData;
-typedef OpenBabel::OBPairTemplate< vect > VectorData;
+typedef OpenBabel::OBPairTemplate <double>		DoubleData;
+typedef OpenBabel::OBPairTemplate <bool>		BoolData;
+typedef OpenBabel::OBPairTemplate <int>		IntData;
+typedef OpenBabel::OBPairTemplate <color>		ColorData;
+typedef OpenBabel::OBPairTemplate <vect>		VectorData;
+typedef OpenBabel::OBPairTemplate <QMutex *>	MutexData;
+
+
+vect get_coordinates (Atom *at);
+vect get_coordinates (SurfVertex *v);
+
+void set_coordinates (Atom *at, vect v);
+void sum_to_coordinates (Atom *at, vect v);
 
 vect find_mass_center (vector<Atom*>& invec);
 color get_color (Atom *at);
@@ -57,10 +78,19 @@ void set_visible (Atom *at, bool);
 bool get_visible (Bond *bo);
 void set_force (Atom *at, vect);
 vect get_force (Atom *at);
+
+void lock_force_mutex (Atom *at);
+void unlock_force_mutex (Atom *at);
+
+void set_back_force (Atom *at, vect);
+vect get_back_force (Atom *at);
+void flush_forces (Atom *at);
+void flush_scores (Atom *at);
+
 void set_score (Atom *at, double);
 double get_score (Atom *at);
-void set_old_score (Atom *at, double);
-double get_old_score (Atom *at);
+void set_back_score (Atom *at, double);
+double get_back_score (Atom *at);
 
 
 bool get_selected (Atom *at);
