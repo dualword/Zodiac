@@ -1,0 +1,22 @@
+ <!DOCTYPE RCC><RCC version="1.0">
+ <qresource>
+     <file>icons/undo.png</file>
+     <file>icons/redo.png</file>
+     <file>parameters/MMFF93SUP.PAR</file>
+     <file>parameters/MMFFANG.PAR</file>
+     <file>parameters/MMFFAROM.PAR</file>
+     <file>parameters/MMFFBNDK.PAR</file>
+     <file>parameters/MMFFBOND.PAR</file>
+     <file>parameters/MMFFCHG.PAR</file>
+     <file>parameters/MMFFDEF.PAR</file>
+     <file>parameters/MMFFDFSB.PAR</file>
+     <file>parameters/MMFFHDEF.PAR</file>
+     <file>parameters/MMFFOOP.PAR</file>
+     <file>parameters/MMFFPBCI.PAR</file>
+     <file>parameters/MMFFPROP.PAR</file>
+     <file>parameters/MMFFSTBN.PAR</file>
+     <file>parameters/MMFFSYMB.PAR</file>
+     <file>parameters/MMFFTOR.PAR</file>
+     <file>parameters/MMFFVDW.PAR</file>
+ </qresource>
+ </RCC>

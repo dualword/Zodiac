@@ -1,0 +1,1569 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 42;
+	objects = {
+		D7BA7D76DAB5DD13389D6332 = {
+			buildActionMask = 2147483647;
+			files = (
+				);
+			generatedFileNames = (
+				);
+			isa = PBXShellScriptBuildPhase;
+			name = "Qt Qmake";
+			neededFileNames = (
+				);
+			shellPath = "/bin/sh";
+			shellScript = "make\ -C\ /Users/nicola/Desktop/Zodiac-release-26:2:07\ -f\ Zodiac-release-26:2:07.xcodeproj/qt_makeqmake.mak";
+		};
+		773F88B638A23401DED5E25B = {
+			isa = PBXFileReference;
+			name = "actions.cc";
+			path = "actions.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		52A1D2213B2E220BC77A8B1C = {
+			fileRef = "773F88B638A23401DED5E25B";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		F96E33F4498781C35E5C5EA9 = {
+			isa = PBXFileReference;
+			name = "arcball.cc";
+			path = "arcball.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		1C5905B9A690E5D99D596035 = {
+			fileRef = "F96E33F4498781C35E5C5EA9";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		996A976A75B1A6EE3DBB0308 = {
+			isa = PBXFileReference;
+			name = "builder.cc";
+			path = "builder.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		D8C1B1DA823D8267EEC53E98 = {
+			fileRef = "996A976A75B1A6EE3DBB0308";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		E40E8690AAC16554D83F8A84 = {
+			isa = PBXFileReference;
+			name = "chemscore.cc";
+			path = "chemscore.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		EA4B89055544002414018F2E = {
+			fileRef = "E40E8690AAC16554D83F8A84";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		5F1FAD61BFD9DABB69F6F230 = {
+			isa = PBXFileReference;
+			name = "command.cc";
+			path = "command.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		D70FC07B79D450FC48800565 = {
+			fileRef = "5F1FAD61BFD9DABB69F6F230";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		896F9CEC468CEB0AA5BFBC93 = {
+			isa = PBXFileReference;
+			name = "constants.cc";
+			path = "constants.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		3FC939143AD8AD930E91C250 = {
+			fileRef = "896F9CEC468CEB0AA5BFBC93";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		9FB59D9CD2345721A8D217DE = {
+			isa = PBXFileReference;
+			name = "database.cc";
+			path = "database.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		9ECB629852099C5C0F3330F5 = {
+			fileRef = "9FB59D9CD2345721A8D217DE";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		F7A838C34320B23351911BBD = {
+			isa = PBXFileReference;
+			name = "ddwin.cc";
+			path = "ddwin.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		FE82D390995A85B4100F3239 = {
+			fileRef = "F7A838C34320B23351911BBD";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		955420CA6FB7BCE6E39A401D = {
+			isa = PBXFileReference;
+			name = "FF.cc";
+			path = "FF.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		978F6C15E13C97783D4AEE9D = {
+			fileRef = "955420CA6FB7BCE6E39A401D";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		14DE17949C4CDD65D72AB165 = {
+			isa = PBXFileReference;
+			name = "graphical_object.cc";
+			path = "graphical_object.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		CB0905C4149030F754C67F4F = {
+			fileRef = "14DE17949C4CDD65D72AB165";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		EA9C410F6C2F638EE012D917 = {
+			isa = PBXFileReference;
+			name = "MarchingCubes.cc";
+			path = "MarchingCubes.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		9A7CD8328C38C4361A612DE2 = {
+			fileRef = "EA9C410F6C2F638EE012D917";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		E98BF64F6BB0C418A2DD9511 = {
+			isa = PBXFileReference;
+			name = "maths.cc";
+			path = "maths.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		9274C4A889CB8734C944C9AD = {
+			fileRef = "E98BF64F6BB0C418A2DD9511";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		9C054F9C62EFC3F4D3B31BD4 = {
+			isa = PBXFileReference;
+			name = "menu.cc";
+			path = "menu.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		4CBF65D1BCB7B989974355A1 = {
+			fileRef = "9C054F9C62EFC3F4D3B31BD4";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		4789BCDB8E3CD55945F6446A = {
+			isa = PBXFileReference;
+			name = "minimize.cc";
+			path = "minimize.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		348B53813B96C2221198B3C4 = {
+			fileRef = "4789BCDB8E3CD55945F6446A";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		EFC667A2E2B6620F4485731B = {
+			isa = PBXFileReference;
+			name = "MMFF.cc";
+			path = "MMFF.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		2AF13BFF480153C65C28D980 = {
+			fileRef = "EFC667A2E2B6620F4485731B";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		F21078A75B5BFB201BAABFC9 = {
+			isa = PBXFileReference;
+			name = "molecule.cc";
+			path = "molecule.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		1389C139297A08641B31A677 = {
+			fileRef = "F21078A75B5BFB201BAABFC9";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		0C5E5B7176C4532535B2B7AA = {
+			isa = PBXFileReference;
+			name = "myline.cc";
+			path = "myline.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		E62A6A3861E35A88EDCD63C9 = {
+			fileRef = "0C5E5B7176C4532535B2B7AA";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		25EACE760B1DE95891036C5B = {
+			isa = PBXFileReference;
+			name = "plants.cc";
+			path = "plants.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		9EEE7BBC7128ECAE0D4481E8 = {
+			fileRef = "25EACE760B1DE95891036C5B";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		667B75056221E7BF506AEEEC = {
+			isa = PBXFileReference;
+			name = "plants_mainwin.cc";
+			path = "plants_mainwin.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		019AD8E21321E6D1D3DA7B8F = {
+			fileRef = "667B75056221E7BF506AEEEC";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		282129E05075A4B77D4080D3 = {
+			isa = PBXFileReference;
+			name = "plantsconfig.cc";
+			path = "plantsconfig.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		F463E2063173CD335D533B0C = {
+			fileRef = "282129E05075A4B77D4080D3";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		72744A25CC8EEEED18677984 = {
+			isa = PBXFileReference;
+			name = "PLP.cc";
+			path = "PLP.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		56B67918EBFB340536C05DD0 = {
+			fileRef = "72744A25CC8EEEED18677984";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		780D50E165A998248DE6432E = {
+			isa = PBXFileReference;
+			name = "ply.c";
+			path = "ply.c";
+			refType = 4;
+		};
+		66A2CB58AB7217AC556E373E = {
+			fileRef = "780D50E165A998248DE6432E";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		8F5383E53271F9116D8DBE65 = {
+			isa = PBXFileReference;
+			name = "povray.cc";
+			path = "povray.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		9375E3B23D542F070245586C = {
+			fileRef = "8F5383E53271F9116D8DBE65";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		8E30788BB51C60E163B16D39 = {
+			isa = PBXFileReference;
+			name = "thread.cc";
+			path = "thread.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		0723894245081934E09737A4 = {
+			fileRef = "8E30788BB51C60E163B16D39";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		7FE86ED17C108C83E6804FD5 = {
+			isa = PBXFileReference;
+			name = "ZNdata.cc";
+			path = "ZNdata.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		40A4F43E11690A9F4132263C = {
+			fileRef = "7FE86ED17C108C83E6804FD5";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		EA50B5F3340A72F9668AEED8 = {
+			isa = PBXFileReference;
+			name = "Zodiac.cc";
+			path = "Zodiac.cc";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		C5DABD357379C02C14CC908F = {
+			fileRef = "EA50B5F3340A72F9668AEED8";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		4FBEF6C129BC50B5604DA2CE = {
+			isa = PBXFileReference;
+			name = "moc_ddwin.cpp";
+			path = "moc_ddwin.cpp";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		974D0C1192DC7101F24B6F07 = {
+			fileRef = "4FBEF6C129BC50B5604DA2CE";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		27E491205DBB7625977A84A9 = {
+			isa = PBXFileReference;
+			name = "moc_menu.cpp";
+			path = "moc_menu.cpp";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		E149F1375762B9CC9BF8DCF3 = {
+			fileRef = "27E491205DBB7625977A84A9";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		92CCBF5FC09A191F44BEF904 = {
+			isa = PBXFileReference;
+			name = "moc_myline.cpp";
+			path = "moc_myline.cpp";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		3A9A1C86EC80CEC84AE0AD97 = {
+			fileRef = "92CCBF5FC09A191F44BEF904";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		028BBFCA41D9D25F3970C178 = {
+			isa = PBXFileReference;
+			name = "moc_plants.cpp";
+			path = "moc_plants.cpp";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		301611D420F5AE20F2FB1611 = {
+			fileRef = "028BBFCA41D9D25F3970C178";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		692CDD0F0AFB2F16074EC25D = {
+			isa = PBXFileReference;
+			name = "moc_plants_mainwin.cpp";
+			path = "moc_plants_mainwin.cpp";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		1FCA5C05548C2C83F74410D2 = {
+			fileRef = "692CDD0F0AFB2F16074EC25D";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		41263F91C86B28624BB8E483 = {
+			isa = PBXFileReference;
+			name = "moc_thread.cpp";
+			path = "moc_thread.cpp";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		A19B12B40CF47E9EFC5DF0AE = {
+			fileRef = "41263F91C86B28624BB8E483";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		43657A1495917FFB693BCFFE = {
+			isa = PBXFileReference;
+			name = "qrc_resources.cpp";
+			path = "qrc_resources.cpp";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		E6FE771C31BD888969BD1E79 = {
+			fileRef = "43657A1495917FFB693BCFFE";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		2DD2DEAC0C750997DB97629C = {
+			isa = PBXFileReference;
+			name = "qrc_zodiac.cpp";
+			path = "qrc_zodiac.cpp";
+			refType = 4;
+			lastKnownFileType = "sourcecode.cpp.cpp";
+		};
+		85DEBA6B937C2B258A6885B6 = {
+			fileRef = "2DD2DEAC0C750997DB97629C";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		661A581BAD89E6E216916CE6 = {
+			isa = PBXFileReference;
+			name = "ui_zodiac.h";
+			path = "ui_zodiac.h";
+			refType = 4;
+		};
+		B849239DA0E3E33E90125674 = {
+			isa = PBXFileReference;
+			name = "actions.h";
+			path = "actions.h";
+			refType = 4;
+		};
+		83BC070BEF7725161A944E64 = {
+			isa = PBXFileReference;
+			name = "arcball.h";
+			path = "arcball.h";
+			refType = 4;
+		};
+		F065C22B8725ACB1EC40C634 = {
+			isa = PBXFileReference;
+			name = "builder.h";
+			path = "builder.h";
+			refType = 4;
+		};
+		4B6EB53A168A25597F087E84 = {
+			isa = PBXFileReference;
+			name = "chemscore.h";
+			path = "chemscore.h";
+			refType = 4;
+		};
+		904B9299489559F50FFED213 = {
+			isa = PBXFileReference;
+			name = "command.h";
+			path = "command.h";
+			refType = 4;
+		};
+		4575A68B796002CA968BC0DD = {
+			isa = PBXFileReference;
+			name = "constants.h";
+			path = "constants.h";
+			refType = 4;
+		};
+		0E2042936C3A4BC220C92724 = {
+			isa = PBXFileReference;
+			name = "cutoffGrid.h";
+			path = "cutoffGrid.h";
+			refType = 4;
+		};
+		9FE3852D4A7E38FE0053CECD = {
+			isa = PBXFileReference;
+			name = "database.h";
+			path = "database.h";
+			refType = 4;
+		};
+		478E222303A9924D4A033B58 = {
+			isa = PBXFileReference;
+			name = "ddwin.h";
+			path = "ddwin.h";
+			refType = 4;
+		};
+		0FC9F2CA79E0768AEB7D0E2C = {
+			isa = PBXFileReference;
+			name = "FF.h";
+			path = "FF.h";
+			refType = 4;
+		};
+		83D5B249A8E7DE62EDAE7097 = {
+			isa = PBXFileReference;
+			name = "graphical_object.h";
+			path = "graphical_object.h";
+			refType = 4;
+		};
+		41AFB1E7DD2B8FA8DB699A82 = {
+			isa = PBXFileReference;
+			name = "LookUpTable.h";
+			path = "LookUpTable.h";
+			refType = 4;
+		};
+		5355E4824038312988995C7A = {
+			isa = PBXFileReference;
+			name = "MarchingCubes.h";
+			path = "MarchingCubes.h";
+			refType = 4;
+		};
+		4C2693EB81D94CC17C8EC5EA = {
+			isa = PBXFileReference;
+			name = "maths.h";
+			path = "maths.h";
+			refType = 4;
+		};
+		0910198BADEF83CB8A1E4369 = {
+			isa = PBXFileReference;
+			name = "menu.h";
+			path = "menu.h";
+			refType = 4;
+		};
+		BCFF5A7BE62E9244B712568E = {
+			isa = PBXFileReference;
+			name = "minimize.h";
+			path = "minimize.h";
+			refType = 4;
+		};
+		D690CB80E61CE8861AE3688D = {
+			isa = PBXFileReference;
+			name = "MMFF.h";
+			path = "MMFF.h";
+			refType = 4;
+		};
+		4B542B67E37C6C37273A60D6 = {
+			isa = PBXFileReference;
+			name = "molecule.h";
+			path = "molecule.h";
+			refType = 4;
+		};
+		B689A0AA7960FD9313629470 = {
+			isa = PBXFileReference;
+			name = "myline.h";
+			path = "myline.h";
+			refType = 4;
+		};
+		891AC9182900490DBAEA6B57 = {
+			isa = PBXFileReference;
+			name = "plants.h";
+			path = "plants.h";
+			refType = 4;
+		};
+		59D216A9BD7977B2A28FBD25 = {
+			isa = PBXFileReference;
+			name = "plants_mainwin.h";
+			path = "plants_mainwin.h";
+			refType = 4;
+		};
+		F9E92C9025F8CF97B7A8305B = {
+			isa = PBXFileReference;
+			name = "plantsconfig.h";
+			path = "plantsconfig.h";
+			refType = 4;
+		};
+		7739F6CDFCFC4DCB8E3E2DB4 = {
+			isa = PBXFileReference;
+			name = "PLP.h";
+			path = "PLP.h";
+			refType = 4;
+		};
+		E6A875C3D380AE927CEF7076 = {
+			isa = PBXFileReference;
+			name = "ply.h";
+			path = "ply.h";
+			refType = 4;
+		};
+		A67868956A81466B6E8FC067 = {
+			isa = PBXFileReference;
+			name = "thread.h";
+			path = "thread.h";
+			refType = 4;
+		};
+		CE889E04BC1CB80F7DB55E8C = {
+			isa = PBXFileReference;
+			name = "ZNdata.h";
+			path = "ZNdata.h";
+			refType = 4;
+		};
+		6CC4D5B67CFDF4F692C300D0 = {
+			isa = PBXFileReference;
+			name = "zodiac.h";
+			path = "zodiac.h";
+			refType = 4;
+		};
+		F10F5A09E84E267A5E11829C = {
+			isa = PBXFileReference;
+			name = "atom.h";
+			path = "openbabel/atom.h";
+			refType = 4;
+		};
+		4A1E059FE5B32A7C3233DEFD = {
+			isa = PBXFileReference;
+			name = "babelconfig-mac.h";
+			path = "openbabel/babelconfig-mac.h";
+			refType = 4;
+		};
+		CEF2BA46D028D8FCAB944B1F = {
+			isa = PBXFileReference;
+			name = "babelconfig-win32.h";
+			path = "openbabel/babelconfig-win32.h";
+			refType = 4;
+		};
+		31D9660AA88A19A681349F77 = {
+			isa = PBXFileReference;
+			name = "babelconfig.h";
+			path = "openbabel/babelconfig.h";
+			refType = 4;
+		};
+		618EA72A4D83109A323885D1 = {
+			isa = PBXFileReference;
+			name = "base.h";
+			path = "openbabel/base.h";
+			refType = 4;
+		};
+		700CD25C8F501B75973F47D3 = {
+			isa = PBXFileReference;
+			name = "bitvec.h";
+			path = "openbabel/bitvec.h";
+			refType = 4;
+		};
+		40A6F207EBB8304EC72AE669 = {
+			isa = PBXFileReference;
+			name = "bond.h";
+			path = "openbabel/bond.h";
+			refType = 4;
+		};
+		9DCC4A9E13EB66A4E728FC38 = {
+			isa = PBXFileReference;
+			name = "bondtyper.h";
+			path = "openbabel/bondtyper.h";
+			refType = 4;
+		};
+		D12F2ED464C0B33B3C219709 = {
+			isa = PBXFileReference;
+			name = "canon.h";
+			path = "openbabel/canon.h";
+			refType = 4;
+		};
+		C08729486E1C3740A88E8553 = {
+			isa = PBXFileReference;
+			name = "chains.h";
+			path = "openbabel/chains.h";
+			refType = 4;
+		};
+		0A2D7C50BCBA9D12A9EAD468 = {
+			isa = PBXFileReference;
+			name = "chiral.h";
+			path = "openbabel/chiral.h";
+			refType = 4;
+		};
+		D2D52ED0ABE7AEC650C43922 = {
+			isa = PBXFileReference;
+			name = "data.h";
+			path = "openbabel/data.h";
+			refType = 4;
+		};
+		76E2831839C5652B938EBDDF = {
+			isa = PBXFileReference;
+			name = "dlhandler.h";
+			path = "openbabel/dlhandler.h";
+			refType = 4;
+		};
+		5DC03CB118E23D5C88B809E6 = {
+			isa = PBXFileReference;
+			name = "fingerprint.h";
+			path = "openbabel/fingerprint.h";
+			refType = 4;
+		};
+		B4B75D039E3A2CAED28EB55D = {
+			isa = PBXFileReference;
+			name = "forcefield.h";
+			path = "openbabel/forcefield.h";
+			refType = 4;
+		};
+		9AC2948D044E405800C8658F = {
+			isa = PBXFileReference;
+			name = "generic.h";
+			path = "openbabel/generic.h";
+			refType = 4;
+		};
+		A1B007B13EFDBD0A39906CBF = {
+			isa = PBXFileReference;
+			name = "grid.h";
+			path = "openbabel/grid.h";
+			refType = 4;
+		};
+		67972430F5160A084CC3AED2 = {
+			isa = PBXFileReference;
+			name = "groupcontrib.h";
+			path = "openbabel/groupcontrib.h";
+			refType = 4;
+		};
+		72948CA78B4897DF355AACD8 = {
+			isa = PBXFileReference;
+			name = "internalcoord.h";
+			path = "openbabel/internalcoord.h";
+			refType = 4;
+		};
+		7F646AC68C5FFF4B292D587B = {
+			isa = PBXFileReference;
+			name = "kinetics.h";
+			path = "openbabel/kinetics.h";
+			refType = 4;
+		};
+		7AA26351CA84FECA0AB86B6E = {
+			isa = PBXFileReference;
+			name = "lineend.h";
+			path = "openbabel/lineend.h";
+			refType = 4;
+		};
+		BE768CFD1BC0B01FE14D6FB4 = {
+			isa = PBXFileReference;
+			name = "matrix.h";
+			path = "openbabel/matrix.h";
+			refType = 4;
+		};
+		11CB439AF55CD0389A8F36D2 = {
+			isa = PBXFileReference;
+			name = "mol.h";
+			path = "openbabel/mol.h";
+			refType = 4;
+		};
+		58928D3E892CFE70AB7F9078 = {
+			isa = PBXFileReference;
+			name = "molchrg.h";
+			path = "openbabel/molchrg.h";
+			refType = 4;
+		};
+		1E7EC865D4A7E65CB6846FF4 = {
+			isa = PBXFileReference;
+			name = "obconversion.h";
+			path = "openbabel/obconversion.h";
+			refType = 4;
+		};
+		C592FF22A16AEE52E74B203E = {
+			isa = PBXFileReference;
+			name = "oberror.h";
+			path = "openbabel/oberror.h";
+			refType = 4;
+		};
+		5A4D3450D36AAC306DFAF60D = {
+			isa = PBXFileReference;
+			name = "obiter.h";
+			path = "openbabel/obiter.h";
+			refType = 4;
+		};
+		B6DB53EA046F9403F3EAFE1D = {
+			isa = PBXFileReference;
+			name = "obmolecformat.h";
+			path = "openbabel/obmolecformat.h";
+			refType = 4;
+		};
+		4CFED0111C5E5704BD3D42AE = {
+			isa = PBXFileReference;
+			name = "obutil.h";
+			path = "openbabel/obutil.h";
+			refType = 4;
+		};
+		07030EF040EC6205F73F1B3E = {
+			isa = PBXFileReference;
+			name = "parsmart.h";
+			path = "openbabel/parsmart.h";
+			refType = 4;
+		};
+		8F140E3F5068BE31EE1B3F1E = {
+			isa = PBXFileReference;
+			name = "patty.h";
+			path = "openbabel/patty.h";
+			refType = 4;
+		};
+		5C1DB9ED3A2DA9961AB7B3D5 = {
+			isa = PBXFileReference;
+			name = "phmodel.h";
+			path = "openbabel/phmodel.h";
+			refType = 4;
+		};
+		B645D1C4C65F916E3BB81C11 = {
+			isa = PBXFileReference;
+			name = "pluginiter.h";
+			path = "openbabel/pluginiter.h";
+			refType = 4;
+		};
+		3646397F5345E078AE18BF9E = {
+			isa = PBXFileReference;
+			name = "rand.h";
+			path = "openbabel/rand.h";
+			refType = 4;
+		};
+		D40FC06510E0A0E72573EA54 = {
+			isa = PBXFileReference;
+			name = "reaction.h";
+			path = "openbabel/reaction.h";
+			refType = 4;
+		};
+		20D7CB0A6347341B0EC36846 = {
+			isa = PBXFileReference;
+			name = "residue.h";
+			path = "openbabel/residue.h";
+			refType = 4;
+		};
+		EDC17B0561B873E9F0380EDB = {
+			isa = PBXFileReference;
+			name = "ring.h";
+			path = "openbabel/ring.h";
+			refType = 4;
+		};
+		82E170489255C5A5FA018FE3 = {
+			isa = PBXFileReference;
+			name = "rotamer.h";
+			path = "openbabel/rotamer.h";
+			refType = 4;
+		};
+		139F98937AB94A245C52343B = {
+			isa = PBXFileReference;
+			name = "rotor.h";
+			path = "openbabel/rotor.h";
+			refType = 4;
+		};
+		6052CF18AE844AF7B53156BB = {
+			isa = PBXFileReference;
+			name = "typer.h";
+			path = "openbabel/typer.h";
+			refType = 4;
+		};
+		E3817484C202615C08FCBE8B = {
+			isa = PBXFileReference;
+			name = "xml.h";
+			path = "openbabel/xml.h";
+			refType = 4;
+		};
+		A146ABB438164DB266E0FD3B = {
+			isa = PBXFileReference;
+			name = "matrix3x3.h";
+			path = "openbabel/math/matrix3x3.h";
+			refType = 4;
+		};
+		A328BD50A8C84F4DF4212E87 = {
+			isa = PBXFileReference;
+			name = "vector3.h";
+			path = "openbabel/math/vector3.h";
+			refType = 4;
+		};
+		9D53DC9EE1F81969E13EA1F3 = {
+			isa = PBXFileReference;
+			name = "Zodiac-release-26:2:07.pro";
+			path = "Zodiac-release-26:2:07.pro";
+			refType = 4;
+		};
+		D7DA6145AB9539ECDE332D13 = {
+			isa = PBXFileReference;
+			name = "resources.qrc";
+			path = "resources.qrc";
+			refType = 4;
+		};
+		DD04DF2CEDB7FEE2FCDE5898 = {
+			fileRef = "D7DA6145AB9539ECDE332D13";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		EC238E46678FBB8C4AF6D590 = {
+			isa = PBXFileReference;
+			name = "zodiac.qrc";
+			path = "zodiac.qrc";
+			refType = 4;
+		};
+		AF2E49836E8D7B25587BE65B = {
+			fileRef = "EC238E46678FBB8C4AF6D590";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		EA1DDE14F1EAF8245B25C180 = {
+			isa = PBXFileReference;
+			name = "zodiac.ui";
+			path = "zodiac.ui";
+			refType = 4;
+		};
+		9CADD4AC28EE10D7CF878F15 = {
+			fileRef = "EA1DDE14F1EAF8245B25C180";
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					);
+			};
+		};
+		883D7615C4D2DE3FA1218F12 = {
+			isa = PBXGroup;
+			children = (
+				"B849239DA0E3E33E90125674",
+				"83BC070BEF7725161A944E64",
+				"F065C22B8725ACB1EC40C634",
+				"4B6EB53A168A25597F087E84",
+				"904B9299489559F50FFED213",
+				"4575A68B796002CA968BC0DD",
+				"0E2042936C3A4BC220C92724",
+				"9FE3852D4A7E38FE0053CECD",
+				"478E222303A9924D4A033B58",
+				"0FC9F2CA79E0768AEB7D0E2C",
+				"83D5B249A8E7DE62EDAE7097",
+				"41AFB1E7DD2B8FA8DB699A82",
+				"5355E4824038312988995C7A",
+				"4C2693EB81D94CC17C8EC5EA",
+				"0910198BADEF83CB8A1E4369",
+				"BCFF5A7BE62E9244B712568E",
+				"D690CB80E61CE8861AE3688D",
+				"4B542B67E37C6C37273A60D6",
+				"B689A0AA7960FD9313629470",
+				"891AC9182900490DBAEA6B57",
+				"59D216A9BD7977B2A28FBD25",
+				"F9E92C9025F8CF97B7A8305B",
+				"7739F6CDFCFC4DCB8E3E2DB4",
+				"E6A875C3D380AE927CEF7076",
+				"A67868956A81466B6E8FC067",
+				"CE889E04BC1CB80F7DB55E8C",
+				"6CC4D5B67CFDF4F692C300D0",
+				"03462C495106FFF2F4CD1AA3");
+			name = "Headers";
+			refType = 4;
+		};
+		03462C495106FFF2F4CD1AA3 = {
+			isa = PBXGroup;
+			children = (
+				"F10F5A09E84E267A5E11829C",
+				"4A1E059FE5B32A7C3233DEFD",
+				"CEF2BA46D028D8FCAB944B1F",
+				"31D9660AA88A19A681349F77",
+				"618EA72A4D83109A323885D1",
+				"700CD25C8F501B75973F47D3",
+				"40A6F207EBB8304EC72AE669",
+				"9DCC4A9E13EB66A4E728FC38",
+				"D12F2ED464C0B33B3C219709",
+				"C08729486E1C3740A88E8553",
+				"0A2D7C50BCBA9D12A9EAD468",
+				"D2D52ED0ABE7AEC650C43922",
+				"76E2831839C5652B938EBDDF",
+				"5DC03CB118E23D5C88B809E6",
+				"B4B75D039E3A2CAED28EB55D",
+				"9AC2948D044E405800C8658F",
+				"A1B007B13EFDBD0A39906CBF",
+				"67972430F5160A084CC3AED2",
+				"72948CA78B4897DF355AACD8",
+				"7F646AC68C5FFF4B292D587B",
+				"7AA26351CA84FECA0AB86B6E",
+				"BE768CFD1BC0B01FE14D6FB4",
+				"11CB439AF55CD0389A8F36D2",
+				"58928D3E892CFE70AB7F9078",
+				"1E7EC865D4A7E65CB6846FF4",
+				"C592FF22A16AEE52E74B203E",
+				"5A4D3450D36AAC306DFAF60D",
+				"B6DB53EA046F9403F3EAFE1D",
+				"4CFED0111C5E5704BD3D42AE",
+				"07030EF040EC6205F73F1B3E",
+				"8F140E3F5068BE31EE1B3F1E",
+				"5C1DB9ED3A2DA9961AB7B3D5",
+				"B645D1C4C65F916E3BB81C11",
+				"3646397F5345E078AE18BF9E",
+				"D40FC06510E0A0E72573EA54",
+				"20D7CB0A6347341B0EC36846",
+				"EDC17B0561B873E9F0380EDB",
+				"82E170489255C5A5FA018FE3",
+				"139F98937AB94A245C52343B",
+				"6052CF18AE844AF7B53156BB",
+				"E3817484C202615C08FCBE8B",
+				"62495442E659548042183A10");
+			name = "openbabel";
+			refType = 4;
+		};
+		62495442E659548042183A10 = {
+			isa = PBXGroup;
+			children = (
+				"A146ABB438164DB266E0FD3B",
+				"A328BD50A8C84F4DF4212E87");
+			name = "math";
+			refType = 4;
+		};
+		FB61758D0F0FDA4BA867C3D5 = {
+			isa = PBXGroup;
+			children = (
+				"773F88B638A23401DED5E25B",
+				"F96E33F4498781C35E5C5EA9",
+				"996A976A75B1A6EE3DBB0308",
+				"E40E8690AAC16554D83F8A84",
+				"5F1FAD61BFD9DABB69F6F230",
+				"896F9CEC468CEB0AA5BFBC93",
+				"9FB59D9CD2345721A8D217DE",
+				"F7A838C34320B23351911BBD",
+				"955420CA6FB7BCE6E39A401D",
+				"14DE17949C4CDD65D72AB165",
+				"EA9C410F6C2F638EE012D917",
+				"E98BF64F6BB0C418A2DD9511",
+				"9C054F9C62EFC3F4D3B31BD4",
+				"4789BCDB8E3CD55945F6446A",
+				"EFC667A2E2B6620F4485731B",
+				"F21078A75B5BFB201BAABFC9",
+				"0C5E5B7176C4532535B2B7AA",
+				"25EACE760B1DE95891036C5B",
+				"667B75056221E7BF506AEEEC",
+				"282129E05075A4B77D4080D3",
+				"72744A25CC8EEEED18677984",
+				"780D50E165A998248DE6432E",
+				"8F5383E53271F9116D8DBE65",
+				"8E30788BB51C60E163B16D39",
+				"7FE86ED17C108C83E6804FD5",
+				"EA50B5F3340A72F9668AEED8");
+			name = "Sources";
+			refType = 4;
+		};
+		52C235EBF1C9B07808119459 = {
+			isa = PBXGroup;
+			children = (
+				"D7DA6145AB9539ECDE332D13",
+				"EC238E46678FBB8C4AF6D590");
+			name = "Sources [RCC]";
+			refType = 4;
+		};
+		EEC299C65D5017EB9DD513B0 = {
+			isa = PBXGroup;
+			children = (
+				"EA1DDE14F1EAF8245B25C180");
+			name = "Sources [UIC]";
+			refType = 4;
+		};
+		7CABE3C80E79AD2B307756D2 = {
+			isa = PBXGroup;
+			children = (
+				"9D53DC9EE1F81969E13EA1F3");
+			name = "Sources [qmake]";
+			refType = 4;
+		};
+		46E892BBB6BB6952967E0561 = {
+			isa = PBXGroup;
+			children = (
+				"4FBEF6C129BC50B5604DA2CE",
+				"27E491205DBB7625977A84A9",
+				"92CCBF5FC09A191F44BEF904",
+				"028BBFCA41D9D25F3970C178",
+				"692CDD0F0AFB2F16074EC25D",
+				"41263F91C86B28624BB8E483",
+				"43657A1495917FFB693BCFFE",
+				"2DD2DEAC0C750997DB97629C",
+				"661A581BAD89E6E216916CE6");
+			name = "Temporary Sources";
+			refType = 4;
+		};
+		A0A52A2ADF7A1E2A99738674 = {
+			buildActionMask = 2147483647;
+			files = (
+				);
+			generatedFileNames = (
+				"52A1D2213B2E220BC77A8B1C",
+				"1C5905B9A690E5D99D596035",
+				"D8C1B1DA823D8267EEC53E98",
+				"EA4B89055544002414018F2E",
+				"D70FC07B79D450FC48800565",
+				"3FC939143AD8AD930E91C250",
+				"9ECB629852099C5C0F3330F5",
+				"FE82D390995A85B4100F3239",
+				"978F6C15E13C97783D4AEE9D",
+				"CB0905C4149030F754C67F4F",
+				"9A7CD8328C38C4361A612DE2",
+				"9274C4A889CB8734C944C9AD",
+				"4CBF65D1BCB7B989974355A1",
+				"348B53813B96C2221198B3C4",
+				"2AF13BFF480153C65C28D980",
+				"1389C139297A08641B31A677",
+				"E62A6A3861E35A88EDCD63C9",
+				"9EEE7BBC7128ECAE0D4481E8",
+				"019AD8E21321E6D1D3DA7B8F",
+				"F463E2063173CD335D533B0C",
+				"56B67918EBFB340536C05DD0",
+				"66A2CB58AB7217AC556E373E",
+				"9375E3B23D542F070245586C",
+				"0723894245081934E09737A4",
+				"40A4F43E11690A9F4132263C",
+				"C5DABD357379C02C14CC908F",
+				"974D0C1192DC7101F24B6F07",
+				"E149F1375762B9CC9BF8DCF3",
+				"3A9A1C86EC80CEC84AE0AD97",
+				"301611D420F5AE20F2FB1611",
+				"1FCA5C05548C2C83F74410D2",
+				"A19B12B40CF47E9EFC5DF0AE",
+				"E6FE771C31BD888969BD1E79",
+				"85DEBA6B937C2B258A6885B6");
+			isa = PBXShellScriptBuildPhase;
+			name = "Qt Preprocessors";
+			neededFileNames = (
+				"52A1D2213B2E220BC77A8B1C",
+				"1C5905B9A690E5D99D596035",
+				"D8C1B1DA823D8267EEC53E98",
+				"EA4B89055544002414018F2E",
+				"D70FC07B79D450FC48800565",
+				"3FC939143AD8AD930E91C250",
+				"9ECB629852099C5C0F3330F5",
+				"FE82D390995A85B4100F3239",
+				"978F6C15E13C97783D4AEE9D",
+				"CB0905C4149030F754C67F4F",
+				"9A7CD8328C38C4361A612DE2",
+				"9274C4A889CB8734C944C9AD",
+				"4CBF65D1BCB7B989974355A1",
+				"348B53813B96C2221198B3C4",
+				"2AF13BFF480153C65C28D980",
+				"1389C139297A08641B31A677",
+				"E62A6A3861E35A88EDCD63C9",
+				"9EEE7BBC7128ECAE0D4481E8",
+				"019AD8E21321E6D1D3DA7B8F",
+				"F463E2063173CD335D533B0C",
+				"56B67918EBFB340536C05DD0",
+				"66A2CB58AB7217AC556E373E",
+				"9375E3B23D542F070245586C",
+				"0723894245081934E09737A4",
+				"40A4F43E11690A9F4132263C",
+				"C5DABD357379C02C14CC908F",
+				"974D0C1192DC7101F24B6F07",
+				"E149F1375762B9CC9BF8DCF3",
+				"3A9A1C86EC80CEC84AE0AD97",
+				"301611D420F5AE20F2FB1611",
+				"1FCA5C05548C2C83F74410D2",
+				"A19B12B40CF47E9EFC5DF0AE",
+				"E6FE771C31BD888969BD1E79",
+				"85DEBA6B937C2B258A6885B6");
+			shellPath = "/bin/sh";
+			shellScript = "make\ -C\ /Users/nicola/Desktop/Zodiac-release-26:2:07\ -f\ Zodiac-release-26:2:07.xcodeproj/qt_preprocess.mak";
+		};
+		C29B8785722055ED95EF7B57 = {
+			buildActionMask = 2147483647;
+			files = (
+				"52A1D2213B2E220BC77A8B1C",
+				"1C5905B9A690E5D99D596035",
+				"D8C1B1DA823D8267EEC53E98",
+				"EA4B89055544002414018F2E",
+				"D70FC07B79D450FC48800565",
+				"3FC939143AD8AD930E91C250",
+				"9ECB629852099C5C0F3330F5",
+				"FE82D390995A85B4100F3239",
+				"978F6C15E13C97783D4AEE9D",
+				"CB0905C4149030F754C67F4F",
+				"9A7CD8328C38C4361A612DE2",
+				"9274C4A889CB8734C944C9AD",
+				"4CBF65D1BCB7B989974355A1",
+				"348B53813B96C2221198B3C4",
+				"2AF13BFF480153C65C28D980",
+				"1389C139297A08641B31A677",
+				"E62A6A3861E35A88EDCD63C9",
+				"9EEE7BBC7128ECAE0D4481E8",
+				"019AD8E21321E6D1D3DA7B8F",
+				"F463E2063173CD335D533B0C",
+				"56B67918EBFB340536C05DD0",
+				"66A2CB58AB7217AC556E373E",
+				"9375E3B23D542F070245586C",
+				"0723894245081934E09737A4",
+				"40A4F43E11690A9F4132263C",
+				"C5DABD357379C02C14CC908F",
+				"974D0C1192DC7101F24B6F07",
+				"E149F1375762B9CC9BF8DCF3",
+				"3A9A1C86EC80CEC84AE0AD97",
+				"301611D420F5AE20F2FB1611",
+				"1FCA5C05548C2C83F74410D2",
+				"A19B12B40CF47E9EFC5DF0AE",
+				"E6FE771C31BD888969BD1E79",
+				"85DEBA6B937C2B258A6885B6");
+			isa = PBXSourcesBuildPhase;
+			name = "Build Sources";
+		};
+		9B36DA7E32F0304E780E7972 = {
+			isa = PBXFrameworkReference;
+			name = "QtGui.framework";
+			path = "/Library/Frameworks/QtGui.framework";
+			refType = 0;
+		};
+		501667F26B3C1FF6767A7C12 = {
+			fileRef = "9B36DA7E32F0304E780E7972";
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		DA138F75C9F545CDAE7FB264 = {
+			isa = PBXFrameworkReference;
+			name = "Carbon.framework";
+			path = "/System/Library/Frameworks/Carbon.framework";
+			refType = 0;
+		};
+		C8FD4A1AAA37CF2CA2824CCF = {
+			fileRef = "DA138F75C9F545CDAE7FB264";
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		821416211D63F190AAAD016A = {
+			isa = PBXFrameworkReference;
+			name = "AppKit.framework";
+			path = "/System/Library/Frameworks/AppKit.framework";
+			refType = 0;
+		};
+		51D4DBF7CB8537BE86EBD055 = {
+			fileRef = "821416211D63F190AAAD016A";
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		7BC2E65A5E699A5E5D834CA2 = {
+			isa = PBXFrameworkReference;
+			name = "QtCore.framework";
+			path = "/Library/Frameworks/QtCore.framework";
+			refType = 0;
+		};
+		069D05B0128AE5DC7EE31738 = {
+			fileRef = "7BC2E65A5E699A5E5D834CA2";
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		27AE7A480FD6C52FCA80FECD = {
+			isa = PBXFrameworkReference;
+			name = "ApplicationServices.framework";
+			path = "/System/Library/Frameworks/ApplicationServices.framework";
+			refType = 0;
+		};
+		F9E76E570E10AF14870553A7 = {
+			fileRef = "27AE7A480FD6C52FCA80FECD";
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		ED1E82605DD74B483AF3C982 = {
+			children = (
+				"9B36DA7E32F0304E780E7972",
+				"DA138F75C9F545CDAE7FB264",
+				"821416211D63F190AAAD016A",
+				"7BC2E65A5E699A5E5D834CA2",
+				"27AE7A480FD6C52FCA80FECD");
+			isa = PBXGroup;
+			name = "External Frameworks and Libraries";
+			path = "";
+			refType = 4;
+		};
+		2A1043669E6E5A7426EA502A = {
+			buildActionMask = 2147483647;
+			files = (
+				"501667F26B3C1FF6767A7C12",
+				"C8FD4A1AAA37CF2CA2824CCF",
+				"51D4DBF7CB8537BE86EBD055",
+				"069D05B0128AE5DC7EE31738",
+				"F9E76E570E10AF14870553A7");
+			isa = PBXFrameworksBuildPhase;
+			name = "Frameworks & Libraries";
+		};
+		3787F99312C85FF0073FD7BA = {
+			buildActionMask = 2147483647;
+			files = (
+			);
+			isa = PBXResourcesBuildPhase;
+			name = "Bundle Resources";
+		};
+		F6069D5A5DA8AA28EDB8B3C6 = {
+			name = "Project Copy";
+			buildActionMask = 2147483647;
+			dstPath = "/Users/nicola/Desktop/Zodiac-release-26:2:07";
+			dstSubfolderSpec = 0;
+			files = (
+"07E0DFA73EB56DCB9E28CDD9");
+			isa = PBXCopyFilesBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		07E0DFA73EB56DCB9E28CDD9 = {
+			fileRef = "F64D32B6FEF85C4D8DA95A87";
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		05596AB53D8D521C69802C27 = {
+			children = (
+				"FB61758D0F0FDA4BA867C3D5",
+				"46E892BBB6BB6952967E0561",
+				"883D7615C4D2DE3FA1218F12",
+				"7CABE3C80E79AD2B307756D2",
+				"52C235EBF1C9B07808119459",
+				"EEC299C65D5017EB9DD513B0",
+				"ED1E82605DD74B483AF3C982");
+			isa = PBXGroup;
+			name = "Zodiac-release-26:2:07";
+			path = "";
+			refType = 4;
+		};
+		F64D32B6FEF85C4D8DA95A87 = {
+			isa = PBXFileReference;
+			explicitFileType = "wrapper.application";
+			path = "Zodiac-release-26:2:07.app";
+			refType = 3;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		068F80C7519D0528FB08E821 = {
+			children = (
+				"F64D32B6FEF85C4D8DA95A87");
+			isa = PBXGroup;
+			name = "Products";
+			refType = 4;
+		};
+		A9DCCC8DA046777A74A13342 = {
+			buildPhases = (
+				"D7BA7D76DAB5DD13389D6332",
+				"A0A52A2ADF7A1E2A99738674",
+				"F6069D5A5DA8AA28EDB8B3C6",
+				"C29B8785722055ED95EF7B57",
+				"2A1043669E6E5A7426EA502A",
+				"3787F99312C85FF0073FD7BA");
+			buildSettings = {
+				HEADER_SEARCH_PATHS = (
+					"/Library/Frameworks/QtCore.framework/Versions/4/Headers",
+					"/usr/include/QtCore",
+					"/Library/Frameworks/QtGui.framework/Versions/4/Headers",
+					"/usr/include/QtGui",
+					"/usr/include",
+					".",
+					"openbabel/math",
+					"openbabel",
+					".",
+					".",
+					"/usr/local/include",
+					"/System/Library/Frameworks/CarbonCore.framework/Headers",
+					"/usr/local/Qt4.3/mkspecs/macx-xcode");
+				LIBRARY_SEARCH_PATHS = (
+					"/Library/Frameworks",
+					"/System/Library/Frameworks/");
+				OPTIMIZATION_CFLAGS = (
+					);
+				OTHER_CFLAGS = (
+					"-pipe",
+					"-g",
+					"-Wall",
+					"-W",
+					"-DQT_GUI_LIB",
+					"-DQT_CORE_LIB",
+					"-DQT_SHARED");
+				OTHER_CPLUSPLUSFLAGS = (
+					"-pipe",
+					"-g",
+					"-Wall",
+					"-W",
+					"-DQT_GUI_LIB",
+					"-DQT_CORE_LIB",
+					"-DQT_SHARED");
+				LEXFLAGS = "";
+				YACCFLAGS = "-d";
+				OTHER_REZFLAGS = "";
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = "";
+				PREBINDING = NO;
+				INFOPLIST_FILE = "Info.plist";
+				BUILD_ROOT = "/Users/nicola/Desktop/Zodiac-release-26:2:07";
+				OTHER_LDFLAGS = (
+					"-headerpad_max_install_names",
+					"-L/Library/Frameworks",
+					"-liconv",
+					"-lz",
+					"-lm");
+				DYLIB_CURRENT_VERSION = "1.0.0";
+				DYLIB_COMPATIBILITY_VERSION = "1.0";
+				PRODUCT_NAME = "Zodiac-release-26:2:07";
+			};
+			conditionalBuildSettings = {
+			};
+			dependencies = (
+				);
+			productReference = "F64D32B6FEF85C4D8DA95A87";
+			shouldUseHeadermap = 1;
+			isa = PBXNativeTarget;
+			productType = "com.apple.product-type.application";
+			productSettingsXML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<!DOCTYPE plist SYSTEM \"file://localhost/System/Library/DTDs/PropertyList.dtd\">
+<plist version=\"0.9\">
+<dict>
+	<key>CFBundleIconFile</key>
+	<string></string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+        <key>CFBundleGetInfoString</key>
+	<string>Created by Qt/QMake</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleExecutable</key>
+	<string>Zodiac-release-26:2:07</string>
+	<key>NOTE</key>
+	<string>Please, do NOT change this file -- It was generated by Qt/QMake.</string>
+</dict>
+</plist>
+";
+			name = "Zodiac-release-26:2:07";
+			productName = "Zodiac-release-26:2:07";
+			startupPath = "<<ProjectDirectory>>";
+		};
+		8DB1DD96F65B1BF1FFC506E0 = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = "NO";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = "YES";
+				GCC_OPTIMIZATION_LEVEL = "0";
+			};
+			name = "Debug";
+		};
+		2C641C3335766025DD51B7BD = {
+			buildRules = (
+				);
+			buildSettings = {
+				COPY_PHASE_STRIP = "NO";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = "YES";
+				GCC_OPTIMIZATION_LEVEL = "0";
+			};
+			isa = "PBXBuildStyle";
+			name = "Debug";
+		};
+		95E1EB2E5DDD587BE5B3E548 = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = "YES";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = "NO";
+			};
+			name = "Release";
+		};
+		26DE8D2AEA4B3714B41E931F = {
+			buildRules = (
+				);
+			buildSettings = {
+				COPY_PHASE_STRIP = "YES";
+				GCC_GENERATE_DEBUGGING_SYMBOLS = "NO";
+			};
+			isa = "PBXBuildStyle";
+			name = "Release";
+		};
+		2A951308CDB28F104D0A4BD2 = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				"8DB1DD96F65B1BF1FFC506E0",
+				"95E1EB2E5DDD587BE5B3E548");
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationIsName = "Debug";
+		};
+		91B15E841AA80083484172DE = {
+			buildStyles = (
+				"2C641C3335766025DD51B7BD",
+				"26DE8D2AEA4B3714B41E931F");
+			hasScannedForEncodings = 1;
+			isa = PBXProject;
+			mainGroup = "05596AB53D8D521C69802C27";
+			buildConfigurationList = "2A951308CDB28F104D0A4BD2";
+			projectDirPath = "";
+			targets = (
+				"A9DCCC8DA046777A74A13342");
+		};
+	};
+	rootObject = "91B15E841AA80083484172DE";
+}

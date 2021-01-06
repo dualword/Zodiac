@@ -1,0 +1,9 @@
+<RCC>
+	<qresource>
+     <file>icons/undo.png</file>
+     <file>icons/redo.png</file>
+     <file>icons/minimise.png</file>
+     <file>icons/zeden_ico.png</file>
+	 <file>icons/haptic.png</file>
+	</qresource>
+</RCC>
